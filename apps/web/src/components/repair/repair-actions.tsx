@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, MessageSquarePlus, RefreshCw, Send, Wrench, X } from "lucide-react";
+import { FlaskConical, MessageSquarePlus, RefreshCw, Send, Shield, Wrench, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import {
   approveRepairAction,
@@ -15,6 +15,7 @@ import {
   type RepairFormState,
 } from "@/app/actions/repairs";
 import { Button } from "@/components/ui/button";
+import { DialogPanel, FilledButton, OutlinedButton } from "@/design/components";
 
 function ErrorNote({ state }: { state: RepairFormState }) {
   return state.error ? (
@@ -45,33 +46,46 @@ export function ApproveRepairForm({ repairId, evidenceSha256, statement, reposit
   const [state, action, pending] = useActionState<RepairFormState, FormData>(approveRepairAction, {});
   const [cancelState, cancel, cancelling] = useActionState<RepairFormState, FormData>(cancelRepairAction, {});
   const [confirmed, setConfirmed] = useState(false);
+  // Android 16 confirmation dialog layout. Approval still requires the explicit checkbox and a human click.
   return (
-    <div className="flex flex-col gap-4">
-      <form action={action} className="flex flex-col gap-4">
+    <DialogPanel
+      titleId="approve-title"
+      icon={<Shield aria-hidden />}
+      title="Approve a paid Devin repair?"
+      className="mx-auto w-full max-w-xl"
+      body={
+        <p>
+          Repository: {repository}. Evidence checksum <span className="font-mono">{evidenceSha256.slice(0, 16)}…</span>
+        </p>
+      }
+      keepInMind={[
+        "Devin credits are spent once the session starts.",
+        `Devin may push a branch and open a pull request against ${repository}.`,
+        "FAULTLINE never merges the pull request; a person decides.",
+        "The sanitized evidence package and the repair prompt are shared with Devin.",
+      ]}
+    >
+      <form id="approve-form" action={action} className="flex flex-col gap-4">
         <input type="hidden" name="repairId" value={repairId} />
         <input type="hidden" name="evidenceSha256" value={evidenceSha256} />
-        <label className="flex items-start gap-3 rounded-lg border border-outline-variant p-4">
-          <input type="checkbox" name="confirm" className="mt-1 size-5 accent-[var(--primary)]" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} disabled={!canApprove} />
-          <span className="text-sm">
-            {statement} <span className="text-on-surface-variant">Repository: {repository}. Evidence checksum {evidenceSha256.slice(0, 16)}….</span>
-          </span>
+        <label className="md-body-medium flex min-h-12 items-start gap-3 rounded-lg bg-surface-container p-4">
+          <input type="checkbox" name="confirm" className="mt-0.5 size-5 accent-[var(--primary)]" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} disabled={!canApprove} />
+          <span>{statement}</span>
         </label>
-        {blockedReason ? <p className="rounded-md border border-dashed border-failure px-4 py-3 text-sm text-failure">{blockedReason}</p> : null}
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="lg" icon={<Send aria-hidden />} disabled={!canApprove || !confirmed || pending}>
-            {pending ? "Approving…" : "Approve and send to Devin"}
-          </Button>
-        </div>
+        {blockedReason ? <p className="md-body-medium rounded-md border border-dashed border-failure px-4 py-3 text-failure">{blockedReason}</p> : null}
+        <FilledButton type="submit" fullWidth icon={<Send aria-hidden />} disabled={!canApprove || !confirmed || pending}>
+          {pending ? "Approving…" : "Approve repair"}
+        </FilledButton>
         <ErrorNote state={state} />
       </form>
-      <form action={cancel}>
+      <form action={cancel} className="flex flex-col gap-2">
         <input type="hidden" name="repairId" value={repairId} />
-        <Button type="submit" variant="text" icon={<X aria-hidden />} disabled={cancelling}>
+        <OutlinedButton type="submit" fullWidth icon={<X aria-hidden />} disabled={cancelling}>
           Cancel request
-        </Button>
+        </OutlinedButton>
         <ErrorNote state={cancelState} />
       </form>
-    </div>
+    </DialogPanel>
   );
 }
 

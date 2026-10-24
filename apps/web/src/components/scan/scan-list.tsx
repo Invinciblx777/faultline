@@ -3,6 +3,7 @@ import Link from "next/link";
 import { describeScenario, EXECUTION_ROLE_LABELS, SCENARIO_LABELS, VERDICTS, type ExecutionRole } from "@faultline/shared";
 import { VerdictChip } from "@/components/analysis/verdict";
 import { OutcomeChip, ScanStatusChip } from "@/components/ui/status";
+import { ListGroup, SegmentedProgress, type SegmentState } from "@/design/components";
 import type { ScanListItem } from "@/lib/data/queries";
 import { formatDateTime, formatDuration, formatRelative, hostOf } from "@/lib/format";
 
@@ -18,24 +19,42 @@ function RunOutcome({ scan, role }: { scan: ScanListItem; role: ExecutionRole })
   );
 }
 
+/** Queued → running → completed as three gapped segments; failures and cancellations mark the segment they stopped in. */
+function phases(status: ScanListItem["status"]): Array<{ label: string; state: SegmentState }> {
+  const states: Record<string, [SegmentState, SegmentState, SegmentState]> = {
+    queued: ["active", "pending", "pending"],
+    running: ["done", "active", "pending"],
+    completed: ["done", "done", "done"],
+    failed: ["done", "done", "failed"],
+    cancelled: ["done", "failed", "pending"],
+  };
+  const [q, r, c] = states[status] ?? ["done", "active", "pending"];
+  return [
+    { label: "Queued", state: q },
+    { label: "Running", state: r },
+    { label: "Completed", state: c },
+  ];
+}
+
 export function ScanList({ scans, showProject = false }: { scans: ScanListItem[]; showProject?: boolean }) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ListGroup>
       {scans.map((scan) => (
-        <li key={scan.id}>
+        <li key={scan.id} className="overflow-hidden">
           <Link
             href={scan.scenarioKind === "blast-radius" ? `/scans/${scan.id}/blast-radius` : `/scans/${scan.id}`}
-            className="group flex flex-col gap-3 rounded-lg bg-surface-low px-5 py-4 transition-colors hover:bg-surface-container sm:flex-row sm:items-center sm:gap-6"
+            className="group flex flex-col gap-3 bg-surface-container px-5 py-4 transition-colors hover:bg-surface-high sm:flex-row sm:items-center sm:gap-6"
           >
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="type-title">{SCENARIO_LABELS[scan.scenarioKind]}</span>
-                <span className="text-sm text-on-surface-variant">{describeScenario(scan.scenarioConfig)}</span>
+                <span className="md-title-medium">{SCENARIO_LABELS[scan.scenarioKind]}</span>
+                <span className="md-body-medium text-on-surface-variant">{describeScenario(scan.scenarioConfig)}</span>
               </div>
-              <span className="truncate text-sm text-on-surface-variant">
+              <span className="md-body-medium truncate text-on-surface-variant">
                 {showProject ? <span className="text-on-surface">{scan.projectName} · </span> : null}
                 {hostOf(scan.targetUrl)}
               </span>
+              <SegmentedProgress label="Scan phases" segments={phases(scan.status)} className="max-w-64 pt-1" />
               <div className="flex flex-wrap gap-2 pt-1">
                 {scan.scenarioKind === "blast-radius" ? (
                   VERDICTS.filter((v) => scan.verdicts[v]).map((v) => (
@@ -53,7 +72,7 @@ export function ScanList({ scans, showProject = false }: { scans: ScanListItem[]
               </div>
             </div>
             <div className="flex items-center gap-4 sm:justify-end">
-              <div className="text-sm text-on-surface-variant sm:text-right">
+              <div className="md-label-medium text-on-surface-variant sm:text-right">
                 <time dateTime={scan.createdAt.toISOString()} title={formatDateTime(scan.createdAt)} className="block">
                   {formatRelative(scan.createdAt)}
                 </time>
@@ -65,6 +84,6 @@ export function ScanList({ scans, showProject = false }: { scans: ScanListItem[]
           </Link>
         </li>
       ))}
-    </ul>
+    </ListGroup>
   );
 }

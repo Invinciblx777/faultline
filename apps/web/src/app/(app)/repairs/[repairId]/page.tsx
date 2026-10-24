@@ -1,4 +1,4 @@
-import { Download, ExternalLink, FileCode, GitPullRequest, MessageSquareQuote, ShieldCheck } from "lucide-react";
+import { Bot, Download, ExternalLink, FileCode, GitPullRequest, MessageSquareQuote, MessageSquareText, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { describeFault, healthyScreenshotsIdentical, REPAIR_VERIFIABLE_STATUSES, verdictScope, type RepairEvidenceBundle } from "@faultline/shared";
@@ -17,6 +17,7 @@ import { formatDateTime, formatRelative } from "@/lib/format";
 import { getDevinConfig } from "@/lib/integrations";
 import { APPROVAL_STATEMENT, repositoryAccessBlock } from "@/lib/services/repairs";
 import { cn } from "@/lib/cn";
+import { Card, DisplayNumeral, ExpressiveShape, ListGroup, NotificationCard } from "@/design/components";
 
 export const metadata: Metadata = { title: "Repair" };
 
@@ -179,16 +180,64 @@ function VerifiedReport({ detail, canComment }: { detail: RepairDetail; canComme
   const style = VERIFICATION_STYLE[repair.verdict];
   const run = detail.runs.find((r) => r.id === repair.latestVerificationId);
   const commentIsCurrent = Boolean(repair.verdictCommentUrl && run && repair.verdictCommentRunId === run.id);
+  // Counts come from the verdict-deciding checks of the run that produced this verdict.
+  const verdictChecks = (stage: string) => (run?.checks ?? []).filter((c) => c.purpose === "verdict" && c.stage === stage);
+  const originalFault = verdictChecks("original-fault");
+  const candidateFault = verdictChecks("candidate-fault");
+  const VerdictIcon = style.icon;
+  // Every verdict on this commit, oldest first: the repair's own runs and cross-checks by other findings' tests.
+  const history = [...detail.runs].filter((r) => r.verdict).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   return (
-    <section aria-labelledby="report-title" className={cn("rounded-xl border-2 p-5 sm:p-6", style.panel)}>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <h2 id="report-title" className="type-headline text-2xl">
-          {repair.verdict === "verified_fixed" ? "Verified fix report" : "Verification report"}
-        </h2>
-        <VerificationVerdictChip verdict={repair.verdict} />
+    <Card tier="container" aria-labelledby="report-title" className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <span className="relative grid h-40 w-full shrink-0 place-items-center sm:w-72">
+          <ExpressiveShape shape="blob" className={cn("absolute inset-0 h-full w-full", style.blob)} />
+          <span className="relative flex flex-col items-center gap-1 px-6 text-center">
+            <VerdictIcon aria-hidden className="size-8" />
+            <span className="md-headline-medium">{style.label}</span>
+          </span>
+        </span>
+        <div className="flex min-w-0 flex-col gap-3">
+          <h2 id="report-title" className="md-title-large">
+            {repair.verdict === "verified_fixed" ? "Verified fix report" : "Verification report"}
+          </h2>
+          <div className="flex flex-wrap gap-6">
+            {originalFault.length ? (
+              <DisplayNumeral
+                value={`${originalFault.filter((c) => c.status === "failed").length}/${originalFault.length}`}
+                caption="original runs fail under the fault"
+                tone="text-failure"
+              />
+            ) : null}
+            {candidateFault.length ? (
+              <DisplayNumeral
+                value={`${candidateFault.filter((c) => c.status === "passed").length}/${candidateFault.length}`}
+                caption="candidate runs pass under the fault"
+                tone={style.text}
+              />
+            ) : null}
+          </div>
+          <p className="md-body-medium text-on-surface">{verdictScope(repair.verdict, healthyScreenshotsIdentical(run?.checks ?? []))}</p>
+        </div>
       </div>
-      <p className="mb-4 rounded-lg bg-surface-lowest/70 px-4 py-3 text-sm font-medium">{verdictScope(repair.verdict, healthyScreenshotsIdentical(run?.checks ?? []))}</p>
-      <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[minmax(12rem,auto)_1fr]">
+
+      {history.length > 1 ? (
+        <div className="flex flex-col gap-2">
+          <h3 className="md-title-medium">Verdicts on this pull request, in order</h3>
+          <ol className="flex flex-wrap items-center gap-2">
+            {history.map((r, i) => (
+              <li key={r.id} className="flex items-center gap-2">
+                <span className="md-label-medium text-on-surface-variant">
+                  v{i + 1} · {r.crossCheckExperimentId ? "cross-check" : "repair test"} · {r.candidateSha.slice(0, 7)}
+                </span>
+                <VerificationVerdictChip verdict={r.verdict!} />
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
+      <dl className="md-body-medium grid gap-x-6 gap-y-1 sm:grid-cols-[minmax(12rem,auto)_1fr]">
         <dt className="text-on-surface-variant">Finding</dt>
         <dd>
           {repair.evidence.finding.verdict} · {repair.evidence.finding.fault}
@@ -201,10 +250,6 @@ function VerifiedReport({ detail, canComment }: { detail: RepairDetail; canComme
         <dd className="font-mono break-all">{run?.originalSha ?? repair.baseSha}</dd>
         <dt className="text-on-surface-variant">Verified commit</dt>
         <dd className="font-mono break-all">{repair.verifiedSha}</dd>
-        <dt className="text-on-surface-variant">Pull request</dt>
-        <dd>{repair.prUrl ? <a className="text-primary underline-offset-4 hover:underline" href={repair.prUrl}>#{repair.prNumber}</a> : "none"}</dd>
-        <dt className="text-on-surface-variant">Devin session</dt>
-        <dd className="break-all">{repair.devinSessionUrl ?? "none"}</dd>
         <dt className="text-on-surface-variant">Regression test</dt>
         <dd className="break-all">
           {repair.evidence.regressionTest.filename} · <span className="font-mono">{repair.regressionTestSha256.slice(0, 16)}</span> (unchanged)
@@ -217,42 +262,55 @@ function VerifiedReport({ detail, canComment }: { detail: RepairDetail; canComme
         <dd>{formatDateTime(repair.verdictAt)}</dd>
       </dl>
       {repair.verdictRationale?.length ? (
-        <ul className="mt-3 flex list-disc flex-col gap-1 pl-5 text-sm">
+        <ul className="md-body-medium flex list-disc flex-col gap-1 pl-5">
           {repair.verdictRationale.map((r, i) => (
             <li key={i}>{r}</li>
           ))}
         </ul>
       ) : null}
       {repair.prAgentLimitations.length ? (
-        <figure className="mt-4 rounded-lg border border-outline-variant bg-surface-lowest/70 px-4 py-3">
-          <figcaption className="type-label mb-2 inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+        <figure className="rounded-lg bg-surface-high px-5 py-4">
+          <figcaption className="md-label-medium mb-2 inline-flex items-center gap-1.5 text-on-surface-variant">
             <MessageSquareQuote aria-hidden className="size-4" /> Agent-stated limitation, quoted from pull request #{repair.prNumber}
           </figcaption>
-          <blockquote className="flex flex-col gap-2 border-l-2 border-outline pl-3 text-sm italic">
+          <blockquote className="md-body-medium flex flex-col gap-2 italic">
             {repair.prAgentLimitations.map((l, i) => (
               <p key={i}>&ldquo;{l}&rdquo;</p>
             ))}
           </blockquote>
         </figure>
       ) : null}
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        {commentIsCurrent ? (
-          <a href={repair.verdictCommentUrl ?? undefined} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary underline-offset-4 hover:underline">
-            Verdict posted on pull request #{repair.prNumber} <ExternalLink aria-hidden className="size-4" />
-          </a>
-        ) : canComment && repair.prNumber && run ? (
-          <PostVerdictCommentButton repairId={repair.id} prNumber={repair.prNumber} />
+
+      <ListGroup>
+        {repair.devinSessionUrl ? (
+          <li>
+            <NotificationCard icon={<Bot aria-hidden />} source="Devin session" title={repair.devinSessionId ?? "Session"} body="Approved by a human click; FAULTLINE judges the result independently." href={repair.devinSessionUrl} />
+          </li>
         ) : null}
-        <a href={`/api/repairs/${repair.id}/verdict`} className="inline-flex items-center gap-1.5 text-primary underline-offset-4 hover:underline">
-          <Download aria-hidden className="size-4" /> Verdict report (Markdown)
+        {repair.prUrl ? (
+          <li>
+            <NotificationCard icon={<GitPullRequest aria-hidden />} source={`Pull request #${repair.prNumber}`} time={repair.prMerged ? "merged" : (repair.prState ?? undefined)} title={repair.prTitle ?? `#${repair.prNumber}`} href={repair.prUrl} />
+          </li>
+        ) : null}
+        {commentIsCurrent && repair.verdictCommentUrl ? (
+          <li>
+            <NotificationCard icon={<MessageSquareText aria-hidden />} source={`Verdict comment · pull request #${repair.prNumber}`} time={formatDateTime(repair.verdictCommentPostedAt)} title={`${style.label} posted on the pull request`} href={repair.verdictCommentUrl} />
+          </li>
+        ) : null}
+      </ListGroup>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        {!commentIsCurrent && canComment && repair.prNumber && run ? <PostVerdictCommentButton repairId={repair.id} prNumber={repair.prNumber} /> : null}
+        <a href={`/api/repairs/${repair.id}/verdict`} className="md-title-medium inline-flex min-h-12 items-center gap-2 rounded-full bg-secondary-container px-6 text-on-secondary-container hover:brightness-110">
+          <Download aria-hidden className="size-5" /> Verdict report (Markdown)
         </a>
       </div>
       {repair.prHeadSha && repair.verifiedSha && repair.prHeadSha !== repair.verifiedSha ? (
-        <p className="mt-3 text-sm font-medium text-incomplete">
+        <p className="md-body-medium font-medium text-tertiary">
           The pull request has moved to {repair.prHeadSha.slice(0, 12)} since verification. This verdict applies only to {repair.verifiedSha.slice(0, 12)}; verify again.
         </p>
       ) : null}
-    </section>
+    </Card>
   );
 }
 
@@ -319,8 +377,8 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
         <VerifiedReport detail={detail} canComment={isApprover} />
 
         {repair.status === "awaiting_approval" ? (
-          <Surface level="container" aria-labelledby="launch-title">
-            <h2 id="launch-title" className="type-title mb-1 text-lg">
+          <Surface level="low" aria-labelledby="launch-title">
+            <h2 id="launch-title" className="md-title-large mb-1">
               Launch a Devin repair session
             </h2>
             <Description className="mb-4">
@@ -390,7 +448,7 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
             {crossRuns.map((run) => {
               const finding = detail.crossCheckFindings.find((f) => f.experimentId === run.crossCheckExperimentId);
               return (
-                <div key={run.id} className="mt-6 border-t border-outline-variant pt-6">
+                <div key={run.id} className="mt-6 rounded-xl bg-surface-container p-4 sm:p-5">
                   <p className="mb-3 text-sm font-medium break-words">
                     Judged by: {finding ? findingLabel(finding) : `finding ${run.crossCheckExperimentId?.slice(0, 8)}`} · test <span className="font-mono">{run.regressionTestSha256.slice(0, 16)}</span>
                   </p>
@@ -411,7 +469,7 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
               {detail.originalShots.map((s) => (
                 <figure key={s.id} className="flex flex-col gap-2">
                   <figcaption className="text-sm">{s.role === "baseline" ? "Normal conditions" : "Under the fault"}</figcaption>
-                  <a href={`/api/artifacts/${s.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-outline-variant">
+                  <a href={`/api/artifacts/${s.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg bg-surface-container">
                     {/* eslint-disable-next-line @next/next/no-img-element -- authenticated artifact route */}
                     <img src={`/api/artifacts/${s.id}`} alt={`Original analysis screenshot, ${s.role}`} width={s.width ?? undefined} height={s.height ?? undefined} className="h-auto w-full" loading="lazy" />
                   </a>

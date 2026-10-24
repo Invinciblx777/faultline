@@ -1,9 +1,10 @@
-import { FolderPlus, Globe, Plus } from "lucide-react";
+import { ChevronRight, FolderPlus, Globe, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { ListGroup } from "@/design/components";
 import { requireOperator } from "@/lib/auth/dal";
 import { listProjects } from "@/lib/data/queries";
 import { formatRelative } from "@/lib/format";
@@ -40,28 +41,30 @@ export default async function ProjectsPage() {
           Scans and their evidence are stored under it.
         </EmptyState>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ListGroup>
           {projects.map((project) => (
-            <li key={project.id}>
+            <li key={project.id} className="overflow-hidden">
               <Link
                 href={`/projects/${project.id}`}
-                className="group grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded-lg bg-surface-low px-5 py-4 transition-colors hover:bg-surface-container sm:grid-cols-[auto_1fr_auto]"
+                className="group grid grid-cols-[auto_1fr_auto] items-center gap-x-4 gap-y-1 bg-surface-container px-5 py-4 transition-colors hover:bg-surface-high sm:grid-cols-[auto_1fr_auto_auto]"
               >
-                <span className="row-span-2 grid size-11 place-items-center rounded-md bg-surface-high text-normal sm:row-span-1">
+                <span className="row-span-2 grid size-12 place-items-center rounded-full bg-primary-container text-on-primary-container sm:row-span-1">
                   <Globe aria-hidden className="size-5" />
                 </span>
                 <span className="min-w-0">
-                  <span className="type-title block truncate text-lg">{project.name}</span>
-                  <span className="block truncate text-sm text-on-surface-variant">{project.origin}</span>
+                  <span className="md-label-medium block truncate text-on-surface-variant">
+                    {project.origin} · last scan {formatRelative(project.lastScanAt)}
+                  </span>
+                  <span className="md-title-large block truncate">{project.name}</span>
                 </span>
-                <span className="col-start-2 text-sm text-on-surface-variant sm:col-start-3 sm:text-right">
+                <span className="md-label-medium col-start-2 text-on-surface-variant sm:col-start-3 sm:text-right">
                   <span className="tabular">{project.scanCount}</span> {project.scanCount === 1 ? "scan" : "scans"}
-                  <span className="block sm:mt-0.5">Last scan {formatRelative(project.lastScanAt)}</span>
                 </span>
+                <ChevronRight aria-hidden className="col-start-3 row-span-2 row-start-1 size-5 text-on-surface-variant sm:col-start-4 sm:row-span-1" />
               </Link>
             </li>
           ))}
-        </ul>
+        </ListGroup>
       )}
     </>
   );

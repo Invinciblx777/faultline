@@ -11,11 +11,11 @@ import {
 import { cn } from "@/lib/cn";
 
 const toneClasses: Record<EvidenceTone, string> = {
-  failure: "bg-failure-container text-on-failure-container",
+  failure: "bg-error-container text-on-error-container",
   success: "bg-success-container text-on-success-container",
   running: "bg-primary-container text-on-primary-container",
-  incomplete: "border border-dashed border-incomplete text-incomplete",
-  unavailable: "border border-dashed border-outline text-unavailable",
+  incomplete: "border border-dashed border-tertiary bg-surface-high text-tertiary",
+  unavailable: "border border-dashed border-outline-variant bg-surface-high text-on-surface-variant",
   neutral: "bg-surface-highest text-on-surface-variant",
 };
 
@@ -31,7 +31,7 @@ const toneIcons: Record<EvidenceTone, LucideIcon> = {
 export function ToneChip({ tone, label, className, icon }: { tone: EvidenceTone; label: string; className?: string; icon?: LucideIcon }) {
   const Icon = icon ?? toneIcons[tone];
   return (
-    <span className={cn("type-label inline-flex h-7 items-center gap-1.5 rounded-sm px-2.5 whitespace-nowrap", toneClasses[tone], className)}>
+    <span className={cn("md-label-medium inline-flex h-8 items-center gap-1.5 rounded-sm px-3 whitespace-nowrap", toneClasses[tone], className)}>
       <Icon aria-hidden className={cn("size-4", tone === "running" && "animate-spin motion-reduce:animate-none")} />
       {label}
     </span>

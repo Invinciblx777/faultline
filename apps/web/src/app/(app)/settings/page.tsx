@@ -60,9 +60,9 @@ export default async function SettingsPage() {
             <span className="tabular">{queue.queued}</span> queued, <span className="tabular">{queue.running}</span> running.
           </Description>
           {workers.online.length ? (
-            <ul className="flex flex-col gap-2 text-sm">
+            <ul className="flex flex-col gap-0.5 text-sm">
               {workers.online.map((w) => (
-                <li key={w.id} className="rounded-md bg-surface-container px-4 py-3">
+                <li key={w.id} className="rounded-sm bg-surface-container px-4 py-3 first:rounded-t-lg last:rounded-b-lg">
                   <span className="block font-medium">{w.id}</span>
                   <span className="block text-on-surface-variant">
                     Chromium {w.browserVersion ?? "unknown"} · Playwright {w.playwrightVersion ?? "unknown"} · concurrency {w.concurrency} · heartbeat{" "}
@@ -181,7 +181,7 @@ export default async function SettingsPage() {
           </Description>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {FUTURE.map((f) => (
-              <li key={f.name} className="flex flex-col gap-2 rounded-md border border-dashed border-outline-variant px-4 py-3">
+              <li key={f.name} className="flex flex-col gap-2 rounded-lg border-2 border-dashed border-outline-variant bg-surface-container px-4 py-3">
                 <span className="text-sm font-medium">{f.name}</span>
                 <span className="text-xs text-on-surface-variant">{f.area}</span>
                 <ToneChip tone="unavailable" label="Unavailable" className="w-fit" />

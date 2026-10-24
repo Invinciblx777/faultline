@@ -26,15 +26,15 @@ export function ThemeToggle({ initial }: { initial: string }) {
         document.documentElement.dataset.theme = value;
         startTransition(() => setThemeAction(value));
       }}
-      className="inline-flex rounded-full border border-outline p-1"
+      className="inline-flex gap-1 rounded-full bg-surface-high p-1"
     >
       {OPTIONS.map(({ value, label, icon: Icon }) => (
         <ToggleGroup.Item
           key={value}
           value={value}
           className={cn(
-            "type-label inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 transition-colors",
-            "text-on-surface-variant hover:text-on-surface data-[state=on]:bg-primary-container data-[state=on]:text-on-primary-container",
+            "md-label-medium inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 transition-colors",
+            "text-on-surface-variant hover:text-on-surface data-[state=on]:bg-secondary-container data-[state=on]:text-on-secondary-container",
           )}
         >
           <Icon aria-hidden className="size-4" />

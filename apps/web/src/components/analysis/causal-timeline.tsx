@@ -41,11 +41,15 @@ function sourceOf(event: Event): { label: string; className: string } {
  * time, which is consistent with cause and effect but does not prove it; the
  * verdict comes from comparing the same checks against the baseline runs.
  */
-export function CausalTimeline({ attempt }: { attempt: Attempt }) {
+const normalize = (message: string) => message.replace(/\s+/g, " ").trim();
+
+export function CausalTimeline({ attempt, baselineEvents = [] }: { attempt: Attempt; baselineEvents?: Event[] }) {
+  // Events the baseline also produced (for example safety blocks of analytics beacons) are not part of the fault's sequence.
+  const normal = new Set(baselineEvents.map((e) => `${e.kind} ${normalize(e.message)}`));
   const events = attempt.events.filter((e) => !(e.kind === "navigation" && e.severity === "info" && e.message.startsWith("Redirected")) && e.kind !== "screenshot");
   const firstInjected = events.find((e) => e.kind === "fault_injected");
   const firstFailure = events.find((e) => (e.kind === "assertion" || e.kind === "journey_step") && e.severity === "error");
-  const between = firstInjected && firstFailure ? events.filter((e) => e.seq > firstInjected.seq && e.seq < firstFailure.seq && e.severity !== "info" && e.kind !== "fault_injected") : [];
+  const between = firstInjected && firstFailure ? events.filter((e) => e.seq > firstInjected.seq && e.seq < firstFailure.seq && e.severity !== "info" && e.kind !== "fault_injected" && e.kind !== "policy_block" && !normal.has(`${e.kind} ${normalize(e.message)}`)) : [];
 
   return (
     <div>

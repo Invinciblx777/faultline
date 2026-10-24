@@ -240,7 +240,7 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
                 <tr>
                   <th className="px-4 py-3 font-medium">Dependency</th>
                   <th className="px-4 py-3 font-medium">Origin</th>
-                  <th className="px-4 py-3 font-medium">Requests</th>
+                  <th className="px-4 py-3 font-medium">Requests (both runs)</th>
                   <th className="px-4 py-3 font-medium">Median</th>
                   <th className="px-4 py-3 font-medium">Requested in steps</th>
                   <th className="px-4 py-3 font-medium">Tested</th>

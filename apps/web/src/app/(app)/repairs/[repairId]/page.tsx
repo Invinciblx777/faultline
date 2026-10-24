@@ -2,7 +2,7 @@ import { ExternalLink, FileCode, GitPullRequest, ShieldCheck } from "lucide-reac
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { REPAIR_VERIFIABLE_STATUSES, VERIFICATION_VERDICT_DEFINITIONS, type RepairEvidenceBundle } from "@faultline/shared";
-import { ApproveRepairForm, CancelQueuedButton, RefreshRepairButton, VerifyButton } from "@/components/repair/repair-actions";
+import { ApproveRepairForm, CancelQueuedButton, CheckRepairAccessButton, RefreshRepairButton, VerifyButton } from "@/components/repair/repair-actions";
 import { RepairLive } from "@/components/repair/repair-live";
 import { RepairStatusChip, VERIFICATION_STYLE, VerificationVerdictChip } from "@/components/repair/repair-status";
 import { RepairStepper, repairSteps } from "@/components/repair/repair-stepper";
@@ -15,7 +15,7 @@ import { getRepair, getRepairStatus, type RepairDetail } from "@/lib/data/repair
 import { getEnv } from "@/lib/env";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { getDevinConfig } from "@/lib/integrations";
-import { APPROVAL_STATEMENT } from "@/lib/services/repairs";
+import { APPROVAL_STATEMENT, repositoryAccessBlock } from "@/lib/services/repairs";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Repair" };
@@ -238,7 +238,7 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
     ? `Devin is not configured on this server: ${devin.reason} Approval is disabled; no session can be created.`
     : !isApprover
       ? `${operator.username} is not on FAULTLINE_REPAIR_APPROVERS, so this account cannot approve Devin sessions.`
-      : null;
+      : repositoryAccessBlock(detail.repository, repair);
   const verifiable = (REPAIR_VERIFIABLE_STATUSES as readonly string[]).includes(repair.status) && Boolean(repair.prHeadSha) && latestRun?.status !== "queued" && latestRun?.status !== "running";
   const pollIntervalMs = Number(process.env.FAULTLINE_DEVIN_POLL_INTERVAL_MS) || 20_000;
 
@@ -296,6 +296,14 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
               canApprove={!blockedReason}
               blockedReason={blockedReason}
             />
+            {devin.configured ? (
+              <div className="mt-4 flex flex-col gap-1">
+                <CheckRepairAccessButton repairId={repair.id} />
+                <p className="text-xs text-on-surface-variant">
+                  {detail.repository.devinCheckedAt ? `Last checked ${formatRelative(detail.repository.devinCheckedAt)}. ` : ""}Confirms the key, the organization, and that Devin lists this exact repository. No session is created.
+                </p>
+              </div>
+            ) : null}
           </Surface>
         ) : null}
 

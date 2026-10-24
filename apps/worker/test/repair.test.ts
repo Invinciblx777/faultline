@@ -200,7 +200,7 @@ interface DevinCall {
 }
 
 /** Devin API v3 at the HTTP layer, with response shapes from Devin's OpenAPI document. */
-function fakeDevin(behaviour: { create?: "ok" | "timeout"; sessions?: Record<string, unknown>[]; session?: () => Record<string, unknown>; messages?: Array<{ event_id: string; source: string; message: string; created_at: number }> }) {
+function fakeDevin(behaviour: { repos?: string[]; orgId?: string; create?: "ok" | "timeout"; sessions?: Record<string, unknown>[]; session?: () => Record<string, unknown>; messages?: Array<{ event_id: string; source: string; message: string; created_at: number }> }) {
   const calls: DevinCall[] = [];
   const sessionId = `devin-${randomUUID()}`;
   const session = (extra: Record<string, unknown> = {}) => ({
@@ -222,6 +222,11 @@ function fakeDevin(behaviour: { create?: "ok" | "timeout"; sessions?: Record<str
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : init?.body instanceof FormData ? "multipart" : null;
     calls.push({ method, path: url.pathname, body });
     expect((init?.headers as Record<string, string>).authorization).toBe("Bearer cog_test_key_0123456789");
+    if (method === "GET" && url.pathname === "/v3/self") return json({ principal_type: "service_user", service_user_name: "faultline", org_id: behaviour.orgId ?? "org-test" });
+    if (method === "GET" && url.pathname.endsWith("/repositories")) {
+      const items = (behaviour.repos ?? [`${OWNER}/${NAME}`]).map((full) => ({ repo_full_name: full, repo_name: full.split("/")[1], repo_path: full, git_connection_host: "github.com" }));
+      return json({ items, has_next_page: false, end_cursor: null });
+    }
     if (method === "POST" && url.pathname.endsWith("/attachments")) return json({ attachment_id: `att-${calls.length}`, name: "shot.png", url: `https://attachments.devin.ai/att-${calls.length}` });
     if (method === "POST" && url.pathname.endsWith("/sessions")) {
       if (behaviour.create === "timeout") throw Object.assign(new Error("The operation timed out."), { name: "TimeoutError" });
@@ -275,6 +280,8 @@ describe("repair approval and Devin submission", () => {
 
     const creates = devin.calls.filter((c) => c.method === "POST" && c.path.endsWith("/sessions"));
     expect(creates).toHaveLength(1);
+    // The live access preflight runs before anything is sent to Devin.
+    expect(devin.calls.slice(0, 2).map((c) => `${c.method} ${c.path}`)).toEqual(["GET /v3/self", "GET /v3/organizations/org-test/repositories"]);
     const body = creates[0]!.body as { prompt: string; tags: string[]; repos: string[]; attachment_urls?: string[] };
     expect(body.tags).toEqual(["faultline", repair.devinTag]);
     expect(body.repos).toEqual([`${OWNER}/${NAME}`]);
@@ -288,7 +295,36 @@ describe("repair approval and Devin submission", () => {
     expect(row.prompt).toBe(body.prompt);
     expect(row.promptSha256).toBe(sha256Hex(body.prompt));
     expect(row.attachments?.every((a) => a.url && !a.error)).toBe(true);
-    expect((await events(repair.id)).map((e) => e.kind)).toEqual(expect.arrayContaining(["submission_started", "attachments", "session_created"]));
+    expect((await events(repair.id)).map((e) => e.kind)).toEqual(expect.arrayContaining(["submission_started", "preflight", "attachments", "session_created"]));
+  });
+
+  it("fails closed when the live preflight cannot confirm the repository, sending nothing to Devin", async () => {
+    for (const devin of [fakeDevin({ repos: [] }), fakeDevin({ orgId: "org-other" })]) {
+      const repair = await createRepair();
+      await approve(repair.id);
+      await submitRepair(agentDeps(devin.client), repair.id);
+      expect(devin.calls.filter((c) => c.method === "POST")).toHaveLength(0);
+      const row = await reload(repair.id);
+      expect(row.status).toBe("devin_failed");
+      expect(row.devinSessionId).toBeNull();
+      expect(row.statusDetail).toMatch(/preflight failed, so no Devin session was created/);
+      const [stored] = await handle.db.select().from(sourceRepositories).where(eq(sourceRepositories.id, row.repositoryId));
+      expect(stored!.devinStatus).toBe("error");
+    }
+  });
+
+  it("fails closed when the project was relinked after approval", async () => {
+    const repair = await createRepair();
+    await approve(repair.id);
+    await handle.db.update(sourceRepositories).set({ name: "other" }).where(eq(sourceRepositories.id, repair.repositoryId));
+    const devin = fakeDevin({});
+    try {
+      await submitRepair(agentDeps(devin.client), repair.id);
+    } finally {
+      await handle.db.update(sourceRepositories).set({ name: NAME }).where(eq(sourceRepositories.id, repair.repositoryId));
+    }
+    expect(devin.calls).toHaveLength(0);
+    expect((await reload(repair.id)).statusDetail).toMatch(/now linked to acme\/other/);
   });
 
   it("fails honestly without credentials instead of pretending to submit", async () => {

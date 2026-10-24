@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import {
   approveRepairAction,
   cancelRepairAction,
+  checkRepairAccessAction,
   createRepairAction,
   recheckRepositoryAction,
   refreshRepairAction,
@@ -69,6 +70,22 @@ export function ApproveRepairForm({ repairId, evidenceSha256, statement, reposit
         <ErrorNote state={cancelState} />
       </form>
     </div>
+  );
+}
+
+/** Read-only towards Devin: GET /v3/self and the organization's repository list. */
+export function CheckRepairAccessButton({ repairId }: { repairId: string }) {
+  const [state, action, pending] = useActionState<RepairFormState, FormData>(checkRepairAccessAction, {});
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="repairId" value={repairId} />
+      <div>
+        <Button type="submit" variant="outlined" size="sm" icon={<RefreshCw aria-hidden />} disabled={pending}>
+          {pending ? "Checking…" : "Check repository access"}
+        </Button>
+      </div>
+      <ErrorNote state={state} />
+    </form>
   );
 }
 

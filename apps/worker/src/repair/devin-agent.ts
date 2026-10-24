@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import {
   artifacts,
   claimRepairSubmission,
+  recordDevinAccess,
   recordRepairEvent,
   repairRequests,
   setRepairStatus,
@@ -14,7 +15,7 @@ import {
 } from "@faultline/db";
 import { buildRepairPrompt, parsePullRequestUrl, sanitizeEvidenceText, validatePullRequest, type RepairStatus } from "@faultline/shared";
 import { sha256Hex } from "@faultline/shared/checksum";
-import { DevinApiError, devinTimestamp, GitHubApiError, type DevinClient, type DevinSession, type GitHubClient } from "@faultline/shared/integrations";
+import { checkDevinRepositoryAccess, DevinApiError, devinTimestamp, GitHubApiError, type DevinClient, type DevinSession, type GitHubClient } from "@faultline/shared/integrations";
 
 export interface RepairAgentDeps {
   db: Database;
@@ -102,6 +103,18 @@ export async function submitRepair(deps: RepairAgentDeps, repairId: string): Pro
   if (!devin) return failSubmission(deps, repair.id, `Devin is not configured: ${deps.devinUnavailable}`);
   const [repo] = await deps.db.select().from(sourceRepositories).where(eq(sourceRepositories.id, repair.repositoryId));
   if (!repo) return failSubmission(deps, repair.id, "The linked repository no longer exists.");
+  const target = `${repair.repoOwner}/${repair.repoName}`;
+  if (`${repo.owner}/${repo.name}`.toLowerCase() !== target.toLowerCase()) {
+    return failSubmission(deps, repair.id, `The project is now linked to ${repo.owner}/${repo.name}, but this request was approved for ${target}. No session was created.`);
+  }
+
+  // Fail-closed preflight, live and uncached, before anything is sent to Devin.
+  const access = await checkDevinRepositoryAccess(devin, target);
+  await recordDevinAccess(deps.db, repo.id, access);
+  if (!access.ok) {
+    return failSubmission(deps, repair.id, `Repository access preflight failed, so no Devin session was created: ${access.reason}`, { preflight: access.code });
+  }
+  await recordRepairEvent(deps.db, repair.id, { source: "faultline", kind: "preflight", message: `Devin's ${access.host} connection lists ${access.repoName}; credentials and organization confirmed.`, detail: { repoName: access.repoName, checkedAt: access.checkedAt.toISOString() } });
 
   const attachments = deps.attachScreenshots ? await uploadScreenshots(deps, devin, repair) : [];
   const delivered = attachments.filter((a) => a.url);
@@ -127,7 +140,7 @@ export async function submitRepair(deps: RepairAgentDeps, repairId: string): Pro
       prompt,
       title: `FAULTLINE repair: ${repair.evidence.finding.fault}`.slice(0, 200),
       tags: ["faultline", repair.devinTag],
-      repos: [repo.devinRepoName ?? `${repair.repoOwner}/${repair.repoName}`],
+      repos: [access.repoName],
       ...(delivered.length ? { attachment_urls: delivered.map((a) => a.url!) } : {}),
       ...(deps.maxAcuLimit ? { max_acu_limit: deps.maxAcuLimit } : {}),
     });

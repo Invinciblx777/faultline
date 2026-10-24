@@ -40,11 +40,12 @@ Every screenshot, error, and number in FAULTLINE comes from a recorded browser e
 - **Source repository** per project: a GitHub repository on the server's `FAULTLINE_REPAIR_REPOSITORIES` list, checked against GitHub and Devin when linked. No credentials are entered in the browser.
 - **Fix with Devin** on a BROKEN or DEGRADED finding whose regression test fails on the current site. FAULTLINE builds a sanitized evidence package (checksum stored), the repair prompt, and shows both for review. Nothing is sent yet.
 - **Explicit approval** by an operator on `FAULTLINE_REPAIR_APPROVERS`, tied to the evidence checksum. Only then does the worker create one Devin API v3 session (tagged, so an unconfirmed request is recovered by lookup instead of being sent twice).
+- **Fail-closed repository-access preflight.** Approval and session creation both require a live check: the v3 key authenticates (`GET /v3/self`), belongs to `DEVIN_ORG_ID`, and that organization's GitHub connection lists the exact linked repository. The approval button stays disabled, with the reason, until such a check succeeded within the last 10 minutes (**Check repository access** on the repair page). The server checks again at approval, and the worker checks again before it uploads screenshots or creates the session. A failed check sends nothing and spends no credits.
 - **Live progress** from stored rows: Devin session status and messages, polled by the worker; pull requests are accepted only when GitHub confirms them for the linked repository and base branch. FAULTLINE never merges.
 - **Independent verification** of the pull request's exact head commit: the original and the candidate commit are each downloaded from GitHub, run in a locked-down container (read-only, no capabilities, internal network with no egress), and tested with the **unchanged** regression test (twice each) and the journey under normal conditions. Verdicts: VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, VERIFICATION BLOCKED.
 - **Verified fix report** with before/after screenshots, every check, commit SHAs, and the audit trail.
 
-Without `DEVIN_API_KEY` and `DEVIN_ORG_ID`, repair requests can be prepared and reviewed but not approved; the UI says so.
+Without `DEVIN_API_KEY` and `DEVIN_ORG_ID`, or without Devin access to the linked repository, repair requests can be prepared and reviewed but not approved; the UI says why. After upgrading, run `pnpm db:migrate` (migration `0003` adds `source_repositories.devin_checked_at`).
 
 Not yet: AI analysis, Fault DNA graphs. Typed contracts for the AI and repair integrations live in [`packages/shared/src/contracts`](packages/shared/src/contracts); the UI labels them unavailable.
 

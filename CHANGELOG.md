@@ -2,6 +2,34 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T00:48+05:30 — Phase 3.6 connection preflight: Devin repository access confirmed
+
+- Changed: `PHASE_STATUS.md` gains a Phase 3.6 section. `AI_USAGE.md` records the check. No code changed.
+- Why: The operator granted the Devin GitHub app access to `Invinciblx777/faultline-reference-shop`; it had to be verified live before approval.
+- Validation: `checkDevinRepositoryAccess` called live returned `ok` (service user, organization matches, repository listed through `github.com`). **Check repository access** on the repair page stored `devin_status = ok`. Repair `268eeabb…` checksums recomputed: match; still `awaiting_approval` with no session. The stored regression test still fails against the original storefront. Approval UI is enabled.
+- Limitations: Repository listing does not prove clone or push access. No Devin session yet: approval is left to the operator.
+
+## 2026-10-25T00:40+05:30 — Phase 3.5 fail-closed repository-access preflight
+
+- Changed: `packages/shared` adds `checkDevinRepositoryAccess` (read-only `GET /v3/self` plus the organization's repository list; fails on rejected credentials, a key from another organization, refused or failed requests, a repository Devin does not list, or a non-GitHub connection). `packages/db` migration `0003` adds `source_repositories.devin_checked_at` and `recordDevinAccess`. `apps/web`: approval runs the live check for the request's exact repository before the existing atomic status-and-checksum update, and refuses when the project was relinked. The repair page disables approval with the specific reason unless a successful check is under 10 minutes old, and adds **Check repository access**. `apps/worker`: `submitRepair` runs the live check after claiming and before uploading screenshots or creating the session, and passes Devin's own `repo_full_name` as `repos`. Docs: `README.md`, `docs/security.md`, `PHASE_STATUS.md`, `AI_USAGE.md`.
+- Why: The approval gate checked only that a key was configured. A session approved before Devin's GitHub app could see the private repository would spend credits without being able to clone it.
+- Validation: `pnpm test` passed (shared 148, db 5, web 34, worker 55 passed with 4 skipped: the real-container tests need `GITHUB_TOKEN` in the test shell). New tests cover a missing repository, a key from another organization, a refused organization, failed API requests (401, 500, 503, network, malformed body), stale, unchecked, or failed stored state, a relinked project, and successful access. `pnpm typecheck`, `pnpm lint`, and `pnpm build` passed. Dev database migrated. Web and worker restarted on the new build. A live read-only recheck for repair `268eeabb…` found credentials valid and the organization matching, but Devin still does not list `Invinciblx777/faultline-reference-shop`. In the browser, approval is disabled with that reason. No session was created and nothing was approved.
+- Limitations: Devin's repository listing is the only evidence of access. It does not prove that Devin can clone or push. The worker's check runs before the screenshot uploads, so a few seconds of uploads separate it from the session request. A preflight failure in the worker ends the request (`devin_failed`); a new repair request is then needed.
+
+## 2026-10-25T00:15+05:30 — Phase 3.5 rerun with v3 service-user key
+
+- Changed: `PHASE_STATUS.md` Phase 3.5 records the rerun. Local `.env` (not committed): the `cog_` key the owner had saved in `DEVIN_ORG_ID` was moved to `DEVIN_API_KEY`, and `DEVIN_ORG_ID` was set to the `org_id` from `/v3/self`. `AI_USAGE.md` records the work.
+- Why: To verify the live Devin v3 connection before the owner approves the first real session.
+- Validation: `GET /v3/self` 200 (service user, org matches). v3 sessions and repositories reads 200. Web and worker restarted; the worker reports Devin configured. Repair `268eeabb…` checksums match and it is still awaiting approval.
+- Limitations: Devin's Git connections list no repositories, so Devin's access to `faultline-reference-shop` is not granted. The approval gate does not check this. No session has been created.
+
+## 2026-10-25T00:03+05:30 — Phase 3.5 live Devin readiness check (blocked)
+
+- Changed: `PHASE_STATUS.md` gains a Phase 3.5 section with the actual results of the live Devin readiness checks. `AI_USAGE.md` records the check.
+- Why: The repository owner configured Devin credentials and asked to verify the live connection before approving the first real session.
+- Validation: Read-only calls only. `GET /v3/self`, `GET /v3/organizations/{org}/sessions`, and `GET /v3/organizations/{org}/repositories` returned HTTP 403. Legacy `GET /v1/sessions` returned 200, showing that the key is a legacy `apk_` key. No FAULTLINE-tagged session exists. Stored evidence, prompt, and regression-test checksums for repair `268eeabb…` were recomputed and match. `faultline-reference-shop` `main` is unchanged at `6c9ca4c` and has no PRs. Web and worker were restarted and are healthy.
+- Limitations: The live Devin session, the pull request check, and independent verification were not run. They need a v3 service-user key (`cog_`). Devin's GitHub access could not be checked with this key.
+
 ## 2026-10-24T23:44+05:30 — Record all models used in AI usage
 
 - Changed: `AI_USAGE.md` now lists GPT Astra 6, Claude Opus 5.5, and Claude Fable as the models used to build the project.

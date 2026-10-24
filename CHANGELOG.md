@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-24T23:13+05:30 — Phase 3 repair tests
+
+- Changed: `apps/worker/test/repair.test.ts` (Devin submission, recovery, and sync with Devin's HTTP API stubbed at the fetch layer; verification with real Chromium and Playwright Test against fixed, unfixed, and regressing storefront builds), `apps/worker/test/candidate.test.ts` (real podman container build of `Invinciblx777/faultline-reference-shop@6c9ca4c`), `apps/worker/test/fixtures.ts` (patched-storefront fixture on a chosen port), `apps/web/test/repair-services.test.ts` (repository authorization, recipe validation, approval rules), shared unit tests from the previous entry. `GitHubClient` read methods are now `async` so invalid input always rejects instead of throwing synchronously.
+- Why: Each verdict (VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, VERIFICATION BLOCKED) and each submission safeguard (approval checksum, single session per approval, tag recovery without re-creating, no submission without credentials) needs evidence that it behaves as specified.
+- Validation: `vitest run test/repair.test.ts` 14 passed (about 110 s, real analysis plus four real verification runs); `vitest run test/candidate.test.ts` 3 passed with `GITHUB_TOKEN` supplied from `gh auth token` in the process environment only (not written to any file); web repair service tests 5 passed.
+- Limitations: Devin itself is stubbed in these tests; no live Devin session has been created because no Devin credentials are configured. The container test is skipped when `GITHUB_TOKEN` or podman is unavailable.
+
 ## 2026-10-24T23:01+05:30 — Phase 3 repair UI (wip)
 
 - Changed: `apps/web` — repair services and server actions (link repository, create repair request, approve, cancel, sync, queue verification, Devin connection test), `/repairs` list and `/repairs/[id]` workspace (progress stepper, approval panel, Devin session, GitHub-confirmed pull request, verification before/after screenshots and checks, verification report, audit trail), "Fix with Devin" panel on eligible findings, source repository card on the project page, Devin and GitHub status on Settings, live status and verification screenshot API routes.

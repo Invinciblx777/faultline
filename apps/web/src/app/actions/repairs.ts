@@ -14,6 +14,7 @@ import {
   linkRepository,
   recheckRepository,
   refreshRepair,
+  requestCrossCheck,
   repositoryInputFromForm,
   requestVerification,
 } from "@/lib/services/repairs";
@@ -85,6 +86,15 @@ export async function verifyRepairAction(_prev: RepairFormState, form: FormData)
   const operator = await requireOperator();
   const repairId = String(form.get("repairId") ?? "");
   const result = await requestVerification(getRepairDeps(), operator, repairId);
+  if (!result.ok) return { error: result.error };
+  revalidatePath(`/repairs/${repairId}`);
+  return { ok: true };
+}
+
+export async function crossCheckRepairAction(_prev: RepairFormState, form: FormData): Promise<RepairFormState> {
+  const operator = await requireOperator();
+  const repairId = String(form.get("repairId") ?? "");
+  const result = await requestCrossCheck(getRepairDeps(), operator, repairId, String(form.get("experimentId") ?? ""));
   if (!result.ok) return { error: result.error };
   revalidatePath(`/repairs/${repairId}`);
   return { ok: true };

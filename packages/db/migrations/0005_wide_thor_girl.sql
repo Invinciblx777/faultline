@@ -1,0 +1,4 @@
+ALTER TABLE "verification_runs" ADD COLUMN "cross_check_experiment_id" uuid;--> statement-breakpoint
+ALTER TABLE "verification_runs" ADD COLUMN "cross_check_regression_test_id" uuid;--> statement-breakpoint
+ALTER TABLE "verification_runs" ADD CONSTRAINT "verification_runs_cross_check_experiment_id_experiments_id_fk" FOREIGN KEY ("cross_check_experiment_id") REFERENCES "public"."experiments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "verification_runs" ADD CONSTRAINT "verification_runs_cross_check_regression_test_id_regression_tests_id_fk" FOREIGN KEY ("cross_check_regression_test_id") REFERENCES "public"."regression_tests"("id") ON DELETE set null ON UPDATE no action;

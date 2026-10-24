@@ -297,6 +297,47 @@ export async function queueVerification(db: Database, repairId: string, operator
   });
 }
 
+/**
+ * Cross-check: verify the repair's pull request head against another finding
+ * in the same project, with that finding's own validated regression test and
+ * journey. The repair's status and verdict are left alone; the run carries
+ * its own verdict.
+ */
+export async function queueCrossCheck(db: Database, repairId: string, experimentId: string, operatorId: string) {
+  return db.transaction(async (tx) => {
+    const [repair] = await tx.select().from(repairRequests).where(eq(repairRequests.id, repairId)).for("update");
+    if (!repair) return { ok: false as const, error: "That repair request does not exist." };
+    if (!(REPAIR_VERIFIABLE_STATUSES as readonly string[]).includes(repair.status)) {
+      return { ok: false as const, error: "A cross-check needs a validated pull request, and no verification may be running." };
+    }
+    if (!repair.prHeadSha || !repair.prNumber || !repair.baseSha) return { ok: false as const, error: "No validated pull request head commit is recorded yet." };
+    const [finding] = await tx
+      .select({ experiment: experiments, test: regressionTests })
+      .from(experiments)
+      .innerJoin(scans, eq(scans.id, experiments.scanId))
+      .innerJoin(regressionTests, eq(regressionTests.experimentId, experiments.id))
+      .where(and(eq(experiments.id, experimentId), eq(scans.projectId, repair.projectId)));
+    if (!finding) return { ok: false as const, error: "That finding does not exist in this repair's project, or it has no regression test." };
+    if (finding.test.validationStatus !== "fails_as_expected") return { ok: false as const, error: "Only a regression test validated as failing on the original site can judge a candidate." };
+    const [run] = await tx
+      .insert(verificationRuns)
+      .values({
+        repairId,
+        requestedBy: operatorId,
+        originalSha: repair.baseSha,
+        candidateSha: repair.prHeadSha,
+        prNumber: repair.prNumber,
+        regressionTestSha256: finding.test.sha256,
+        crossCheckExperimentId: finding.experiment.id,
+        crossCheckRegressionTestId: finding.test.id,
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!run) return { ok: false as const, error: "A verification is already queued or running for this repair." };
+    return { ok: true as const, runId: run.id, candidateSha: repair.prHeadSha };
+  });
+}
+
 export async function claimNextVerification(db: Database, workerId: string) {
   const [next] = await db.select({ id: verificationRuns.id }).from(verificationRuns).where(eq(verificationRuns.status, "queued")).orderBy(asc(verificationRuns.createdAt)).limit(1);
   if (!next) return null;

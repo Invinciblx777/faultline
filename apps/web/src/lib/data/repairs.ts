@@ -1,6 +1,6 @@
 import "server-only";
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { artifacts, experiments, projects, repairEvents, repairRequests, scanExecutions, sourceRepositories, verificationChecks, verificationRuns } from "@faultline/db";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { artifacts, experiments, projects, regressionTests, repairEvents, repairRequests, scanExecutions, scans, sourceRepositories, verificationChecks, verificationRuns } from "@faultline/db";
 import { getDb } from "../db";
 import { isUuid } from "./queries";
 
@@ -81,7 +81,26 @@ export async function getRepair(id: string) {
         .innerJoin(scanExecutions, eq(scanExecutions.id, artifacts.executionId))
         .where(inArray(artifacts.id, row.repair.evidence.artifacts.map((a) => a.id)))
     : [];
-  return { ...row, events, runs: runs.map((run) => ({ ...run, checks: checks.filter((c) => c.runId === run.id) })), originalShots };
+  // Other findings in this project whose validated regression test can cross-check the same commit.
+  const crossCheckFindings = await db
+    .select({
+      experimentId: experiments.id,
+      scanId: experiments.scanId,
+      verdict: experiments.verdict,
+      fault: experiments.fault,
+      dependencyLabel: experiments.dependencyLabel,
+      journey: scans.journeySnapshot,
+      testFilename: regressionTests.filename,
+      testSha256: regressionTests.sha256,
+      createdAt: experiments.createdAt,
+    })
+    .from(experiments)
+    .innerJoin(scans, eq(scans.id, experiments.scanId))
+    .innerJoin(regressionTests, eq(regressionTests.experimentId, experiments.id))
+    .where(and(eq(scans.projectId, row.repair.projectId), ne(experiments.id, row.repair.experimentId), eq(regressionTests.validationStatus, "fails_as_expected")))
+    .orderBy(desc(experiments.createdAt))
+    .limit(20);
+  return { ...row, events, runs: runs.map((run) => ({ ...run, checks: checks.filter((c) => c.runId === run.id) })), originalShots, crossCheckFindings };
 }
 
 export type RepairDetail = NonNullable<Awaited<ReturnType<typeof getRepair>>>;

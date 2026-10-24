@@ -611,6 +611,12 @@ export const verificationRuns = pgTable(
     candidateSha: text("candidate_sha").notNull(),
     prNumber: integer("pr_number").notNull(),
     regressionTestSha256: text("regression_test_sha256").notNull(),
+    /**
+     * Set for a cross-check: the candidate is judged by another finding's regression test and journey
+     * (for example a newer journey version). Its verdict never replaces the repair's own verdict.
+     */
+    crossCheckExperimentId: uuid("cross_check_experiment_id").references(() => experiments.id, { onDelete: "set null" }),
+    crossCheckRegressionTestId: uuid("cross_check_regression_test_id").references(() => regressionTests.id, { onDelete: "set null" }),
     /** How each revision was built and identified (archive hash, container, image digest, origin). */
     builds: jsonb("builds").$type<Record<string, unknown>>(),
     verdict: text("verdict").$type<VerificationVerdict>(),

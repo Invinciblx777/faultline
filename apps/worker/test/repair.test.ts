@@ -12,6 +12,7 @@ import {
   operators,
   postVerificationComment,
   projects,
+  queueCrossCheck,
   queueVerification,
   regressionTests,
   repairEvents,
@@ -513,6 +514,31 @@ describe("independent verification", () => {
     expect(await postVerificationComment(handle.db, commenting, repair.id)).toMatchObject({ ok: true, created: false, commentId: 901 });
     expect(posted).toHaveLength(1);
     expect((await events(repair.id)).filter((e) => e.kind === "verdict_comment")).toHaveLength(1);
+  }, 300_000);
+
+  it("CROSS-CHECK: judges the same commit with another finding's test and leaves the repair's own verdict alone", async () => {
+    const repair = await createRepair({ status: "ready_for_verification", devinSessionId: `devin-${randomUUID()}`, prNumber: 12, prHeadSha: HEAD_SHA, prUrl: `https://github.com/${OWNER}/${NAME}/pull/12` });
+    const [test] = await handle.db.select().from(regressionTests).where(eq(regressionTests.experimentId, experimentId));
+    const missing = await queueCrossCheck(handle.db, repair.id, randomUUID(), operatorId);
+    expect(missing.ok).toBe(false);
+    const queued = await queueCrossCheck(handle.db, repair.id, experimentId, operatorId);
+    expect(queued.ok).toBe(true);
+    expect((await queueCrossCheck(handle.db, repair.id, experimentId, operatorId)).ok).toBe(false);
+    const run = await claimNextVerification(handle.db, "test-worker");
+    expect(run?.crossCheckExperimentId).toBe(experimentId);
+    expect(run?.regressionTestSha256).toBe(test!.sha256);
+    const s = seam({ original: null, candidate: FIXED_LOAD });
+    await runVerification(
+      { db: handle.db, storage, env, github: fakeGitHub((n) => pull(repair.id, { number: n })), workerId: "test-worker", settings, log, heartbeatIntervalMs: 500, startCandidate: s.startCandidate, checkRuntime: async () => ({ ok: true, version: "test" }) },
+      run!,
+    );
+    const [saved] = await handle.db.select().from(verificationRuns).where(eq(verificationRuns.id, run!.id));
+    expect(saved!.verdict, JSON.stringify(saved!.rationale)).toBe("verified_fixed");
+    const after = await reload(repair.id);
+    expect(after.status).toBe("ready_for_verification");
+    expect(after.verdict).toBeNull();
+    expect(after.latestVerificationId).toBeNull();
+    expect((await events(repair.id)).some((e) => e.kind === "verdict" && e.message.startsWith("Cross-check verdict"))).toBe(true);
   }, 300_000);
 
   it("STILL FAILING: the candidate does not change the behavior", async () => {

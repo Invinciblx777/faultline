@@ -284,7 +284,7 @@ A Devin API v3 **service-user** key (prefix `cog_`) for the organization in `DEV
 
 Not done because of the block: approval, the live Devin session, the GitHub pull request and head commit check, and the independent rerun of the unchanged regression test against the candidate build.
 
-### Rerun with the v3 service-user key (00:13–00:16 IST)
+### Rerun with the v3 service-user key (00:13–00:15 IST)
 
 The owner added a `cog_` key at 00:13, but it was saved in `DEVIN_ORG_ID`, overwriting the org ID. `DEVIN_API_KEY` still held the legacy key. A read-only `GET /v3/self` with the `cog_` value returned 200. FAULTLINE then rewrote the two lines in `.env`: `DEVIN_API_KEY` now holds the `cog_` key and `DEVIN_ORG_ID` holds the `org_id` from `/v3/self`. The previous file was backed up outside the repository with mode 600. No value was printed.
 

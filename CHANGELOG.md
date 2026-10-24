@@ -2,7 +2,7 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
-## 2026-10-25T00:17+05:30 — Phase 3.5 rerun with v3 service-user key
+## 2026-10-25T00:15+05:30 — Phase 3.5 rerun with v3 service-user key
 
 - Changed: `PHASE_STATUS.md` Phase 3.5 records the rerun. Local `.env` (not committed): the `cog_` key the owner had saved in `DEVIN_ORG_ID` was moved to `DEVIN_API_KEY`, and `DEVIN_ORG_ID` was set to the `org_id` from `/v3/self`. `AI_USAGE.md` records the work.
 - Why: To verify the live Devin v3 connection before the owner approves the first real session.

@@ -6,7 +6,7 @@ FAULTLINE is an evidence-first web reliability engineering platform. It loads yo
 
 Every screenshot, error, and number in FAULTLINE comes from a recorded browser execution. Nothing is simulated, seeded, or generated.
 
-> Status: **Phase 2 (Blast Radius)**. Self-hosted, operator-only. See [PHASE_STATUS.md](PHASE_STATUS.md) for exactly what is implemented and verified.
+> Status: **Phase 3 (Devin Strike)** on branch `phase-3-devin-strike`. Self-hosted, operator-only. See [PHASE_STATUS.md](PHASE_STATUS.md) for exactly what is implemented and verified.
 
 ## What it does today
 
@@ -35,7 +35,18 @@ Every screenshot, error, and number in FAULTLINE comes from a recorded browser e
 - **Causal evidence timeline**: injected fault, page reactions, and failed checks on one clock.
 - **Executable Playwright regression tests** for each finding. Each is validated by running it with Playwright Test against the site.
 
-Not yet: AI analysis, Devin/GitHub repair, Fault DNA graphs. Typed contracts for the AI and repair integrations live in [`packages/shared/src/contracts`](packages/shared/src/contracts); the UI labels them unavailable.
+### Devin Strike (Phase 3)
+
+- **Source repository** per project: a GitHub repository on the server's `FAULTLINE_REPAIR_REPOSITORIES` list, checked against GitHub and Devin when linked. No credentials are entered in the browser.
+- **Fix with Devin** on a BROKEN or DEGRADED finding whose regression test fails on the current site. FAULTLINE builds a sanitized evidence package (checksum stored), the repair prompt, and shows both for review. Nothing is sent yet.
+- **Explicit approval** by an operator on `FAULTLINE_REPAIR_APPROVERS`, tied to the evidence checksum. Only then does the worker create one Devin API v3 session (tagged, so an unconfirmed request is recovered by lookup instead of being sent twice).
+- **Live progress** from stored rows: Devin session status and messages, polled by the worker; pull requests are accepted only when GitHub confirms them for the linked repository and base branch. FAULTLINE never merges.
+- **Independent verification** of the pull request's exact head commit: the original and the candidate commit are each downloaded from GitHub, run in a locked-down container (read-only, no capabilities, internal network with no egress), and tested with the **unchanged** regression test (twice each) and the journey under normal conditions. Verdicts: VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, VERIFICATION BLOCKED.
+- **Verified fix report** with before/after screenshots, every check, commit SHAs, and the audit trail.
+
+Without `DEVIN_API_KEY` and `DEVIN_ORG_ID`, repair requests can be prepared and reviewed but not approved; the UI says so.
+
+Not yet: AI analysis, Fault DNA graphs. Typed contracts for the AI and repair integrations live in [`packages/shared/src/contracts`](packages/shared/src/contracts); the UI labels them unavailable.
 
 ## Requirements
 
@@ -101,6 +112,16 @@ pnpm start:web                   # next start on port 3000
 
 With `NODE_ENV=production` session cookies are `Secure` with the `__Host-` prefix. Browsers accept them on `http://localhost`; anywhere else, serve the web app over HTTPS (see [docs/deployment.md](docs/deployment.md)).
 
+### Repair setup (optional)
+
+1. Create a read-only GitHub token for the repository and a Devin service-user key (Devin → Settings → Service users, permissions to use and view sessions). In Devin, grant its GitHub connection access to the repository.
+2. Set `GITHUB_TOKEN`, `DEVIN_API_KEY`, `DEVIN_ORG_ID`, `FAULTLINE_REPAIR_REPOSITORIES`, and `FAULTLINE_REPAIR_APPROVERS` in `.env`, and add the verification origins (`http://localhost:4700,http://localhost:4701` by default) to `FAULTLINE_SCAN_ALLOWLIST`.
+3. Install podman (or docker; set `FAULTLINE_CONTAINER_RUNTIME`) and pull the image named in `FAULTLINE_VERIFY_IMAGE` ahead of time (`podman pull <image>`), so the first verification does not wait on a download.
+4. Restart web and worker. **Settings → Devin API v3 → Test Devin connection** calls `GET /v3/self` only (no session, no credits).
+5. On the project page, link the repository and say how a commit is run (`node <entry>`, port variables). Supported today: Node.js servers with no runtime dependencies.
+
+For the demo, the reference storefront is published as `Invinciblx777/faultline-reference-shop` (private): entry `server.mjs`, port variable `PORT`, extra port variable `PARTNER_PORT`, host variable `HOST`.
+
 ## The reference target
 
 `tools/reference-target` is a small local website with real, deliberate defects, so you can see FAULTLINE work without pointing it at anything else:
@@ -121,6 +142,7 @@ It is a test fixture you run yourself. It never populates the product with data 
 pnpm typecheck            # all packages
 pnpm lint                 # all packages
 pnpm test                 # unit + integration: shared, db, web services, worker (real Chromium, PostgreSQL, MinIO, pg-boss)
+                          # container verification tests also run when GITHUB_TOKEN is set and podman is available
 pnpm test:e2e             # builds the web app, then Playwright E2E against next start + a real worker
 ```
 
@@ -130,9 +152,9 @@ Integration and E2E tests use `DATABASE_URL_TEST` (a separate `faultline_test` d
 
 ```
 apps/web               Next.js App Router UI, server actions, authenticated API routes
-apps/worker            pg-boss consumer that runs scans with Playwright Chromium + egress guard
+apps/worker            pg-boss consumer that runs scans with Playwright Chromium + egress guard; repair supervisor (Devin sessions, verification)
 packages/db            Drizzle schema, SQL migrations, lifecycle transitions, S3 storage, queue helpers
-packages/shared        Zod contracts, URL/allowlist/IP policy, redaction, report builder, future AI/repair contracts
+packages/shared        Zod contracts, URL/allowlist/IP policy, redaction, report builder, repair evidence/prompt/verdict rules, Devin and GitHub clients
 tools/reference-target Local test website with deliberate defects
 infra/postgres/init    Compose init script (creates the test database)
 docs/                  Architecture, security, deployment, API

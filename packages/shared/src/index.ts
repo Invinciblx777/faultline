@@ -9,3 +9,4 @@ export * from "./url";
 export * from "./redact";
 export * from "./report";
 export * from "./version";
+export * from "./repair";

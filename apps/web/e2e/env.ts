@@ -28,5 +28,10 @@ export function e2eEnv(): Record<string, string> {
     FAULTLINE_SETTLE_TIMEOUT_MS: "1500",
     FAULTLINE_WORKER_CONCURRENCY: "2",
     NODE_ENV: "production",
+    // Repair integration in its unconfigured state: no Devin credentials, one authorized repository.
+    DEVIN_API_KEY: "",
+    DEVIN_ORG_ID: "",
+    FAULTLINE_REPAIR_REPOSITORIES: "faultline-e2e/allowed-shop",
+    FAULTLINE_REPAIR_APPROVERS: E2E_USERNAME,
   };
 }

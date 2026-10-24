@@ -13,8 +13,11 @@ export interface RunningServer {
   close: () => Promise<void>;
 }
 
-export async function listen(server: Server, host = "127.0.0.1"): Promise<RunningServer> {
-  await new Promise<void>((resolve) => server.listen(0, host, () => resolve()));
+export async function listen(server: Server, host = "127.0.0.1", requestedPort = 0): Promise<RunningServer> {
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(requestedPort, host, () => resolve());
+  });
   const { port } = server.address() as AddressInfo;
   return {
     origin: `http://localhost:${port}`,
@@ -47,25 +50,40 @@ export async function startStorefront(): Promise<{ shop: RunningServer; partner:
  * regression test passes once the application tolerates the fault.
  */
 export async function startFixedStorefront(partnerOrigin: string): Promise<RunningServer> {
-  const original = readFileSync(new URL("../../../tools/reference-target/public/shop/shop.js", import.meta.url), "utf8");
-  const before = `const [catalog, inventory] = await Promise.all([getJSON("/api/catalog"), getJSON("/api/inventory")]);
+  return startPatchedStorefront(partnerOrigin, FIXED_LOAD);
+}
+
+const ORIGINAL_LOAD = `const [catalog, inventory] = await Promise.all([getJSON("/api/catalog"), getJSON("/api/inventory")]);
     state.products = catalog.products;
     state.stock = inventory.stock;`;
-  const after = `const [catalog, inventory] = await Promise.allSettled([getJSON("/api/catalog"), getJSON("/api/inventory")]);
+
+/** Tolerates an inventory outage: products show with stock unknown. */
+export const FIXED_LOAD = `const [catalog, inventory] = await Promise.allSettled([getJSON("/api/catalog"), getJSON("/api/inventory")]);
     if (catalog.status === "rejected") throw catalog.reason;
     state.products = catalog.value.products;
     state.stock = inventory.status === "fulfilled" ? inventory.value.stock : Object.fromEntries(state.products.map((p) => [p.sku, 1]));`;
-  if (!original.includes(before)) throw new Error("Storefront source changed; update the fixed-storefront fixture.");
-  const fixed = original.replace(before, after);
+
+/** Survives the outage but breaks the normal path: a fix that introduces a regression. */
+export const REGRESSING_LOAD = `const [catalog, inventory] = await Promise.allSettled([getJSON("/api/catalog"), getJSON("/api/inventory")]);
+    if (catalog.status === "rejected") throw catalog.reason;
+    if (inventory.status === "fulfilled") throw new Error("inventory format not supported");
+    state.products = catalog.value.products;
+    state.stock = Object.fromEntries(state.products.map((p) => [p.sku, 1]));`;
+
+/** The reference storefront with its data-loading block replaced, optionally on a fixed loopback port. */
+export async function startPatchedStorefront(partnerOrigin: string, replacement: string | null, port = 0): Promise<RunningServer> {
+  const original = readFileSync(new URL("../../../tools/reference-target/public/shop/shop.js", import.meta.url), "utf8");
+  if (!original.includes(ORIGINAL_LOAD)) throw new Error("Storefront source changed; update the patched-storefront fixture.");
+  const patched = replacement === null ? original : original.replace(ORIGINAL_LOAD, replacement);
   const inner = createReferenceServer({ partnerOrigin }) as Server;
   const server = createServer((req, res) => {
     if (req.url?.startsWith("/shop/shop.js")) {
-      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" }).end(fixed);
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "cache-control": "no-cache" }).end(patched);
       return;
     }
     inner.emit("request", req, res);
   });
-  return listen(server);
+  return listen(server, "127.0.0.1", port);
 }
 
 /**

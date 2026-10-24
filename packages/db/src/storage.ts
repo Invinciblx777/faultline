@@ -42,6 +42,19 @@ export function artifactKey(scanId: string, executionId: string, name: string): 
   return key;
 }
 
+const VERIFICATION_KEY_PATTERN = /^repairs\/[0-9a-f-]{36}\/verifications\/[0-9a-f-]{36}\/[a-z0-9-]+\.png$/;
+
+/** Screenshot of one verification check; built only from server-generated UUIDs. */
+export function verificationArtifactKey(repairId: string, runId: string, checkId: string): string {
+  const key = `repairs/${repairId}/verifications/${runId}/${checkId}.png`;
+  if (!VERIFICATION_KEY_PATTERN.test(key)) throw new Error("Refusing to build a verification artifact key from unexpected identifiers");
+  return key;
+}
+
+function isArtifactKey(key: string): boolean {
+  return KEY_PATTERN.test(key) || VERIFICATION_KEY_PATTERN.test(key);
+}
+
 export class ArtifactStorage {
   readonly client: S3Client;
   readonly bucket: string;
@@ -67,7 +80,7 @@ export class ArtifactStorage {
   }
 
   async put(key: string, body: Buffer, contentType: string): Promise<StoredObject> {
-    if (!KEY_PATTERN.test(key)) throw new Error(`Invalid artifact key: ${key}`);
+    if (!isArtifactKey(key)) throw new Error(`Invalid artifact key: ${key}`);
     const sha256 = createHash("sha256").update(body).digest("hex");
     await this.client.send(
       new PutObjectCommand({
@@ -84,7 +97,7 @@ export class ArtifactStorage {
   }
 
   async get(key: string): Promise<{ body: Readable; contentLength?: number; contentType?: string }> {
-    if (!KEY_PATTERN.test(key)) throw new Error(`Invalid artifact key: ${key}`);
+    if (!isArtifactKey(key)) throw new Error(`Invalid artifact key: ${key}`);
     const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     return { body: result.Body as Readable, contentLength: result.ContentLength, contentType: result.ContentType };
   }

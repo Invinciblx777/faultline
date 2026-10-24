@@ -59,7 +59,21 @@ The worker launches Chromium with its sandbox enabled (`FAULTLINE_CHROMIUM_SANDB
 - **Regression test validation** runs generated tests in a temporary directory under the worker. Chromium is forced through the egress guard with per-run proxy credentials, and the directory is deleted afterwards. A generated test contains only the journey's own data, escaped as string literals.
 - **What is stored.** Redacted URLs, methods, statuses, timings, step results, and screenshots. No request or response headers, cookies, tokens, or bodies.
 
+## Repair integration controls (Phase 3)
+
+- **Credentials** (`DEVIN_API_KEY`, `DEVIN_ORG_ID`, `GITHUB_TOKEN`) are read only on the server, sent only in `Authorization` headers, never logged, never stored in rows, and never placed in prompts. Logs record only whether each integration is configured.
+- **No spend without approval.** Sessions are created only by the worker, only for requests an operator on `FAULTLINE_REPAIR_APPROVERS` approved after confirming a statement, and only if the evidence checksum still matches what was shown. Page loads, polling, and the connection test (`GET /v3/self`) never create sessions.
+- **At most one session per approval.** The request is claimed atomically before the API call. Ambiguous failures (timeouts, 5xx) are not retried; the session is looked up by its unique tag. A database unique index prevents two open requests for one finding.
+- **Repository authorization.** Only repositories on `FAULTLINE_REPAIR_REPOSITORIES` can be linked; pull requests are accepted only when GitHub confirms them for the linked repository and base branch, from a different branch, with a full head SHA. FAULTLINE has no code path that merges, pushes, or comments.
+- **Evidence sanitization.** Page-derived text is scrubbed of bearer tokens, JWTs, secret-looking key/value pairs, and URL query values (FAULTLINE's standard redaction), plus Devin and GitHub tokens, AWS access key ids, private keys, database connection strings, and cookie headers, and is fenced in the prompt as untrusted data. The prompt forbids weakening tests or security controls and requires the regression test to stay byte-for-byte unchanged.
+- **Untrusted code runs only in containers.** Candidate commits are never executed on the host. The recipe is data (`node <entry>` plus port variable names); shell commands, absolute paths, and `..` are rejected. Containers have no outbound network, a read-only root file system, no capabilities, and resource limits. Projects with runtime dependencies are refused rather than installed.
+- **Test integrity.** The regression test's SHA-256 is recorded with the request and checked before every run; a mismatch blocks verification.
+- **Devin messages are not evidence.** They are stored and shown as Devin's words. Only FAULTLINE's own runs decide verdicts.
+
 ## Known limitations
+
+- Repair verification supports Node.js servers without runtime dependencies. Other stacks are refused, not approximated.
+- The container's internal network still lets the candidate reach other containers on the same network; FAULTLINE runs one candidate at a time and removes it afterwards.
 
 - Login throttling is in memory per web process. Put a rate-limiting reverse proxy in front of multi-instance deployments.
 - Sessions are revoked on sign-out and expire after `FAULTLINE_SESSION_TTL_HOURS`; there is no UI to list or revoke other sessions yet. Changing a password with `pnpm operator:create` does not revoke existing sessions.

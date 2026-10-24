@@ -9,7 +9,9 @@
     "./network": "./src/network/index.ts",
     "./password": "./src/password.ts",
     "./env": "./src/env.ts",
-    "./contracts": "./src/contracts/index.ts"
+    "./contracts": "./src/contracts/index.ts",
+    "./integrations": "./src/integrations/index.ts",
+    "./checksum": "./src/checksum.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

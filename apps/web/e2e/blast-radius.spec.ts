@@ -63,6 +63,9 @@ test.describe.serial("Blast Radius against the reference storefront", () => {
     await expect(page.getByText("Injected 503").first()).toBeVisible();
     await expect(page.getByText(/Storefront failed to load/).first()).toBeVisible();
     await expect(page.getByText("Validated: fails on the current site")).toBeVisible();
+    // Repair needs a linked repository first; nothing is offered or sent without one.
+    await expect(page.getByText(/Link this project.s source repository before asking Devin/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Fix with Devin" })).toHaveCount(0);
 
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download regression test" }).click()]);
     expect(download.suggestedFilename()).toMatch(/^faultline-get-api-inventory-http-error-[0-9a-f]{8}\.spec\.ts$/);

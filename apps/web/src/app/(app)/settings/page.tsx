@@ -1,6 +1,7 @@
 import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { DevinConnectionTest } from "@/components/repair/devin-connection-test";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { PageHeader } from "@/components/ui/page-header";
 import { ToneChip } from "@/components/ui/status";
@@ -8,6 +9,7 @@ import { Description, SectionTitle, Surface } from "@/components/ui/surface";
 import { requireOperator } from "@/lib/auth/dal";
 import { getQueueCounts, getWorkerStatus } from "@/lib/data/queries";
 import { getEnv } from "@/lib/env";
+import { getDevinConfig } from "@/lib/integrations";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { getStorage } from "@/lib/storage";
 
@@ -29,8 +31,6 @@ const FUTURE = [
   { name: "Google Gemini", area: "Evidence-backed analysis" },
   { name: "OpenAI", area: "Evidence-backed analysis" },
   { name: "OpenAI-compatible local inference", area: "Evidence-backed analysis" },
-  { name: "Devin API v3", area: "Approved remediation sessions" },
-  { name: "GitHub issues and pull requests", area: "Repair tracking" },
 ];
 
 export default async function SettingsPage() {
@@ -38,6 +38,7 @@ export default async function SettingsPage() {
   const env = getEnv();
   const [workers, queue, storage] = await Promise.all([getWorkerStatus(), getQueueCounts(), storageReachable()]);
   const theme = (await cookies()).get("faultline_theme")?.value ?? "dark";
+  const devin = getDevinConfig();
   const endpointHost = env.S3_ENDPOINT ? new URL(env.S3_ENDPOINT).host : "AWS S3 (default endpoint)";
 
   return (
@@ -128,11 +129,55 @@ export default async function SettingsPage() {
           <Description>PostgreSQL is connected (this page was rendered from it). Scan jobs use the pg-boss queue in the same database.</Description>
         </Surface>
 
-        <Surface className="lg:col-span-2">
-          <SectionTitle>Integrations</SectionTitle>
+        <Surface>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <SectionTitle>Devin API v3</SectionTitle>
+            <ToneChip tone={devin.configured ? "success" : "unavailable"} label={devin.configured ? "Configured" : "Not configured"} />
+          </div>
           <Description className="mb-4">
-            Not available in this release. Their contracts are documented in <code className="font-mono">packages/shared/src/contracts</code>. When added, AI output will be
-            labeled as hypotheses, and repairs will only count as verified after an independent FAULTLINE rerun.
+            {devin.configured
+              ? `Service-user key and organization ${devin.orgId} are set on the server. Sessions are created only after an approver approves a repair request.`
+              : `${devin.reason} Set DEVIN_API_KEY (a cog_ service-user key) and DEVIN_ORG_ID in the server environment. Repair requests can still be prepared, but not approved.`}
+          </Description>
+          <dl className="mb-4 grid grid-cols-[minmax(9rem,auto)_1fr] gap-x-6 gap-y-2 text-sm">
+            <dt className="text-on-surface-variant">Approvers</dt>
+            <dd>{env.FAULTLINE_REPAIR_APPROVERS.length ? env.FAULTLINE_REPAIR_APPROVERS.join(", ") : <span className="text-failure">None (FAULTLINE_REPAIR_APPROVERS is empty)</span>}</dd>
+          </dl>
+          <DevinConnectionTest disabled={!devin.configured} />
+        </Surface>
+
+        <Surface>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <SectionTitle>GitHub</SectionTitle>
+            <ToneChip tone={env.GITHUB_TOKEN ? "success" : "unavailable"} label={env.GITHUB_TOKEN ? "Token set" : "No token"} />
+          </div>
+          <Description className="mb-4">
+            FAULTLINE reads repositories, branches, commits, and pull requests to confirm what Devin reports, and downloads exact commits for verification. It never pushes, merges, or
+            comments. {env.GITHUB_TOKEN ? "" : "Without GITHUB_TOKEN only public repositories can be read, with low rate limits."}
+          </Description>
+          <dl className="grid grid-cols-[minmax(9rem,auto)_1fr] gap-x-6 gap-y-2 text-sm">
+            <dt className="text-on-surface-variant">Authorized repositories</dt>
+            <dd>
+              {env.FAULTLINE_REPAIR_REPOSITORIES.length ? (
+                <ul className="flex flex-wrap gap-2">
+                  {env.FAULTLINE_REPAIR_REPOSITORIES.map((r) => (
+                    <li key={r} className="rounded-sm bg-surface-high px-2.5 py-1">
+                      {r}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-failure">None (FAULTLINE_REPAIR_REPOSITORIES is empty)</span>
+              )}
+            </dd>
+          </dl>
+        </Surface>
+
+        <Surface className="lg:col-span-2">
+          <SectionTitle>Other integrations</SectionTitle>
+          <Description className="mb-4">
+            Not available in this release. Their contracts are documented in <code className="font-mono">packages/shared/src/contracts</code>. When added, AI output will be labeled as
+            hypotheses.
           </Description>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {FUTURE.map((f) => (

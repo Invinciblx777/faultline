@@ -319,3 +319,25 @@ The risk above is now closed in code. Approval and session creation both require
 
 **Ready for approval: no.** Grant the Devin GitHub app access to `Invinciblx777/faultline-reference-shop`. Then click **Check repository access** on the repair page. Approval unlocks for 10 minutes after a successful check, and the server checks again when you approve.
 
+
+## Phase 3.6: Final strike — Devin repository access confirmed; awaiting operator approval (2026-10-25)
+
+### Connection preflight (00:44–00:47 IST)
+
+No code changed. **No Devin session was created and nothing was approved.**
+
+| Check | Result | Evidence |
+|---|---|---|
+| Branch and processes | Current | `phase-3-devin-strike` at `d8fbd17`, tree clean. Web and worker were started at 00:33 IST on the `d8fbd17` build. Worker log: `devin: configured`, `github: token set`, podman 5.8.9, Chromium preflight ok |
+| `GET /v3/self` | **Passed** | `principal_type: service_user`; `org_id` equals `DEVIN_ORG_ID` |
+| `checkDevinRepositoryAccess` (unchanged, called live) | **Passed** | `ok: true`, `repoName: Invinciblx777/faultline-reference-shop`, `host: github.com`. The operator granted the Devin GitHub app access after 00:40 IST |
+| Stored repository status | Refreshed | **Check repository access** on the repair page (as `phase3-demo`): `source_repositories.devin_status` changed from `error` to `ok` at 19:17:19 UTC. The project is still linked to `Invinciblx777/faultline-reference-shop` |
+| Repair `268eeabb…` | Unchanged | `awaiting_approval`, no approval, no session, `updated_at` still 2026-10-24 17:51:10 UTC. Evidence `2d7ecd17…`, prompt `d7296ce4…`, regression test `c171b00e…` recomputed from the stored rows: all match. The evidence embeds the same test text |
+| Faulty code still present | Yes | `faultline-reference-shop` `main` = `6c9ca4c`; `public/shop/shop.js:57` uses `Promise.all` for catalog and inventory. No pull requests. The local target served on `:4600` has an identical `shop.js` |
+| Original failure reproducible | Yes | The stored regression test (byte-identical apart from a trailing newline; SHA-256 `c171b00e…`) was run with Playwright against `:4600`: **1 failed**, step 2 `getByText('Trail Backpack')` not visible |
+| Prompt | Meets the repair contract | Names the exact repository and base commit; asks Devin to reproduce, find the root cause, fix with graceful degradation, keep normal behavior, add tests, never weaken tests, open a PR from a new branch against `main`, never push to `main` or merge, and include `FAULTLINE-Repair: 268eeabb-…`. It contains no reference to the developer fixture (`b7cc293`) or to its fix |
+| Approval UI | **Ready** | After the check, the confirmation checkbox is enabled; **Approve and send to Devin** enables once it is ticked. The check script never touched those controls |
+
+Repository-list visibility is not proof that Devin can clone or push. That is only shown by the live session.
+
+`DEVIN_MAX_ACU_LIMIT` is not set, so the session has no ACU cap.

@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T00:50+05:30 — Phase 3.6 connection preflight: Devin repository access confirmed
+
+- Changed: `PHASE_STATUS.md` gains a Phase 3.6 section. `AI_USAGE.md` records the check. No code changed.
+- Why: The operator granted the Devin GitHub app access to `Invinciblx777/faultline-reference-shop`; it had to be verified live before approval.
+- Validation: `checkDevinRepositoryAccess` called live returned `ok` (service user, organization matches, repository listed through `github.com`). **Check repository access** on the repair page stored `devin_status = ok`. Repair `268eeabb…` checksums recomputed: match; still `awaiting_approval` with no session. The stored regression test still fails against the original storefront. Approval UI is enabled.
+- Limitations: Repository listing does not prove clone or push access. No Devin session yet: approval is left to the operator.
+
 ## 2026-10-25T00:40+05:30 — Phase 3.5 fail-closed repository-access preflight
 
 - Changed: `packages/shared` adds `checkDevinRepositoryAccess` (read-only `GET /v3/self` plus the organization's repository list; fails on rejected credentials, a key from another organization, refused or failed requests, a repository Devin does not list, or a non-GitHub connection). `packages/db` migration `0003` adds `source_repositories.devin_checked_at` and `recordDevinAccess`. `apps/web`: approval runs the live check for the request's exact repository before the existing atomic status-and-checksum update, and refuses when the project was relinked. The repair page disables approval with the specific reason unless a successful check is under 10 minutes old, and adds **Check repository access**. `apps/worker`: `submitRepair` runs the live check after claiming and before uploading screenshots or creating the session, and passes Devin's own `repo_full_name` as `repos`. Docs: `README.md`, `docs/security.md`, `PHASE_STATUS.md`, `AI_USAGE.md`.

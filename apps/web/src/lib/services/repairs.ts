@@ -7,6 +7,7 @@ import {
   experiments,
   loadRepairEvidenceInput,
   projects,
+  queueCrossCheck,
   queueVerification,
   recordDevinAccess,
   recordRepairEvent,
@@ -343,6 +344,22 @@ export async function requestVerification(deps: RepairServiceDeps, operator: Ope
     message: `${operator.username} queued independent verification of commit ${result.candidateSha.slice(0, 12)}.`,
     operatorId: operator.id,
     detail: { runId: result.runId },
+  });
+  return { ok: true, runId: result.runId };
+}
+
+/** Verifies the pull request head against another finding's regression test. Never changes the repair's own verdict. */
+export async function requestCrossCheck(deps: RepairServiceDeps, operator: Operator, repairId: string, experimentId: string): Promise<ServiceResult<{ runId: string }>> {
+  if (!operator) return { ok: false, error: "Sign in first." };
+  if (!z.uuid().safeParse(repairId).success || !z.uuid().safeParse(experimentId).success) return { ok: false, error: "Choose a finding to cross-check against." };
+  const result = await queueCrossCheck(deps.db, repairId, experimentId, operator.id);
+  if (!result.ok) return result;
+  await recordRepairEvent(deps.db, repairId, {
+    source: "operator",
+    kind: "cross_check_requested",
+    message: `${operator.username} queued a cross-check of commit ${result.candidateSha.slice(0, 12)} against finding ${experimentId.slice(0, 8)}.`,
+    operatorId: operator.id,
+    detail: { runId: result.runId, experimentId },
   });
   return { ok: true, runId: result.runId };
 }

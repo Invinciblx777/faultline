@@ -82,6 +82,7 @@ const waitStep = z.object({ type: z.literal("waitForVisible"), target: locatorSc
 const assertVisibleStep = z.object({ type: z.literal("assertVisible"), target: locatorSchema, label, timeoutMs, maxDurationMs });
 const assertHiddenStep = z.object({ type: z.literal("assertHidden"), target: locatorSchema, label, timeoutMs, maxDurationMs });
 const assertEnabledStep = z.object({ type: z.literal("assertEnabled"), target: locatorSchema, label, timeoutMs, maxDurationMs });
+const assertDisabledStep = z.object({ type: z.literal("assertDisabled"), target: locatorSchema, label, timeoutMs, maxDurationMs });
 const assertTextStep = z.object({
   type: z.literal("assertText"),
   target: locatorSchema,
@@ -101,12 +102,13 @@ export const journeyStepSchema = z.discriminatedUnion("type", [
   assertVisibleStep,
   assertHiddenStep,
   assertEnabledStep,
+  assertDisabledStep,
   assertTextStep,
 ]);
 export type JourneyStep = z.infer<typeof journeyStepSchema>;
 export type JourneyStepType = JourneyStep["type"];
 
-export const ASSERTION_STEP_TYPES = ["assertVisible", "assertHidden", "assertEnabled", "assertText"] as const;
+export const ASSERTION_STEP_TYPES = ["assertVisible", "assertHidden", "assertEnabled", "assertDisabled", "assertText"] as const;
 export type AssertionStep = Extract<JourneyStep, { type: (typeof ASSERTION_STEP_TYPES)[number] }>;
 
 export function isAssertionStep(step: JourneyStep): step is AssertionStep {
@@ -122,6 +124,7 @@ export const STEP_TYPE_LABELS: Record<JourneyStepType, string> = {
   assertVisible: "Assert visible",
   assertHidden: "Assert not visible",
   assertEnabled: "Assert enabled",
+  assertDisabled: "Assert disabled",
   assertText: "Assert text",
 };
 
@@ -216,6 +219,8 @@ export function describeStep(step: JourneyStep): string {
       return `${describeLocator(step.target)} is not visible`;
     case "assertEnabled":
       return `${describeLocator(step.target)} is enabled`;
+    case "assertDisabled":
+      return `${describeLocator(step.target)} is disabled`;
     case "assertText":
       return `${describeLocator(step.target)} ${step.match === "equals" ? "equals" : "contains"} "${step.text}"`;
   }

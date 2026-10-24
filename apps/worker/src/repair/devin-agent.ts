@@ -13,7 +13,7 @@ import {
   type DevinAttachmentRecord,
   type RepairRequest,
 } from "@faultline/db";
-import { buildRepairPrompt, parsePullRequestUrl, sanitizeEvidenceText, validatePullRequest, type RepairStatus } from "@faultline/shared";
+import { buildRepairPrompt, extractAgentLimitations, parsePullRequestUrl, sanitizeEvidenceText, validatePullRequest, type RepairStatus } from "@faultline/shared";
 import { sha256Hex } from "@faultline/shared/checksum";
 import { checkDevinRepositoryAccess, DevinApiError, devinTimestamp, GitHubApiError, type DevinClient, type DevinSession, type GitHubClient } from "@faultline/shared/integrations";
 
@@ -259,7 +259,7 @@ export async function syncRepair(deps: RepairAgentDeps, repair: RepairRequest): 
     devinStatus: session.status,
     devinStatusDetail: session.status_detail ?? null,
     devinUpdatedAt: devinTimestamp(session.updated_at),
-    devinAcusConsumed: session.acus_consumed === undefined ? null : Math.round(session.acus_consumed),
+    devinAcusConsumed: session.acus_consumed ?? null,
     messagesCursor: cursor,
     lastSyncedAt: now,
     syncError: null,
@@ -304,7 +304,7 @@ export async function syncRepair(deps: RepairAgentDeps, repair: RepairRequest): 
   let nextStatus: RepairStatus | null = null;
   let detail: string | null = null;
   if (accepted) {
-    Object.assign(update, prFields(accepted), { prNotes: notes });
+    Object.assign(update, prFields(accepted), { prNotes: notes, prAgentLimitations: extractAgentLimitations(accepted.body) });
     if (!repair.prHeadSha) {
       await recordRepairEvent(db, repair.id, {
         source: "github",

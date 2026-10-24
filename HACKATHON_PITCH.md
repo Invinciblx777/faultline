@@ -1,51 +1,58 @@
-# FAULTLINE — hackathon pitch
+# FAULTLINE — pitch
 
 **Break it. Understand it. Fix it. Prove it.**
 
-Devin Hacks Kochi, Track 2: "Make the invisible visible". About three minutes. The click route is in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
+Devin Hacks Kochi, Track 2: "Make the invisible visible". Three minutes. The click route and fallbacks are in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
 
 ## One sentence
 
-FAULTLINE breaks a web app on purpose in a real browser, shows exactly what failed, asks Devin to fix it, and then proves on its own whether the fix works.
+FAULTLINE breaks one dependency of your web app at a time in a real browser, shows exactly which user steps fail, hands the evidence to Devin, and then proves on its own whether the fix works.
 
-## The problem (30 seconds)
+## Script
 
-Most apps are tested on a good connection with every API up. Real users hit slow networks, failing services, and offline moments. Those failures are invisible until customers find them. When an AI agent then says "fixed", that is still only a claim.
+### 1. Hook (20 s)
 
-## What we built (60 seconds)
+"CI was green. Checkout still died for everyone whose inventory call failed. Nobody saw it, because it worked on every laptop in the office."
 
-1. **Break it.** FAULTLINE runs a real user journey in Chromium, finds the app's dependencies from real traffic, then fails them one at a time: errors, outages, slowness, offline, small screens.
-2. **Understand it.** The **Blast Radius Map** links each failed dependency to the exact journey steps it broke. **Reality Split** puts the normal and broken runs side by side, pixel for pixel. Every finding becomes an executable Playwright regression test.
-3. **Fix it.** With one human approval, tied to a checksum of the evidence, FAULTLINE sends the evidence package to a Devin session. Devin opens a pull request.
-4. **Prove it.** FAULTLINE downloads the pull request's **exact commit** and runs it in a locked-down container. It runs its **own unchanged test** against both the original and the fix. Only that produces a verdict: VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, or BLOCKED.
+*(Screen: the Northwind Supply storefront on :4600, healthy. Say it is our own reference shop, built with realistic flaws.)*
 
-## The proof we will show (live records from 2026-10-25)
+### 2. Break (40 s)
 
-Our controlled reference storefront (our own app, built to have realistic flaws) looks fine on a normal connection.
+*(Blast Radius Map of the shop.)* "FAULTLINE ran the real checkout journey in Chromium, then broke one dependency at a time. One red line: `GET /api/inventory`. A side detail, and one 503 there takes down steps 2 to 8."
 
-- When `GET /api/inventory` returns a 503, **the whole product list disappears** and checkout is impossible. The cause is `Promise.all` in `shop.js`.
-- FAULTLINE found this, reproduced it twice, and generated a failing test.
-- An operator approved one Devin session (`60a680e3…`). About four minutes later, Devin opened **PR #1** with a graceful-degradation fix and its own tests.
-- FAULTLINE then verified commit `b750bd3`:
-  - The original failed the test 2 of 2 times.
-  - Devin's commit passed 2 of 2 under the same fault.
-  - The normal journey still passed, with a byte-identical screenshot.
-- **Verdict: VERIFIED FIXED.**
+*(Blast Radius Map of the Daluxe project.)* "And this is what it found on a store I shipped for a client. If the main JavaScript bundle fails, the whole site is blank: 97% of pixels change. Images, styles, and a 3-second slowdown? Resilient."
 
-## Why it matters
+### 3. Understand (30 s)
 
-- **Evidence, not vibes.** Every screenshot, error, and verdict comes from a recorded browser execution, with SHA-256 hashes.
-- **AI-agnostic trust.** Devin proposes, and FAULTLINE verifies. The agent cannot edit the test that judges it.
-- **Safe by design.** Targets are allowlisted, every spend needs explicit human approval, and candidate code runs only in a sandbox without egress. FAULTLINE never merges.
+*(Finding page: Reality Split, then the evidence timeline, then the regression test.)* "Left is the normal run, right is the run with inventory failing. Every pixel comes from a recorded execution. FAULTLINE turns the finding into a Playwright test. This test fails today. It's the contract for the fix."
+
+### 4. Fix (40 s)
+
+*(Repair page stepper.)* "A human approved this exact evidence package, checksum-locked, at 00:59. FAULTLINE opened one real Devin session." *(Devin session tab.)* "Devin reproduced it and opened PR #1 four minutes later." *(PR tab, scroll to FAULTLINE's comment.)* "And here is FAULTLINE's verdict, posted on the PR."
+
+### 5. Prove (40 s)
+
+*(Repair page, Independent verification.)* "FAULTLINE downloaded the exact commit, `b750bd3`, ran it in a container with no network, and ran our unchanged test. Original: passed 0 of 2. Devin's commit: 2 of 2 under the same fault. The healthy path is byte-identical. VERIFIED FIXED, for this journey and these assertions. FAULTLINE never merges."
+
+*(Scroll to Cross-checks.)* "Then we asked one more question: can you still buy an out-of-stock bottle while inventory is down? Same commit, stricter journey: STILL FAILING, 2 of 2. Devin said fixed. FAULTLINE found the hole. Devin even wrote it down in the PR; now there's a browser run that proves it."
+
+### 6. Close (10 s)
+
+"AI can write the fix. FAULTLINE proves whether it works."
 
 ## For a non-technical judge
 
-"We pull the plug on one small part of a website and watch what breaks, like a fire drill. Then an AI engineer repairs it, and we run the same fire drill again to prove the repair works. No trust needed, just evidence."
+"We pull the plug on one small part of a website and watch what breaks, like a fire drill. Then an AI engineer repairs it, and we run the same fire drill again to prove the repair works."
 
-## Honest scope
+## Facts behind every line
 
-- One live repair has been verified, on our own reference app, for one fault in Chromium. Other findings on that app are not yet repaired.
-- Verification currently supports Node.js servers without runtime dependencies.
-- Self-hosted, operator-only. Not deployed publicly.
+| Line | Record |
+|---|---|
+| Inventory takes down steps 2–8 | Analysis `780cac26…`, experiment `5f64dd02…` |
+| Approval at 00:59, Devin session, PR #1 four minutes later | [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md) §2–3 |
+| 0 of 2 → 2 of 2, byte-identical healthy path | Run `39c125f0…` |
+| Verdict on the PR | https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389303315 |
+| STILL FAILING with the stricter journey | Cross-check run `24f9f532…` |
+| Client store: blank page when the bundle fails, 97.38% | Project `13327180…`, analyses `004f212e…` and `e24a90ca…` |
 
-Longer-term ideas are in [docs/vision.md](docs/vision.md).
+Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).

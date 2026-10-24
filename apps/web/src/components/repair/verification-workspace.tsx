@@ -1,5 +1,6 @@
 import { ImageOff } from "lucide-react";
 import type { VerificationCheck, VerificationRun } from "@faultline/db";
+import { healthyScreenshotsIdentical, verdictScope } from "@faultline/shared";
 import { ToneChip } from "@/components/ui/status";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -136,6 +137,7 @@ export function VerificationWorkspace({ run }: { run: Run }) {
           {run.durationMs !== null ? ` · took ${formatDuration(run.durationMs)}` : ""}
         </span>
       </div>
+      {run.verdict ? <p className="text-sm text-on-surface-variant">{verdictScope(run.verdict, healthyScreenshotsIdentical(run.checks))}</p> : null}
       <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-on-surface-variant">Original commit (base)</dt>

@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { postVerificationComment } from "@faultline/db";
 import { requireOperator } from "@/lib/auth/dal";
+import { getEnv } from "@/lib/env";
 import { getRepairDeps } from "@/lib/integrations";
 import {
   approveRepairRequest,
@@ -12,6 +14,7 @@ import {
   linkRepository,
   recheckRepository,
   refreshRepair,
+  requestCrossCheck,
   repositoryInputFromForm,
   requestVerification,
 } from "@/lib/services/repairs";
@@ -88,11 +91,34 @@ export async function verifyRepairAction(_prev: RepairFormState, form: FormData)
   return { ok: true };
 }
 
+export async function crossCheckRepairAction(_prev: RepairFormState, form: FormData): Promise<RepairFormState> {
+  const operator = await requireOperator();
+  const repairId = String(form.get("repairId") ?? "");
+  const result = await requestCrossCheck(getRepairDeps(), operator, repairId, String(form.get("experimentId") ?? ""));
+  if (!result.ok) return { error: result.error };
+  revalidatePath(`/repairs/${repairId}`);
+  return { ok: true };
+}
+
 export async function refreshRepairAction(_prev: RepairFormState, form: FormData): Promise<RepairFormState> {
   const operator = await requireOperator();
   const repairId = String(form.get("repairId") ?? "");
   const result = await refreshRepair(getRepairDeps(), operator, repairId);
   if (!result.ok) return { error: result.error };
+  return { ok: true };
+}
+
+/** Posts FAULTLINE's verdict on the pull request, at most once per verification run. Approvers only: it writes to GitHub. */
+export async function postVerdictCommentAction(_prev: RepairFormState, form: FormData): Promise<RepairFormState> {
+  const operator = await requireOperator();
+  if (!getEnv().FAULTLINE_REPAIR_APPROVERS.includes(operator.username.toLowerCase())) return { error: `${operator.username} is not on FAULTLINE_REPAIR_APPROVERS, so this account cannot comment on pull requests.` };
+  const repairId = String(form.get("repairId") ?? "");
+  const deps = getRepairDeps();
+  const template = process.env.FAULTLINE_COMMENT_IMAGE_URL?.trim();
+  const imageUrl = template?.includes("{sha256}") ? (sha: string) => template.replace("{sha256}", sha) : undefined;
+  const result = await postVerificationComment(deps.db, deps.github, repairId, { imageUrl, operatorId: operator.id });
+  revalidatePath(`/repairs/${repairId}`);
+  if (!result.ok) return { error: `${result.error} Download the verdict report (Markdown) and paste it into the pull request instead.` };
   return { ok: true };
 }
 

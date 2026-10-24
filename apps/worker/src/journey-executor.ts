@@ -670,6 +670,9 @@ export async function runJourneyExecution(input: JourneyExecutionInput): Promise
       case "assertEnabled":
         await expect(buildLocator(p, step.target)).toBeEnabled({ timeout: step.timeoutMs });
         return;
+      case "assertDisabled":
+        await expect(buildLocator(p, step.target)).toBeDisabled({ timeout: step.timeoutMs });
+        return;
       case "assertText":
         if (step.match === "equals") await expect(buildLocator(p, step.target)).toHaveText(step.text, { timeout: step.timeoutMs });
         else await expect(buildLocator(p, step.target)).toContainText(step.text, { timeout: step.timeoutMs });

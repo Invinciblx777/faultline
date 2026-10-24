@@ -282,6 +282,28 @@ describe("regression test generation", () => {
     expect(test.command).toBe(`FAULTLINE_TARGET_URL=${ORIGIN} npx playwright test ${test.filename}`);
   });
 
+  it("asserts a control is disabled", () => {
+    const withDisabled = journeyDefinitionSchema.parse({
+      ...journey,
+      steps: [...journey.steps, { type: "assertDisabled", target: { by: "role", role: "button", name: "Add Camp Bottle to cart" } }],
+    });
+    const test = generateRegressionTest({
+      ...base,
+      journey: withDisabled,
+      stableSteps: [0, 1, 2, 3, 4],
+      experiment: {
+        id: "0d9c1c4e-0000-4000-8000-000000000000",
+        scanId: "s",
+        verdict: "broken",
+        fault: { kind: "http-error", matcher: { scope: "endpoint", origin: ORIGIN, method: "GET", pathPattern: "/api/inventory" }, status: 503 },
+        dependencyLabel: "GET /api/inventory",
+        observedAt: "2026-10-24T10:00:00.000Z",
+        reasons: [],
+      },
+    });
+    expect(test.content).toContain('await expect(page.getByRole("button", { name: "Add Camp Bottle to cart", exact: false }).first()).toBeDisabled({ timeout: 5000 });');
+  });
+
   it("asserts violated budgets and layout for DEGRADED findings and keeps third-party origins literal", () => {
     const test = generateRegressionTest({
       ...base,

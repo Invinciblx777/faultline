@@ -39,8 +39,8 @@ interface DraftMutation {
   path: string;
 }
 
-const TARGETED: JourneyStepType[] = ["click", "fill", "waitForVisible", "assertVisible", "assertHidden", "assertEnabled", "assertText"];
-const TIMED: JourneyStepType[] = ["waitForVisible", "assertVisible", "assertHidden", "assertEnabled", "assertText"];
+const TARGETED: JourneyStepType[] = ["click", "fill", "waitForVisible", "assertVisible", "assertHidden", "assertEnabled", "assertDisabled", "assertText"];
+const TIMED: JourneyStepType[] = ["waitForVisible", "assertVisible", "assertHidden", "assertEnabled", "assertDisabled", "assertText"];
 const OFFLINE_TYPES: JourneyStepType[] = ["assertVisible", "assertHidden", "assertText"];
 const LOCATOR_LABELS: Record<LocatorBy, string> = {
   role: "Role and accessible name",

@@ -9,24 +9,29 @@
     "node": ">=22.12.0"
   },
   "scripts": {
+    "quickstart": "node scripts/quickstart.mjs",
     "setup:env": "node scripts/setup-env.mjs",
     "infra:up": "docker compose up -d",
     "infra:down": "docker compose down",
     "dev:web": "pnpm --filter @faultline/web dev",
     "dev:worker": "pnpm --filter @faultline/worker dev",
+    "demo": "node scripts/demo.mjs",
     "start:web": "pnpm --filter @faultline/web start",
     "start:worker": "pnpm --filter @faultline/worker start",
+    "worker:restart": "pnpm --filter @faultline/worker build && pnpm start:worker",
     "reference-target": "pnpm --filter @faultline/reference-target start",
     "db:generate": "pnpm --filter @faultline/db generate",
     "db:migrate": "pnpm --filter @faultline/db migrate",
     "db:migrate:test": "pnpm --filter @faultline/db migrate --test",
     "operator:create": "pnpm --filter @faultline/db operator:create",
+    "repair:comment": "pnpm --filter @faultline/db repair:comment",
     "browsers:install": "pnpm --filter @faultline/worker exec playwright install chromium",
     "build": "pnpm -r --filter=!@faultline/reference-target build",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r --workspace-concurrency=1 test",
     "test:e2e": "pnpm --filter @faultline/web build && pnpm --filter @faultline/web test:e2e",
-    "test:all": "pnpm test && pnpm test:e2e"
+    "test:all": "pnpm test && pnpm test:e2e",
+    "demo:preflight": "pnpm --filter @faultline/worker demo:preflight"
   }
 }

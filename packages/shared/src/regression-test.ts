@@ -98,6 +98,8 @@ function stepBody(step: JourneyStep, checkViewport: boolean): string[] {
       return [`await expect(${locatorCode(step.target)}).toBeHidden({ timeout: ${step.timeoutMs} });`];
     case "assertEnabled":
       return [`await expect(${locatorCode(step.target)}).toBeEnabled({ timeout: ${step.timeoutMs} });`];
+    case "assertDisabled":
+      return [`await expect(${locatorCode(step.target)}).toBeDisabled({ timeout: ${step.timeoutMs} });`];
     case "assertText":
       return [
         step.match === "equals"

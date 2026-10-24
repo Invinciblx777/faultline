@@ -4,7 +4,8 @@ import type { GitHubPullFacts } from "../repair";
 /**
  * Minimal server-side GitHub REST client for the repair loop: repository
  * and branch checks, pull request facts, commit existence, and source
- * archives for exact commits. Reads only; FAULTLINE never pushes or merges.
+ * archives for exact commits. The only write is FAULTLINE's own verdict
+ * comment on a pull request; FAULTLINE never pushes or merges.
  *
  * The token (GITHUB_TOKEN) is only placed in the Authorization header.
  */
@@ -41,6 +42,9 @@ const pullSchema = z.object({
 });
 
 const commitSchema = z.object({ sha: z.string().regex(/^[0-9a-f]{40}$/), html_url: z.string().url() });
+
+const issueCommentSchema = z.object({ id: z.number().int(), html_url: z.string().url(), body: z.string().nullable().optional(), created_at: z.string() });
+export type GitHubIssueComment = z.infer<typeof issueCommentSchema>;
 
 export class GitHubApiError extends Error {
   constructor(
@@ -82,16 +86,19 @@ export class GitHubClient {
     return Boolean(this.options.token);
   }
 
-  private async raw(path: string, accept = "application/vnd.github+json", timeoutMs = this.timeoutMs): Promise<Response> {
+  private async raw(path: string, accept = "application/vnd.github+json", timeoutMs = this.timeoutMs, post?: unknown): Promise<Response> {
     let response: Response;
     try {
       response = await this.fetchImpl(`${this.baseUrl}${path}`, {
+        method: post === undefined ? "GET" : "POST",
         headers: {
           accept,
           "x-github-api-version": "2022-11-28",
           "user-agent": "faultline-repair",
+          ...(post === undefined ? {} : { "content-type": "application/json" }),
           ...(this.options.token ? { authorization: `Bearer ${this.options.token}` } : {}),
         },
+        body: post === undefined ? undefined : JSON.stringify(post),
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (error) {
@@ -105,7 +112,7 @@ export class GitHubClient {
           : response.status === 401
             ? " GITHUB_TOKEN was rejected."
             : response.status === 403
-              ? " Forbidden or rate-limited."
+              ? " Forbidden or rate-limited (writing comments needs Pull requests or Issues write access)."
               : "";
       throw new GitHubApiError(`GitHub ${path} returned HTTP ${response.status}.${hint}`, response.status);
     }
@@ -153,6 +160,22 @@ export class GitHubClient {
       mergedAt: pr.merged_at,
       closedAt: pr.closed_at,
     };
+  }
+
+  /** Up to the first 100 comments on a pull request's conversation. */
+  async listIssueComments(owner: string, name: string, number: number): Promise<GitHubIssueComment[]> {
+    if (!Number.isInteger(number) || number < 1) throw new GitHubApiError("Invalid pull request number.", null);
+    return this.json(`${repoPath(owner, name)}/issues/${number}/comments?per_page=100`, z.array(issueCommentSchema));
+  }
+
+  /** Posts a comment on a pull request's conversation. Callers must make this idempotent. */
+  async createIssueComment(owner: string, name: string, number: number, body: string): Promise<GitHubIssueComment> {
+    if (!Number.isInteger(number) || number < 1) throw new GitHubApiError("Invalid pull request number.", null);
+    const path = `${repoPath(owner, name)}/issues/${number}/comments`;
+    const response = await this.raw(path, "application/vnd.github+json", this.timeoutMs, { body });
+    const parsed = issueCommentSchema.safeParse(await response.json().catch(() => null));
+    if (!parsed.success) throw new GitHubApiError(`GitHub ${path} returned an unexpected response.`, response.status);
+    return parsed.data;
   }
 
   /** gzip tarball of the repository at an exact commit, size-limited. */

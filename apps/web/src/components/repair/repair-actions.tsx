@@ -1,12 +1,14 @@
 "use client";
 
-import { FlaskConical, RefreshCw, Send, Wrench, X } from "lucide-react";
+import { FlaskConical, MessageSquarePlus, RefreshCw, Send, Wrench, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import {
   approveRepairAction,
   cancelRepairAction,
   checkRepairAccessAction,
   createRepairAction,
+  crossCheckRepairAction,
+  postVerdictCommentAction,
   recheckRepositoryAction,
   refreshRepairAction,
   verifyRepairAction,
@@ -115,6 +117,48 @@ export function VerifyButton({ repairId, sha, again }: { repairId: string; sha: 
       <p className="text-sm text-on-surface-variant">
         Builds the original and this exact commit in isolated containers and runs the unchanged regression test against both. The pull request&apos;s code runs only inside the container.
       </p>
+      <ErrorNote state={state} />
+    </form>
+  );
+}
+
+/** Queues a cross-check: the same commit judged by another finding's unchanged regression test. Free; no Devin call. */
+export function CrossCheckForm({ repairId, sha, findings }: { repairId: string; sha: string; findings: Array<{ experimentId: string; label: string }> }) {
+  const [state, action, pending] = useActionState<RepairFormState, FormData>(crossCheckRepairAction, {});
+  return (
+    <form action={action} className="flex flex-col gap-3">
+      <input type="hidden" name="repairId" value={repairId} />
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-on-surface-variant">Finding whose regression test judges commit {sha.slice(0, 12)}</span>
+        <select name="experimentId" required className="h-12 rounded-md border border-outline bg-surface-low px-3 text-on-surface">
+          {findings.map((f) => (
+            <option key={f.experimentId} value={f.experimentId}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div>
+        <Button type="submit" variant="outlined" icon={<FlaskConical aria-hidden />} disabled={pending}>
+          {pending ? "Queuing…" : "Cross-check this commit"}
+        </Button>
+      </div>
+      <ErrorNote state={state} />
+    </form>
+  );
+}
+
+/** Posts the verdict comment. The server checks for an existing comment first, so a second click never posts twice. */
+export function PostVerdictCommentButton({ repairId, prNumber }: { repairId: string; prNumber: number }) {
+  const [state, action, pending] = useActionState<RepairFormState, FormData>(postVerdictCommentAction, {});
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="repairId" value={repairId} />
+      <div>
+        <Button type="submit" variant="outlined" size="sm" icon={<MessageSquarePlus aria-hidden />} disabled={pending || state.ok}>
+          {pending ? "Posting…" : `Post verdict on pull request #${prNumber}`}
+        </Button>
+      </div>
       <ErrorNote state={state} />
     </form>
   );

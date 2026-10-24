@@ -240,16 +240,18 @@ export async function runVerification(deps: VerificationDeps, run: VerificationR
   await recordRepairEvent(db, repair.id, { source: "verification", kind: "verification_started", message: `Independent verification started for commit ${run.candidateSha.slice(0, 12)} (original ${run.originalSha.slice(0, 12)}).`, detail: { runId: run.id } });
   try {
     const [repo] = await db.select().from(sourceRepositories).where(eq(sourceRepositories.id, repair.repositoryId));
-    const [test] = await db.select().from(regressionTests).where(eq(regressionTests.id, repair.regressionTestId));
-    const [experiment] = await db.select().from(experiments).where(eq(experiments.id, repair.experimentId));
-    const [scan] = await db.select().from(scans).where(eq(scans.id, repair.scanId));
+    // A cross-check judges the same commit with another finding's test, journey, and fault.
+    const [test] = await db.select().from(regressionTests).where(eq(regressionTests.id, run.crossCheckRegressionTestId ?? repair.regressionTestId));
+    const [experiment] = await db.select().from(experiments).where(eq(experiments.id, run.crossCheckExperimentId ?? repair.experimentId));
+    const [scan] = experiment ? await db.select().from(scans).where(eq(scans.id, experiment.scanId)) : [];
     const [project] = scan ? await db.select().from(projects).where(eq(projects.id, scan.projectId)) : [];
     if (!repo || !test || !experiment || !scan || !project || !scan.journeySnapshot || !scan.analysis) return await blocked("The repair's repository, regression test, finding, or analysis record is missing.");
 
-    // The test must be byte-for-byte the one recorded when the repair was created.
+    // The test must be byte-for-byte the one recorded when the repair (or the cross-check) was created.
     const contentSha = sha256Hex(test.content);
-    const integrityOk = contentSha === test.sha256 && contentSha === repair.regressionTestSha256 && contentSha === run.regressionTestSha256;
-    inputs.testIntegrity = { ok: integrityOk, detail: integrityOk ? `${test.filename} unchanged (SHA-256 ${contentSha.slice(0, 16)}…).` : `content hash ${contentSha.slice(0, 16)}… does not match the recorded ${repair.regressionTestSha256.slice(0, 16)}….` };
+    const recordedSha = run.crossCheckRegressionTestId ? run.regressionTestSha256 : repair.regressionTestSha256;
+    const integrityOk = contentSha === test.sha256 && contentSha === recordedSha && contentSha === run.regressionTestSha256;
+    inputs.testIntegrity = { ok: integrityOk, detail: integrityOk ? `${test.filename} unchanged (SHA-256 ${contentSha.slice(0, 16)}…).` : `content hash ${contentSha.slice(0, 16)}… does not match the recorded ${recordedSha.slice(0, 16)}….` };
     if (!integrityOk) return await finish();
 
     const support = verificationSupportsFault(experiment.fault, project.origin);
@@ -393,7 +395,7 @@ export async function runVerification(deps: VerificationDeps, run: VerificationR
     await recordRepairEvent(db, repair!.id, {
       source: "verification",
       kind: "verdict",
-      message: `Verdict for ${run.candidateSha.slice(0, 12)}: ${decision.verdict.replace(/_/g, " ").toUpperCase()}. ${decision.rationale[decision.rationale.length - 1]}`,
+      message: `${run.crossCheckExperimentId ? "Cross-check verdict" : "Verdict"} for ${run.candidateSha.slice(0, 12)}: ${decision.verdict.replace(/_/g, " ").toUpperCase()}. ${decision.rationale[decision.rationale.length - 1]}`,
       detail: { runId: run.id, verdict: decision.verdict, rationale: decision.rationale },
     });
     log("verification finished", { runId: run.id, verdict: decision.verdict });

@@ -15,7 +15,8 @@
     "operator:create": "tsx scripts/create-operator.ts",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint src scripts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "repair:comment": "tsx scripts/post-verdict-comment.ts"
   },
   "dependencies": {
     "@faultline/shared": "workspace:*",

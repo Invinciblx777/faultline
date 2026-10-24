@@ -2,198 +2,138 @@
 
 **Break it. Understand it. Fix it. Prove it.**
 
-FAULTLINE is an evidence-first web reliability engineering platform. It loads your website in a real Chromium browser under normal conditions, loads it again under a deliberate fault (failing resources, or the network gone), and shows both runs side by side in **Reality Split**: screenshots, console errors, uncaught exceptions, failed requests, HTTP errors, and a timeline of what each run actually observed.
+FAULTLINE breaks one dependency of your web app at a time in a real browser, shows exactly which user steps fail, hands the evidence to an AI engineer, and then proves on its own whether the fix works.
 
-Every screenshot, error, and number in FAULTLINE comes from a recorded browser execution. Nothing is simulated, seeded, or generated.
+![FAULTLINE verdict on Devin's pull request: VERIFIED FIXED, with its scope and the agent's own stated limitation](docs/screenshots/08-verdict-scope.png)
 
-> Status: **Phase 3 (Devin Strike), verified live** on branch `phase-3-devin-strike`. Self-hosted, operator-only. See [PHASE_STATUS.md](PHASE_STATUS.md) for exactly what is implemented and verified.
+## Proven live
 
-## Proven end to end: a live Devin repair, independently verified
+| When (IST) | What | Link |
+|---|---|---|
+| 2026-10-25 00:59 | An operator approves one checksum-locked evidence package; FAULTLINE opens one Devin session | [Devin session `60a680e3…`](https://app.devin.ai/sessions/60a680e3098142b0b1b2ca8fca9cf27a) |
+| 2026-10-25 01:03 | Devin opens a pull request on the reference storefront | [PR #1](https://github.com/Invinciblx777/faultline-reference-shop/pull/1) · [FAULTLINE's verdict on the PR](https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389303315) |
+| 2026-10-25 01:07 | FAULTLINE builds commit `b750bd3` in a locked-down container and runs its own unchanged test: original fails 2/2, candidate passes 2/2, healthy path byte-identical | [Verification run `39c125f0…`](FINAL_VERIFICATION_REPORT.md#4-independent-verification) |
 
-On 2026-10-25, FAULTLINE completed the full loop against **Northwind Supply**, our own controlled reference storefront (`Invinciblx777/faultline-reference-shop`, private, not a customer's site):
+**Verdict scope.** VERIFIED FIXED means the original failing regression test passes under the identical injected fault and the healthy-path journey still passes. It covers the tested journey and assertions only, not every behavior of the change. FAULTLINE never merges.
 
-1. **Break.** When `GET /api/inventory` returns HTTP 503, the storefront hides every product and checkout is impossible (`Promise.all` in `public/shop/shop.js`). FAULTLINE found this in real Chromium and reproduced it 2/2.
-2. **Understand.** The Blast Radius Map tied the fault to journey steps 2–8. Reality Split shows the evidence. FAULTLINE generated a Playwright regression test, and that test fails.
-3. **Fix.** An operator approved the checksum-locked evidence package in the UI. FAULTLINE created one Devin session (`60a680e3…`). Devin opened [PR #1](https://github.com/Invinciblx777/faultline-reference-shop/pull/1) about four minutes later.
-4. **Prove.** FAULTLINE built the PR's exact head commit `b750bd3` in an isolated container and ran its own unchanged test:
-   - The original failed 2 of 2 times.
-   - The candidate passed 2 of 2 under the same fault.
-   - The normal journey still passes.
+**Cross-check.** FAULTLINE then judged the same commit with a stricter journey (v2), which also asserts that an out-of-stock item cannot be added while `/api/inventory` fails. Verdict on `b750bd3`: **STILL FAILING**. The Camp Bottle shows "Stock level unavailable" but can be added to the cart, 2 of 2 runs (run `24f9f532…`, 2026-10-25 02:34 IST). The original verdict above stands for its own test.
 
-   Verdict: **VERIFIED FIXED**.
+![Cross-check of commit b750bd3: STILL FAILING, the out-of-stock Camp Bottle can be added while inventory is down](docs/screenshots/09-cross-check-still-failing.png)
 
-Full record with every ID, SHA, and hash: [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md). Demo route: [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md). Pitch: [HACKATHON_PITCH.md](HACKATHON_PITCH.md).
+## Try it
 
-| Blast Radius Map | Finding: inventory 503 breaks the journey |
+Prerequisites: Linux (or WSL2), Node.js 22.12+, Docker Compose or podman-compose, about 500 MB for Chromium.
+
+```bash
+git clone https://github.com/Invinciblx777/faultline && cd faultline
+corepack enable pnpm && pnpm install
+pnpm quickstart              # .env with generated secrets, PostgreSQL + MinIO, migrations, Chromium
+pnpm operator:create admin   # choose a password (12+ characters)
+pnpm demo                    # storefront :4600, worker, web app on http://localhost:3000
+```
+
+Sign in at http://localhost:3000, create a project for `http://localhost:4600`, add a journey on `/shop/`, and choose **Analyze blast radius**. Before a live demo, `pnpm demo:preflight` checks every service and prints the demo URLs.
+
+## How it works
+
+- **Authorize.** Projects are limited to origins on a server-side allowlist. Every browser connection goes through an egress guard, and requests that could change data are blocked unless the journey allows them.
+- **Journey.** A user flow is data, not code: navigate, click, fill, and assertions, versioned in a structured editor.
+- **Baseline.** FAULTLINE runs the journey twice in fresh Chromium contexts and records every request the browser makes.
+- **Inject.** It breaks one dependency or condition at a time: outage, HTTP 5xx, slow response, offline, small viewport.
+- **Blast Radius and Reality Split.** The map links each fault to the steps it broke. Reality Split shows the normal and broken runs side by side, with a pixel diff and a causal timeline.
+- **Regression test.** Every finding becomes an executable Playwright test, validated by watching it fail on the current site.
+- **Repair.** With one human approval, tied to a checksum of the evidence, FAULTLINE sends the package to a Devin session. Devin opens a pull request.
+- **Verify.** FAULTLINE downloads the pull request's exact commit, runs it in a container with no egress, and runs its own unchanged test. The verdict is VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, or BLOCKED, and FAULTLINE posts it on the pull request.
+
+## A real store: Daluxe Official
+
+FAULTLINE also scanned [daluxeofficial.in](https://www.daluxeofficial.in), a live skincare store we built and deployed for a client. Scan only, no repair. Journey: open home, open a product, open the cart (6 steps, nothing added, nothing ordered).
+
+![Blast Radius Map of the Daluxe store](docs/screenshots/real-app/01-blast-radius-map.png)
+
+Three analyses, 18 experiments, 2026-10-25 02:11–02:33 IST (project `13327180…`):
+
+| Fault | Result |
 |---|---|
-| ![Blast Radius Map](docs/screenshots/01-blast-radius-map.png) | ![Finding](docs/screenshots/02-finding-inventory-503.png) |
-| **Repair: VERIFIED FIXED** | **Independent verification of commit b750bd3** |
-| ![Verified repair](docs/screenshots/03-repair-verified-fixed.png) | ![Verification](docs/screenshots/04-independent-verification.png) |
-| **Original under the fault** (captured by FAULTLINE) | **Devin's commit under the same fault** |
-| ![Original under fault](docs/screenshots/05-storefront-original-under-fault.png) | ![Candidate under fault](docs/screenshots/06-storefront-candidate-under-fault.png) |
+| Main JavaScript bundle unavailable | **BROKEN**, reproduced in two analyses. The page is blank: 97.38% of pixels change. The store renders only on the client, so one failed file takes down the whole journey. |
+| Main bundle or stylesheet slowed by 3 s; stylesheet or 5 product images unavailable | RESILIENT, 0.00% pixel change |
+| `http://localhost:8081/api/supabase-config` unavailable | The production bundle calls a developer address from every visitor's browser. The call fails and the store falls back. RESILIENT in one analysis; INCONCLUSIVE in another, where the product page timed out after 30 s and did not reproduce. |
+| Offline after the first page | INCONCLUSIVE by design: no offline expectation is set, so FAULTLINE records the observation (step 3 fails) without judging it. |
+| 360 px viewport | BROKEN, reproduced. The journey's desktop CSS selector for the cart icon does not exist in the mobile layout. At 360 px the cart button sits at the top right and opens the cart, so this finding points at the journey, not the store. |
 
-## What it does today
+HTTP error injection was skipped: the journey calls no first-party GET API on this store.
 
-- **Projects** for website origins on a server-side allowlist.
-- **Scans** that run two executions in fresh, isolated Chromium contexts:
-  - **Resource failure**: abort stylesheets, images, fonts, scripts, media, fetch, or XHR requests inside the browser (first-party, third-party, or all). Intentionally aborted requests are recorded separately from unexpected failures. No response is ever faked.
-  - **Offline reload**: load, switch the browser context offline, reload. Clearly labeled as browser-context emulation, not physical network loss.
-- **Reality Split**: side-by-side or draggable-seam comparison of the two real screenshots, with per-run conditions, environment, and evidence timelines.
-- **Live progress**, **scan history** with search and filters, **cancel** and **run again**.
-- **Technical report** with a transparent "can / cannot be concluded" section and a **JSON export** (`faultline.report/v1`) including SHA-256 hashes computed from the stored screenshot bytes.
-- **Egress guard**: every browser connection goes through a policy-enforcing proxy that blocks private networks, loopback, link-local, and cloud metadata addresses unless explicitly allowed, including after redirects and DNS rebinding.
+![Reality Split: product page and cart under normal conditions vs. a blank page when the main JavaScript bundle is unavailable](docs/screenshots/real-app/02-reality-split-js-bundle-unavailable.png)
 
-### Blast Radius (Phase 2)
+## Known limitations
 
-- **Journeys**: versioned, declarative user flows (navigate, click, fill, wait, assertions, optional step and journey time budgets, offline expectations). They are built in a structured editor or as JSON. Journeys are data, not code.
-- **Dependency discovery** from the requests the browser actually made in two normal runs.
-- **Isolated fault experiments**, one per fresh browser context:
-  - dependency unavailable
-  - first-party API returns 500/503
-  - slow response
-  - online → offline
-  - 360×740 viewport
-- **Verdicts** from fixed rules: BROKEN, DEGRADED, RESILIENT, INCONCLUSIVE, TEST FAILED. Findings are re-run once to check that they reproduce.
-- **Blast Radius Map** linking each fault to the journey steps it broke or degraded.
-- **Reality Split 2.0**: side by side, seam, overlay, and pixel diff against a calibrated threshold.
-- **Causal evidence timeline**: injected fault, page reactions, and failed checks on one clock.
-- **Executable Playwright regression tests** for each finding. Each is validated by running it with Playwright Test against the site.
+- One live Devin repair verified: one fault, one journey, Chromium only, on a storefront we wrote for this purpose.
+- Devin's fix lets out-of-stock items be added to the cart while inventory is down. Devin says so in the PR, and FAULTLINE quotes it next to the verdict. A cross-check with a stricter journey turns this into STILL FAILING (see above).
+- Candidate verification builds Node.js servers without runtime dependencies. Other stacks are on the roadmap.
+- Injected HTTP errors apply to first-party GET/HEAD API endpoints. Static files and third-party origins are tested as unavailable or slow.
+- Self-hosted and operator-only. No public deployment; `public` mode needs OS-level network isolation (see [docs/security.md](docs/security.md)).
+- Mobile checks are Chromium emulation, not Safari or a physical phone.
+- The verdict comment on the PR is posted with the operator's GitHub token, and its screenshots render only while this repository is public.
 
-### Devin Strike (Phase 3)
+## Architecture
 
-- **Source repository** per project: a GitHub repository on the server's `FAULTLINE_REPAIR_REPOSITORIES` list, checked against GitHub and Devin when linked. No credentials are entered in the browser.
-- **Fix with Devin** on a BROKEN or DEGRADED finding whose regression test fails on the current site. FAULTLINE builds a sanitized evidence package (checksum stored), the repair prompt, and shows both for review. Nothing is sent yet.
-- **Explicit approval** by an operator on `FAULTLINE_REPAIR_APPROVERS`, tied to the evidence checksum. Only then does the worker create one Devin API v3 session (tagged, so an unconfirmed request is recovered by lookup instead of being sent twice).
-- **Fail-closed repository-access preflight.** Approval and session creation both require a live check: the v3 key authenticates (`GET /v3/self`), belongs to `DEVIN_ORG_ID`, and that organization's GitHub connection lists the exact linked repository. The approval button stays disabled, with the reason, until such a check succeeded within the last 10 minutes (**Check repository access** on the repair page). The server checks again at approval, and the worker checks again before it uploads screenshots or creates the session. A failed check sends nothing and spends no credits.
-- **Live progress** from stored rows: Devin session status and messages, polled by the worker; pull requests are accepted only when GitHub confirms them for the linked repository and base branch. FAULTLINE never merges.
-- **Independent verification** of the pull request's exact head commit: the original and the candidate commit are each downloaded from GitHub, run in a locked-down container (read-only, no capabilities, internal network with no egress), and tested with the **unchanged** regression test (twice each) and the journey under normal conditions. Verdicts: VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, VERIFICATION BLOCKED.
-- **Verified fix report** with before/after screenshots, every check, commit SHAs, and the audit trail.
-
-Without `DEVIN_API_KEY` and `DEVIN_ORG_ID`, or without Devin access to the linked repository, repair requests can be prepared and reviewed but not approved; the UI says why. After upgrading, run `pnpm db:migrate` (migration `0003` adds `source_repositories.devin_checked_at`).
-
-Not built: AI analysis and Fault DNA graphs (the UI labels them unavailable). Longer-term ideas are collected in [docs/vision.md](docs/vision.md).
-
-## Requirements
-
-- Linux, or Windows with WSL2 (run everything inside the WSL distribution).
-- Node.js 22.12+ (developed on 24.x) and pnpm 12 (`corepack enable pnpm`).
-- Docker with Compose, or Podman with `podman-compose`, for PostgreSQL 17 and MinIO.
-- About 500 MB for the Playwright Chromium download.
-
-## Quick start (local)
-
-Run these from the repository root.
-
-```bash
-# 1. Install dependencies
-corepack enable pnpm
-pnpm install
-
-# 2. Create local configuration with generated secrets (.env, mode 600, never committed)
-pnpm setup:env
-
-# 3. Start PostgreSQL and MinIO (bound to 127.0.0.1 only)
-docker compose up -d          # or: podman-compose up -d
-
-# 4. Create the database schema (and the separate test database's schema)
-pnpm db:migrate
-pnpm db:migrate:test
-
-# 5. Download Chromium for the worker
-pnpm browsers:install
-#    On Debian/Ubuntu you may also need system libraries:
-#    pnpm --filter @faultline/worker exec playwright install-deps chromium
-
-# 6. Create the first operator (prompts for a password, minimum 12 characters)
-pnpm operator:create admin
+```
+ Operator browser ──HTTPS──▶ apps/web (Next.js) ──pg-boss──▶ PostgreSQL ◀── apps/worker
+                               │   ▲                                         │  Playwright Chromium
+                               │   └──── evidence, verdicts ─────────────────┤  + egress guard
+                               │                                             ├──▶ allowlisted website
+                               ▼                                             ├──▶ MinIO (screenshots, SHA-256)
+                         Devin API v3 ◀── one session per approval ──────────┤
+                         GitHub API   ◀── PR facts, exact-commit archives ───┤
+                                      ◀── one verdict comment per run        │
+                                                                             └──▶ podman: candidate commit,
+                                                                                  read-only, no egress
 ```
 
-Authorize the origins you are allowed to test by editing `FAULTLINE_SCAN_ALLOWLIST` in `.env` (comma-separated; `https://*.example.com` wildcards are allowed). The default authorizes only the bundled reference target, `http://localhost:4600`, and its simulated third-party partner, `http://localhost:4601`.
+More detail: [docs/architecture.md](docs/architecture.md), [docs/security.md](docs/security.md), [docs/api.md](docs/api.md), [docs/deployment.md](docs/deployment.md).
 
-Start the three processes in separate terminals:
+## Roadmap and AI usage
 
-```bash
-pnpm reference-target   # optional: a deliberately imperfect local site on http://localhost:4600
-pnpm dev:worker         # scan worker (Playwright Chromium)
-pnpm dev:web            # web app on http://localhost:3000
-```
+- Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
+- AI usage record: [AI_USAGE.md](AI_USAGE.md)
+- Build record: [PHASE_STATUS.md](PHASE_STATUS.md), [CHANGELOG.md](CHANGELOG.md), [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md)
+- Demo: [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md), [HACKATHON_PITCH.md](HACKATHON_PITCH.md), [SUBMISSION.md](SUBMISSION.md)
 
-Then open http://localhost:3000, sign in, create a project for `http://localhost:4600`, choose **New scan**, and run it. The scan page shows live progress; when both runs finish, open **Reality Split** or **Report**.
+---
 
-To try Blast Radius:
-
-1. Open the project, then **Journeys → New journey**.
-2. Describe a flow on the storefront at `/shop/`, for example: open `/shop/`, assert "Trail Backpack" is visible, click "Add Trail Backpack to cart", fill "ZIP code", click "Get shipping quote", and assert the order total.
-3. Save the journey, then choose **Analyze blast radius**.
-4. When the analysis finishes, select a fault on the map to see its evidence and download its regression test.
-
-### Production-style local run
-
-```bash
-pnpm build                       # builds the web app (Next.js) and bundles the worker
-pnpm start:worker                # node apps/worker/dist/main.js
-pnpm start:web                   # next start on port 3000
-```
-
-With `NODE_ENV=production` session cookies are `Secure` with the `__Host-` prefix. Browsers accept them on `http://localhost`; anywhere else, serve the web app over HTTPS (see [docs/deployment.md](docs/deployment.md)).
+## Reference
 
 ### Repair setup (optional)
 
-1. Create a read-only GitHub token for the repository and a Devin service-user key (Devin → Settings → Service users, permissions to use and view sessions). In Devin, grant its GitHub connection access to the repository.
-2. Set `GITHUB_TOKEN`, `DEVIN_API_KEY`, `DEVIN_ORG_ID`, `FAULTLINE_REPAIR_REPOSITORIES`, and `FAULTLINE_REPAIR_APPROVERS` in `.env`, and add the verification origins (`http://localhost:4700,http://localhost:4701` by default) to `FAULTLINE_SCAN_ALLOWLIST`.
-3. Install podman (or docker; set `FAULTLINE_CONTAINER_RUNTIME`) and pull the image named in `FAULTLINE_VERIFY_IMAGE` ahead of time (`podman pull <image>`), so the first verification does not wait on a download.
-4. Restart web and worker. **Settings → Devin API v3 → Test Devin connection** calls `GET /v3/self` only (no session, no credits).
-5. On the project page, link the repository and say how a commit is run (`node <entry>`, port variables). Supported today: Node.js servers with no runtime dependencies.
+1. Create a GitHub token that can read the repository and its pull requests (posting the verdict comment also needs Pull requests write), and a Devin service-user key. In Devin, grant its GitHub connection access to the repository.
+2. Set `GITHUB_TOKEN`, `DEVIN_API_KEY`, `DEVIN_ORG_ID`, `FAULTLINE_REPAIR_REPOSITORIES`, and `FAULTLINE_REPAIR_APPROVERS` in `.env`, and add `http://localhost:4700,http://localhost:4701` to `FAULTLINE_SCAN_ALLOWLIST`.
+3. Install podman (or docker; set `FAULTLINE_CONTAINER_RUNTIME`) and pull the image in `FAULTLINE_VERIFY_IMAGE` ahead of time.
+4. Restart web and worker. **Settings → Test Devin connection** calls `GET /v3/self` only.
+5. On the project page, link the repository and say how a commit is run (`node <entry>`, port variables).
 
-For the demo, the reference storefront is published as `Invinciblx777/faultline-reference-shop` (private): entry `server.mjs`, port variable `PORT`, extra port variable `PARTNER_PORT`, host variable `HOST`.
+Without Devin configuration, repair requests can be prepared and reviewed but not approved; the UI says why. After upgrading, run `pnpm db:migrate`.
 
-## The reference target
-
-`tools/reference-target` is a small local website with real, deliberate defects, so you can see FAULTLINE work without pointing it at anything else:
-
-- `/assets/missing-banner.png` returns a real 404 on every load.
-- `app.js` reads a CSS custom property to lay out the service grid. When stylesheets fail, it throws `RangeError: Invalid array length` and the grid and API status never render. A resource-failure scan on stylesheets shows this.
-- `/pwa/` registers a service worker; an offline-reload scan of it shows the page served from cache while offline.
-- `/shop/` is a small storefront: catalog, inventory, recommendations, and a shipping quote, all from JSON APIs. It also loads a reviews widget and an analytics script from a simulated third-party partner on the next port (`:4601`). The coupling is deliberate:
-  - Catalog and inventory are loaded together, so either failing hides every product.
-  - Recommendations and reviews have fallbacks.
-  - The shipping quote shows an error message instead of a total.
-
-It is a test fixture you run yourself. It never populates the product with data on its own.
-
-## Tests
+### Commands
 
 ```bash
-pnpm typecheck            # all packages
-pnpm lint                 # all packages
-pnpm test                 # unit + integration: shared, db, web services, worker (real Chromium, PostgreSQL, MinIO, pg-boss)
-                          # container verification tests also run when GITHUB_TOKEN is set and podman is available
-pnpm test:e2e             # builds the web app, then Playwright E2E against next start + a real worker
+pnpm typecheck && pnpm lint && pnpm build   # static checks and production build
+pnpm test                                   # unit + integration (real Chromium, PostgreSQL, MinIO, pg-boss)
+pnpm test:e2e                               # builds the web app, then Playwright E2E against next start + a real worker
+pnpm start:web / pnpm start:worker          # production-style run after pnpm build
+pnpm repair:comment <repairId> --dry-run    # print the verdict comment Markdown for a repair
 ```
 
-Integration and E2E tests use `DATABASE_URL_TEST` (a separate `faultline_test` database created by the Compose init script) and separate buckets (`faultline-test-artifacts`, `faultline-e2e-artifacts`). They refuse to run against a database whose name does not end in `_test`.
+Integration and E2E tests use a separate `faultline_test` database and separate buckets, and refuse to run against a database whose name does not end in `_test`. Container verification tests also run when `GITHUB_TOKEN` is set and podman is available.
 
-## Repository layout
+### Repository layout
 
 ```
 apps/web               Next.js App Router UI, server actions, authenticated API routes
-apps/worker            pg-boss consumer that runs scans with Playwright Chromium + egress guard; repair supervisor (Devin sessions, verification)
-packages/db            Drizzle schema, SQL migrations, lifecycle transitions, S3 storage, queue helpers
-packages/shared        Zod contracts, URL/allowlist/IP policy, redaction, report builder, repair evidence/prompt/verdict rules, Devin and GitHub clients
-tools/reference-target Local test website with deliberate defects
-infra/postgres/init    Compose init script (creates the test database)
-docs/                  Architecture, security, deployment, API
+apps/worker            pg-boss worker: scans, Blast Radius, Devin sessions, container verification
+packages/db            Drizzle schema, migrations, lifecycle transitions, storage, queue helpers
+packages/shared        Zod contracts, URL/allowlist/IP policy, redaction, verdict rules, Devin and GitHub clients
+tools/reference-target Local storefront with deliberate defects (Northwind Supply)
 ```
-
-## Documentation
-
-- [Architecture](docs/architecture.md)
-- [Security model](docs/security.md) and [security policy](SECURITY.md)
-- [Deployment](docs/deployment.md), including the production readiness checklist
-- [HTTP API and report format](docs/api.md)
-- [Contributing](CONTRIBUTING.md)
-- [Vision](docs/vision.md) (ideas, not features)
-- Hackathon: [Final verification report](FINAL_VERIFICATION_REPORT.md), [Demo runbook](DEMO_RUNBOOK.md), [Pitch](HACKATHON_PITCH.md), [Rules](RULES.md), [Agent guide](AGENTS.md), [Submission](SUBMISSION.md), [Change log](CHANGELOG.md), [AI usage](AI_USAGE.md)
 
 ## License
 

@@ -225,8 +225,10 @@ export async function runExecution(input: ExecutionInput): Promise<ExecutionResu
   } catch (error) {
     if (!interrupted) {
       const message = error instanceof Error ? error.message : String(error);
-      if (/Target page, context or browser has been closed|crash/i.test(message)) crashed = true;
-      else throw error;
+      if (/Target page, context or browser has been closed|crash/i.test(message)) {
+        // Same rule as navigation: a page FAULTLINE closed itself (redirect limit, left scope) did not crash.
+        if (!leftScopeUrl && !tooManyRedirects) crashed = true;
+      } else throw error;
     }
   } finally {
     clearTimeout(scenarioTimer);

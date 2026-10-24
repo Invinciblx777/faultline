@@ -30,7 +30,7 @@ Recorded on 2026-10-25 (IST) on FAULTLINE branch `phase-3-devin-strike`. Every v
 | Devin session | `60a680e3098142b0b1b2ca8fca9cf27a` — https://app.devin.ai/sessions/60a680e3098142b0b1b2ca8fca9cf27a | Devin API `GET /v3/organizations/{org}/sessions/{id}`: same ID and URL, our organization, tags `faultline` and `faultline-repair-268eeabb-…`, title "FAULTLINE repair: Requests to GET /api/inventory receive an injected HTTP 503 response" |
 | Duplicate sessions | None: exactly one session carries the repair tag | Devin API tag lookup |
 | Session timeline | Created 00:59:44; Devin's first message 01:00:02; PR reported 01:03:36; suspended for inactivity, last update 01:08:43 | Devin API, repair events |
-| Credits | The Devin API reported `acus_consumed` that FAULTLINE stores rounded to an integer: `0`. Check the session page in Devin for the exact figure | Devin API |
+| Credits | The Devin API returns `acus_consumed: 0` for this session (read again by the worker's session sync on 2026-10-25). Since commit `905595c`, FAULTLINE stores the value as a decimal without rounding and hides a zero figure; the repair page links the session instead. The exact charge is on the session page in Devin | Devin API |
 
 The prompt Devin received is the stored prompt (rebuilt at submission with the two attachment references). It names the repository and base commit and gives the expected behavior and rules. It does not contain the developer-written fixture fix (`b7cc293`) or any hint of the solution.
 
@@ -78,6 +78,22 @@ Verification run `39c125f0-ca3c-4e33-afb5-ae5c03430097`, queued through the UI a
 | D | candidate-normal | `b750bd3` | journey (8 steps) | no | **passed** | Screenshot `4fed3a6e…`, byte-identical to the original's normal run |
 
 **Verdict rule applied:** the test is unchanged, the original passes normally and fails 2/2 under the fault, the candidate is the exact commit and passes 2/2 under the same fault, and its normal journey still passes. The result is **VERIFIED FIXED**.
+
+**Verdict scope (shown on every verdict surface).** VERIFIED FIXED: the original failing regression test passes under the identical injected fault, and the healthy-path journey passes with a byte-identical screenshot. This verdict covers the tested journey and assertions only; it is not a claim that the change is correct in all respects. FAULTLINE never merges.
+
+**Verdict on the pull request.** FAULTLINE posted the verdict once, at 2026-10-25 02:13 IST (20:43:04 UTC): https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389303315. The comment carries a marker for run `39c125f0…`; a second call found it and did not post again. The same Markdown is in [docs/PR1_VERDICT_COMMENT.md](docs/PR1_VERDICT_COMMENT.md).
+
+**Cross-check with a stricter journey (2026-10-25).** Journey "Buy a backpack" v2 (`e70ef703-1236-4e98-89c8-9285a3193ef0`) adds one assertion as step 3: the out-of-stock Camp Bottle's **Add to cart** button is disabled. Analysis `76f3b920-419f-43f3-b72d-68b1fb14cda0` (only the `GET /api/inventory` HTTP 503 fault) found it BROKEN, reproduced (experiment `47e02a62-31a0-490f-9cf7-ce1c7270ab8b`); its regression test (`cdc6636d…`) failed against the live reference app as expected. Cross-check run `24f9f532-399d-40f4-9e7c-80110f59a859`, queued through the UI as `phase3-demo` at 21:04:35 UTC (02:34:35 IST), ran 74.6 s:
+
+| Check | Result |
+|---|---|
+| Original `6c9ca4c`, normal | Passed, 9 of 9 steps |
+| Original, under the fault | Failed 2 of 2 (step 2, "Trail Backpack" not visible) |
+| Candidate `b750bd3`, under the fault | Failed 2 of 2: step 3, `toBeDisabled` on "Add Camp Bottle to cart" — Received: enabled |
+| Candidate, normal | Passed, 9 of 9 steps |
+| Verdict | **STILL FAILING** for this test |
+
+The assertion was written before the run and not changed afterwards. The repair's own verdict (VERIFIED FIXED, run `39c125f0…`) is unchanged; the cross-check is stored separately (`verification_runs.cross_check_experiment_id`). It confirms, by a browser run, the trade-off Devin stated in the PR. The PR comment was not updated. Screenshot: [docs/screenshots/09-cross-check-still-failing.png](docs/screenshots/09-cross-check-still-failing.png).
 
 ## 5. Evidence locations
 

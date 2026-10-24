@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-24T23:01+05:30 — Phase 3 repair UI (wip)
+
+- Changed: `apps/web` — repair services and server actions (link repository, create repair request, approve, cancel, sync, queue verification, Devin connection test), `/repairs` list and `/repairs/[id]` workspace (progress stepper, approval panel, Devin session, GitHub-confirmed pull request, verification before/after screenshots and checks, verification report, audit trail), "Fix with Devin" panel on eligible findings, source repository card on the project page, Devin and GitHub status on Settings, live status and verification screenshot API routes.
+- Why: Operators review the evidence and approve a Devin session explicitly; the UI shows only stored facts and keeps Devin's messages separate from FAULTLINE's verification.
+- Validation: `pnpm --filter @faultline/web typecheck` and `lint` pass. Not yet exercised in a browser or covered by tests.
+- Limitations: Polling the page reads FAULTLINE's database only; the worker contacts Devin on its own interval. Approval stays disabled until `DEVIN_API_KEY`, `DEVIN_ORG_ID`, and `FAULTLINE_REPAIR_APPROVERS` are set.
+
 ## 2026-10-24T22:52+05:30 — Phase 3 repair core: Devin and GitHub clients, repair persistence, verification engine (wip)
 
 - Changed: `packages/shared` (repair lifecycle, evidence bundle and prompt builders, pull request validation, verification verdict rules, Devin API v3 and GitHub REST clients, repair env settings), `packages/db` (migration `0002`: `source_repositories`, `repair_requests`, `repair_events`, `verification_runs`, `verification_checks`; conditional lifecycle transitions), `apps/worker` (repair supervisor: Devin submission with tag-based recovery, session and pull request sync, isolated candidate builds with podman, independent verification).

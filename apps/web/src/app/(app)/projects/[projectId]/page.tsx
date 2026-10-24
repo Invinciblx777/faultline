@@ -2,6 +2,7 @@ import { History, Radar, Route, ShieldCheck, ShieldX, Zap } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { findAllowlistMatch } from "@faultline/shared";
+import { SourceRepositoryCard } from "@/components/repair/source-repository";
 import { ScanList } from "@/components/scan/scan-list";
 import { WorkerNotice } from "@/components/scan/worker-notice";
 import { BackLink } from "@/components/ui/back-link";
@@ -71,6 +72,7 @@ export default async function ProjectPage({ params }: Params) {
         <span>Created {formatDateTime(project.createdAt)}</span>
       </div>
       <WorkerNotice />
+      <SourceRepositoryCard projectId={project.id} />
       <h2 className="type-headline mb-4 text-2xl">Recent scans</h2>
       {recent.length === 0 ? (
         <EmptyState

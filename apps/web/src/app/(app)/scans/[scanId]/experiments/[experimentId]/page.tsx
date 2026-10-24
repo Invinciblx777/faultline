@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { describeFault, EXPERIMENT_KIND_LABELS, REPRODUCIBILITY_LABELS, VERDICT_DEFINITIONS } from "@faultline/shared";
 import { CausalTimeline } from "@/components/analysis/causal-timeline";
 import { ExperimentStateChip, KindLabel } from "@/components/analysis/verdict";
+import { FixWithDevinPanel } from "@/components/repair/fix-with-devin";
 import { RealitySplit, type SplitShot } from "@/components/scan/reality-split";
 import { BackLink } from "@/components/ui/back-link";
 import { buttonClasses } from "@/components/ui/button";
@@ -144,6 +145,8 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
           </div>
         </dl>
       </section>
+
+      <FixWithDevinPanel experimentId={experiment.id} projectId={scan.projectId} verdict={experiment.verdict} testStatus={regressionTest?.validationStatus ?? null} />
 
       <section aria-labelledby="split-title" className="mb-10">
         <h2 id="split-title" className="type-headline mb-1 text-2xl">

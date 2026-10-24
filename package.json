@@ -33,6 +33,7 @@
     "test:e2e": "pnpm --filter @faultline/web build && pnpm --filter @faultline/web test:e2e",
     "test:all": "pnpm test && pnpm test:e2e",
     "demo:preflight": "pnpm --filter @faultline/worker demo:preflight",
-    "lint:tokens": "pnpm --filter @faultline/web lint:tokens"
+    "lint:tokens": "pnpm --filter @faultline/web lint:tokens",
+    "test:visual": "pnpm --filter @faultline/web test:visual"
   }
 }

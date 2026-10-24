@@ -33,7 +33,7 @@ export async function SourceRepositoryCard({ projectId }: { projectId: string })
       </h2>
       {repo ? (
         <div className="mt-3 flex flex-col gap-4">
-          <a href={repo.url} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline">
+          <a href={repo.url} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1.5 font-medium text-primary underline underline-offset-4">
             {repo.owner}/{repo.name}@{repo.baseBranch} <ExternalLink aria-hidden className="size-4" />
           </a>
           <div className="grid gap-3 sm:grid-cols-2">

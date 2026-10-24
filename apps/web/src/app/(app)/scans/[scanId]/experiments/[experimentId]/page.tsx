@@ -52,7 +52,7 @@ function StepCell({ run, index }: { run: Run | null; index: number }) {
       </span>
       {step.error ? <span className="text-xs break-words text-failure">{step.error}</span> : null}
       {screenshot ? (
-        <a href={`/api/artifacts/${screenshot.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline">
+        <a href={`/api/artifacts/${screenshot.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary underline underline-offset-4">
           <ImageIcon aria-hidden className="size-3.5" /> Screenshot at failure
         </a>
       ) : null}
@@ -115,7 +115,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
               <li key={i}>
                 {r.message}
                 {r.stepIndex !== undefined ? (
-                  <a href={`#step-${r.stepIndex}`} className="ml-2 text-sm text-primary underline-offset-4 hover:underline">
+                  <a href={`#step-${r.stepIndex}`} className="ml-2 text-sm text-primary underline underline-offset-4">
                     step {r.stepIndex + 1}
                   </a>
                 ) : null}

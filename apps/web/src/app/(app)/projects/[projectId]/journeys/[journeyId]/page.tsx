@@ -56,7 +56,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ projec
       {!isLatest ? (
         <p className="mb-6 rounded-md border border-dashed border-incomplete px-4 py-3 text-sm">
           You are viewing an older version.{" "}
-          <Link className="text-primary underline-offset-4 hover:underline" href={`/projects/${project.id}/journeys/${detail.versions[0]!.id}`}>
+          <Link className="text-primary underline underline-offset-4" href={`/projects/${project.id}/journeys/${detail.versions[0]!.id}`}>
             Open version {detail.latestVersion}
           </Link>
         </p>
@@ -122,7 +122,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ projec
                   {v.id === journey.id ? (
                     <span className="font-medium">Version {v.version} (viewing)</span>
                   ) : (
-                    <Link className="text-primary underline-offset-4 hover:underline" href={`/projects/${project.id}/journeys/${v.id}`}>
+                    <Link className="text-primary underline underline-offset-4" href={`/projects/${project.id}/journeys/${v.id}`}>
                       Version {v.version}
                     </Link>
                   )}{" "}
@@ -139,7 +139,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ projec
               <ul className="flex flex-col gap-2 text-sm">
                 {detail.analyses.map((a) => (
                   <li key={a.id} className="flex flex-wrap items-center gap-2">
-                    <Link className="text-primary underline-offset-4 hover:underline" href={`/scans/${a.id}/blast-radius`}>
+                    <Link className="text-primary underline underline-offset-4" href={`/scans/${a.id}/blast-radius`}>
                       {formatDateTime(a.createdAt)}
                     </Link>
                     <span className="text-on-surface-variant">v{a.version}</span>

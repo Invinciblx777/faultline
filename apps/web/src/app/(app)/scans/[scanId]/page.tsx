@@ -143,6 +143,7 @@ export default async function ScanPage({ params, searchParams }: Props) {
           panels={{
             overview: (
               <>
+                <h2 className="sr-only">Runs</h2>
                 <div className="mb-8 grid gap-4 lg:grid-cols-2">
                   {executions.map((execution) => (
                     <RunSummary key={execution.id} execution={execution} />
@@ -163,11 +164,11 @@ export default async function ScanPage({ params, searchParams }: Props) {
                       ))}
                     </ul>
                     <p className="mt-4 md-body-medium">
-                      <Link href={`/scans/${scan.id}/split`} className="text-primary underline-offset-4 hover:underline">
+                      <Link href={`/scans/${scan.id}/split`} className="text-primary underline underline-offset-4">
                         Compare both runs in Reality Split
                       </Link>{" "}
                       <span className="text-on-surface-variant">or read the</span>{" "}
-                      <Link href={`/scans/${scan.id}/report`} className="text-primary underline-offset-4 hover:underline">
+                      <Link href={`/scans/${scan.id}/report`} className="text-primary underline underline-offset-4">
                         full report
                       </Link>
                       .

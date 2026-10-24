@@ -281,7 +281,7 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
                           <ul className="flex flex-col gap-1">
                             {tested.map((e) => (
                               <li key={e.id}>
-                                <Link href={`/scans/${scan.id}/experiments/${e.id}`} className="inline-flex items-center gap-2 text-primary underline-offset-4 hover:underline">
+                                <Link href={`/scans/${scan.id}/experiments/${e.id}`} className="inline-flex items-center gap-2 text-primary underline underline-offset-4">
                                   {FAULT_KIND_LABELS[e.kind as keyof typeof FAULT_KIND_LABELS] ?? e.kind}
                                   {e.verdict ? <VerdictChip verdict={e.verdict} size="sm" /> : null}
                                 </Link>

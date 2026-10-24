@@ -60,7 +60,7 @@ export function CausalTimeline({ attempt, baselineEvents = [] }: { attempt: Atte
             <li>
               <span className="tabular text-on-surface-variant">{offset(firstInjected.offsetMs)}</span> FAULTLINE applied the fault: {firstInjected.message}
               {detailOf(firstInjected).requestId != null ? (
-                <a className="ml-1 text-primary underline-offset-4 hover:underline" href={`#req-${attempt.id}-${detailOf(firstInjected).requestId}`}>
+                <a className="ml-1 text-primary underline underline-offset-4" href={`#req-${attempt.id}-${detailOf(firstInjected).requestId}`}>
                   request #{detailOf(firstInjected).requestId}
                 </a>
               ) : null}
@@ -73,7 +73,7 @@ export function CausalTimeline({ attempt, baselineEvents = [] }: { attempt: Atte
             {firstFailure ? (
               <li>
                 <span className="tabular text-on-surface-variant">{offset(firstFailure.offsetMs)}</span> First failed check:{" "}
-                <a className="text-primary underline-offset-4 hover:underline" href={`#step-${detailOf(firstFailure).stepIndex ?? ""}`}>
+                <a className="text-primary underline underline-offset-4" href={`#step-${detailOf(firstFailure).stepIndex ?? ""}`}>
                   {firstFailure.message}
                 </a>
               </li>
@@ -109,12 +109,12 @@ export function CausalTimeline({ attempt, baselineEvents = [] }: { attempt: Atte
                     {e.url ?? ""}
                     {e.statusCode ? ` · HTTP ${e.statusCode}` : ""}
                     {d.requestId != null ? (
-                      <a className="ml-2 text-primary underline-offset-4 hover:underline" href={`#req-${attempt.id}-${d.requestId}`}>
+                      <a className="ml-2 text-primary underline underline-offset-4" href={`#req-${attempt.id}-${d.requestId}`}>
                         request #{d.requestId}
                       </a>
                     ) : null}
                     {d.stepIndex != null ? (
-                      <a className="ml-2 text-primary underline-offset-4 hover:underline" href={`#step-${d.stepIndex}`}>
+                      <a className="ml-2 text-primary underline underline-offset-4" href={`#step-${d.stepIndex}`}>
                         step {d.stepIndex + 1}
                       </a>
                     ) : null}

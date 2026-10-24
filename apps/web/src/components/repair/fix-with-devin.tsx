@@ -26,7 +26,7 @@ export async function FixWithDevinPanel({ experimentId, projectId, verdict, test
             <RepairStatusChip status={repair.status} />
             {repair.prNumber ? <span className="text-sm text-on-surface-variant">Pull request #{repair.prNumber}</span> : null}
           </div>
-          <Link href={`/repairs/${repair.id}`} className="inline-flex w-fit items-center gap-1.5 text-primary underline-offset-4 hover:underline">
+          <Link href={`/repairs/${repair.id}`} className="inline-flex w-fit items-center gap-1.5 text-primary underline underline-offset-4">
             Open repair <ArrowRight aria-hidden className="size-4" />
           </Link>
           {!open && repo ? <CreateRepairButton experimentId={experimentId} /> : null}
@@ -38,7 +38,7 @@ export async function FixWithDevinPanel({ experimentId, projectId, verdict, test
       ) : (
         <p className="mt-2 text-sm text-on-surface-variant">
           Link this project&apos;s source repository before asking Devin for a fix.{" "}
-          <Link href={`/projects/${projectId}#source-repository`} className="text-primary underline-offset-4 hover:underline">
+          <Link href={`/projects/${projectId}#source-repository`} className="text-primary underline underline-offset-4">
             Link a repository
           </Link>
         </p>

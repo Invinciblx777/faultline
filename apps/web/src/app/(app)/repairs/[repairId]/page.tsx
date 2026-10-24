@@ -87,7 +87,7 @@ function SessionPanel({ detail }: { detail: RepairDetail }) {
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <CardTitle>Devin session</CardTitle>
         {repair.devinSessionUrl ? (
-          <a href={repair.devinSessionUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline">
+          <a href={repair.devinSessionUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-4">
             Open in Devin <ExternalLink aria-hidden className="size-4" />
           </a>
         ) : null}
@@ -109,7 +109,7 @@ function SessionPanel({ detail }: { detail: RepairDetail }) {
             {repair.devinAcusConsumed ? (
               <span className="tabular">{repair.devinAcusConsumed} ACUs</span>
             ) : repair.devinSessionUrl ? (
-              <a href={repair.devinSessionUrl} target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+              <a href={repair.devinSessionUrl} target="_blank" rel="noreferrer" className="text-primary underline underline-offset-4">
                 See the session in Devin
               </a>
             ) : (
@@ -140,7 +140,7 @@ function PullRequestPanel({ detail }: { detail: RepairDetail }) {
         <CardTitle className="inline-flex items-center gap-2">
           <GitPullRequest aria-hidden className="size-5" /> Pull request #{repair.prNumber}
         </CardTitle>
-        <a href={repair.prUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline">
+        <a href={repair.prUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline underline-offset-4">
           Open on GitHub <ExternalLink aria-hidden className="size-4" />
         </a>
       </div>

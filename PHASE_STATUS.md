@@ -499,3 +499,33 @@ Live web stopped during build, then restarted on the new build.
 - Remaining deviations from the reference: no Google Sans Flex; Blast Radius tiles are one column on desktop; buttons morph radius on press but there is no shape-morph animation between expressive shapes.
 - PR #1 body edit, repository visibility, and the submission form remain operator actions.
 
+## Phase 4.6: UI migration finish (2026-10-25, 04:42–05:40 IST)
+
+Milestone branches `ui/m7-legacy-forms`, `ui/m8-journey-settings`, `ui/m9-scan-report`, `ui/m10-blast-grid`, `ui/m11-visual-a11y`, each fast-forwarded into `main` after its gates. Gate builds use `NEXT_DIST_DIR=.next-gate` (new `distDir` switch in `next.config.ts`), so the demo server on :3000 kept serving during every gate.
+
+| Milestone | Status | Evidence |
+|---|---|---|
+| M7 legacy removal and forms | Done (`6cea410`) | 23 files moved off `components/ui/button` and `components/ui/surface`; both deleted. The other five helpers (`field`, `status`, `empty-state`, `page-header`, `back-link`) moved into `src/design/components`, so `src/components/ui` no longer exists. `lint:tokens` fails on any `@/components/ui` import (checked with a planted import: exit 1). New-scan and new-analysis: Card per section, filled 16px text fields, pill dropdowns, chip-styled checkboxes, viewport tile buttons, full-width submit with tonal Cancel. Payloads and field names unchanged |
+| M8 journey builder and settings | Done (`d1dcce8`, `3c88c93`) | Step rows with verb chip, monospace summary, icon buttons; Steps/JSON `SegmentedControl`. Settings as list groups. The first M8 gate failed 1 E2E (`repair.spec.ts:31`, settings needs a heading "Devin API v3" inside a section); `3c88c93` restores the heading in the list layout; test file unchanged; rerun 17 passed |
+| M9 scan detail and report | Done (`8d583d2`) | Summary Card with numerals and phase bar; Overview/Timeline/Network/Console/Screenshots tabs; report cards, tonal event rows, tonal Export JSON and Download regression test, print CSS |
+| M10 Blast Radius desktop grid | Done (`ae38a09`) | Step strip and SegmentedProgress replace the SVG lines; grid auto-fill 220px, 12px gap, 2 columns on phones; bottom sheet lists affected steps; "N of M experiments break the journey" unchanged. Divider rules removed from run summaries, split cards and finding tables |
+| M11 visual regression, a11y, recapture | Done (`ac99b80`, `0ae8c05`) | `pnpm test:visual`: 24 baselines committed, rerun 24 passed. Lighthouse 13.5.0 accessibility (1440×900, signed in): `/design` 100, Blast Radius 100, Reality Split 100 (97 before the inline-link fix), verification 100, scan detail 100 (98 before the heading fix), journey builder 100. Screenshots 01, 10, real-app/01 recaptured; 11–16 added; 9 `4.6-*` before/after pairs. Evidence screenshots untouched |
+| Not done | Open | Settings switches and danger zone (no runtime settings or destructive actions exist); journey drag-and-drop and step-editor sheet; aria-pressed chips on forms (E2E reads checkbox and radio roles). Full list in `docs/DESIGN_SYSTEM.md`, Remaining deviations |
+
+Visual and Lighthouse runs sign in as a local operator `visual-snapshots`, created in the development database by `pnpm operator:create` with a random per-run password that is not stored. Tab C (`/scans/83758bb7…/blast-radius`) rendered signed in on the final build: HTTP 200, "1 of 3 experiments break the journey", the `localhost:8081` note present.
+
+### Gates
+
+| Gate | Result |
+|---|---|
+| M7 (`6cea410`) full gate | typecheck, lint, build exit 0; `pnpm test` 291 passed (161 + 5 + 65 + 60), 0 skipped, `GITHUB_TOKEN` set; `pnpm test:e2e` 17 passed |
+| M8, M9, M10, M11 web gate | typecheck, lint exit 0; web unit 65 passed; `test:e2e` (includes the web build) 17 passed, 0 skipped, at `3c88c93`, `8d583d2`, `ae38a09`, `ac99b80`. Worker and shared code unchanged in these milestones |
+| M12 final (`0ae8c05`) | typecheck, lint, build exit 0; `pnpm test` 291 passed (161 + 5 + 65 + 60), 0 skipped, 0 failed, `GITHUB_TOKEN` set; `pnpm test:e2e` 17 passed, 0 skipped (1.1 min) |
+| `pnpm demo:preflight` | 10 of 10 PASS on the `ac99b80` build (05:09 IST) |
+
+### Not done / limitations
+
+- Deviations listed in `docs/DESIGN_SYSTEM.md` (Remaining deviations).
+- Walkthrough video not re-recorded; it shows the Phase 4.5 interface.
+- PR #1 body edit, repository visibility, and the submission form remain operator actions.
+

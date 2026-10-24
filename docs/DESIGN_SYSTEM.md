@@ -105,21 +105,49 @@ The navigation pill uses the default spring through `motion` (already a dependen
 
 ## Components
 
+Everything lives in `apps/web/src/design/components/`. The earlier `components/ui` layer is gone; `pnpm lint:tokens` (part of `pnpm lint`) fails on any import from `@/components/ui`.
+
 | Component | Purpose |
 |---|---|
-| `Card` | Tonal container; `tier` picks the surface-container level |
-| `FilledButton`, `TonalButton`, `OutlinedButton`, `TextButton` | Actions, by emphasis |
+| `Card`, `CardTitle`, `CardDescription` | Tonal container; `tier` picks the surface-container level. Forms use one Card per section |
+| `FilledButton`, `TonalButton`, `OutlinedButton`, `TextButton`, `ErrorButton` | Actions, by emphasis; `ErrorButton` is the outlined error-tone destructive action |
+| `LinkButton`, `buttonStyle(variant)` | Navigation styled as a button; `buttonStyle` for native elements such as download anchors |
 | `IconButton` | Standard, filled, or destructive (coral) icon action; label required |
 | `Chip` | Status: broken, degraded, resilient, inconclusive, failed, neutral |
-| `SegmentedControl` | Single choice, e.g. Baseline / Fault on phones |
+| `SegmentedControl` | Single choice: Baseline / Fault, Steps / JSON, scan evidence tabs, theme |
 | `ThickSlider` | 40px track, 4px handle bar with 6px gaps; arrows, PageUp/PageDown, Home/End |
-| `SegmentedProgress` | Gapped phases: queued, running, completed |
-| `ListGroup`, `ListItem` | Gap-separated pill rows; outer corners round, inner corners small |
+| `SegmentedProgress` | Gapped phases: scan phases, journey steps under a selected experiment |
+| `ListGroup`, `ListItem` | Gap-separated pill rows; outer corners round, inner corners small. Settings, network and console rows |
 | `DialogPanel` | Icon, title, body, "Keep in mind" bullets, full-width filled then outlined actions |
 | `BottomSheet` | Slides up on phones, docks right on desktop; Escape and scrim close it |
 | `DisplayNumeral` | Hero number in display-large |
 | `ExpressiveShape` | Scallop and blob backdrops |
 | `NotificationCard` | Icon, source, time, title, body, trailing chevron; used for session, PR and comment rows |
+| `Field`, `TextInput`, `TextArea`, `inputClasses`, `selectClasses` | Filled text fields: 16px corners on `surface-container-highest`, label floated inside, error text in the `error` role under the field. Dropdowns are pills |
+| `PageHeader`, `BackLink`, `EmptyState` | Page scaffolding |
+| `ScanStatusChip`, `OutcomeChip`, `ToneChip` (`status.tsx`) | Scan, execution and configuration status |
+
+Screen patterns added in Phase 4.6:
+
+- Blast Radius: a journey-step strip of pills with a `SegmentedProgress` under it, then a responsive experiment grid (auto-fill, 220px minimum, 12px gap; two columns on phones). Selecting a tile tints the steps it broke or degraded and outlines the steps where the dependency was requested.
+- Scan detail: summary Card with `DisplayNumeral`s and a phase bar, then Overview / Timeline / Network / Console / Screenshots tabs.
+- Report: one surface-low card per section; print CSS hides the rail, top bar and bottom bar and keeps cards whole across pages.
+
+## Testing the interface
+
+- `pnpm test:visual`: 24 Playwright screenshots (`/design`, Blast Radius, Reality Split, verification, scan detail, journey builder × 1440×900 and 390×844 × dark and light, reduced motion) against a live server and its stored records. Baselines in `apps/web/tests/visual/__screenshots__/`. Kept apart from `pnpm test:e2e`. Re-baseline with `pnpm test:visual --update-snapshots` after an intended change.
+- `pnpm --filter @faultline/web a11y`: Lighthouse accessibility on the same screens, signed in; fails below 95.
+
+## Remaining deviations
+
+- Manrope stands in for Google Sans Flex (not available to the repository).
+- Buttons morph their radius on press; there is no shape-morph animation between expressive shapes.
+- Condition and resource pickers on the new-scan and new-analysis forms are chip-styled checkboxes (`role="checkbox"`), not `aria-pressed` buttons, and the new-scan fault picker stays a radio card group with descriptions. The functional E2E suite locates them by those roles.
+- Journey builder: step editors stay inline (the E2E suite reads each step's type select right after a JSON apply). Steps move with up/down icon buttons; there is no drag-and-drop and no overflow sheet.
+- Settings has no switches and no danger zone: every server setting is read from the environment and the page has no destructive action to put there.
+- Scan detail network rows show the time offset, not a per-request duration, and list the failed, blocked, erroring and injected requests that the evidence records.
+- Blast Radius tiles keep an accessible name that summarizes title, verdict and affected steps; Lighthouse flags `label-content-name-mismatch` (unweighted, score 100).
+- 31 files outside this pass still use the earlier `type-*` text utilities or the `failure` color aliases (both token-based), and 23 class lists use `border-outline*` edges (dashed edges for inconclusive states, filter controls, and screens outside this pass).
 
 ## Do and don't
 

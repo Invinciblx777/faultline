@@ -206,11 +206,13 @@ pnpm operator:create admin
 - **Verification:** run the same regression test (and a rerun of the same experiment) against the patched deployment. `RepairRequest.verificationScanId` already links an independent rerun. "Passes after fix" is proven to work by the worker test that runs the generated test against a fixed storefront. Only that rerun's evidence may mark a repair verified.
 - **Allowlist:** the repaired preview deployment's origin must be added to the allowlist before it can be verified.
 
-## Phase 3: Devin Strike — implemented; live Devin session blocked on credentials (2026-10-24; see Phase 3.5)
+## Phase 3: Devin Strike — implemented 2026-10-24; live run completed and VERIFIED FIXED in Phase 3.6 (2026-10-25)
 
 Branch `phase-3-devin-strike`, created from `phase-2-blast-radius` at `06e1e72` (tag `phase-2-checkpoint`). Not merged into `main`.
 
 ### Status in one paragraph
+
+> Superseded on 2026-10-25: the live Devin session, pull request, and independent verification were completed. See Phase 3.6. The paragraph below describes the state on 2026-10-24.
 
 The repair pipeline is built end to end and verified everywhere FAULTLINE controls the outcome: evidence package and prompt, approval, single-session submission with tag recovery, session and pull request sync, GitHub validation, isolated container builds of exact commits, and independent verdicts with real Chromium. **No real Devin session has been created**, because no `DEVIN_API_KEY` / `DEVIN_ORG_ID` exist in this environment. Devin's HTTP API is exercised only through a stub that follows Devin's published OpenAPI document (`v3`). No Devin pull request exists, so no Devin-authored fix has been verified. Nothing in the UI or the data claims otherwise.
 
@@ -320,7 +322,7 @@ The risk above is now closed in code. Approval and session creation both require
 **Ready for approval: no.** Grant the Devin GitHub app access to `Invinciblx777/faultline-reference-shop`. Then click **Check repository access** on the repair page. Approval unlocks for 10 minutes after a successful check, and the server checks again when you approve.
 
 
-## Phase 3.6: Final strike — Devin repository access confirmed; awaiting operator approval (2026-10-25)
+## Phase 3.6: Final strike — live Devin repair VERIFIED FIXED (2026-10-25)
 
 ### Connection preflight (00:44–00:47 IST)
 
@@ -341,3 +343,38 @@ No code changed. **No Devin session was created and nothing was approved.**
 Repository-list visibility is not proof that Devin can clone or push. That is only shown by the live session.
 
 `DEVIN_MAX_ACU_LIMIT` is not set, so the session has no ACU cap.
+
+### Live repair run (00:59–01:09 IST)
+
+Every row is from the FAULTLINE database, GitHub, or the Devin API. The full record is [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md).
+
+| Step | Result | Evidence |
+|---|---|---|
+| Operator approval | **Done by the operator** | `phase3-demo` approved in the UI at 00:59:36 IST. The repository-access check ran again at approval and in the worker (00:59:41). Nobody approved by script, API, or database edit |
+| Devin session | **Created, exactly one** | `60a680e3098142b0b1b2ca8fca9cf27a` (https://app.devin.ai/sessions/60a680e3098142b0b1b2ca8fca9cf27a). `GET` on the session via the v3 API returns the same ID, URL, organization, and both FAULTLINE tags. A tag lookup finds one session. 2 screenshots attached. Suspended for inactivity at 01:08:43 after its work was done |
+| Pull request | **Confirmed on GitHub** | [PR #1](https://github.com/Invinciblx777/faultline-reference-shop/pull/1): author `app/devin-ai-integration`, base `main` @ `6c9ca4c`, head `devin/1792870305-inventory-503-graceful` @ `b750bd30883778daed7b2fe03011c328694cfcbf`, same repository, open, not merged. The body has `FAULTLINE-Repair: 268eeabb-…`. The worker accepted it at 01:03:46 |
+| Code change | Focused | `shop.js` uses `Promise.allSettled`; missing inventory shows "Stock level unavailable" and keeps products purchasable. Adds `e2e/shop.spec.mjs` and a dev-only `@playwright/test`. `test/` is unchanged |
+| Repository tests | Not weakened | `node --test` in `node:22-alpine` (no network, read-only, uid 65534): 4/4 on both `6c9ca4c` and `b750bd3`. Devin's new e2e tests: 4/4 on `b750bd3`; on `6c9ca4c` the 2 inventory tests fail and 2 pass |
+| Independent verification | **VERIFIED FIXED** | Run `39c125f0-ca3c-4e33-afb5-ae5c03430097`, 59.6 s, podman containers of the exact commits, Chromium 156.0.8078.4. A original normal: passed. B original + fault: failed 2/2. C candidate + fault: passed 2/2. D candidate normal: passed (screenshot byte-identical to A). Regression test SHA-256 `c171b00e…` unchanged |
+| Evidence integrity | Match | All 4 verification screenshots downloaded through the authenticated API match their stored SHA-256 and sizes; unauthenticated request → 401 |
+| UI loop | Works | Read-only browser walkthrough as `phase3-demo`: blast radius map, finding, Reality Split, repair page (stepper, verified report, session and PR links, before/after screenshots), repairs list. Verdict still shown after reload. No console errors |
+| Mobile | Fixed | The repair page overflowed by 53 px at 430 px wide (full SHAs and archive names in the report). Fixed in `d72a39b`; also gave the bottom bar one column per item (it had 4 columns for 5 items). Now 0 px on every page checked |
+
+### Gates (code at `d72a39b`)
+
+| Command | Result |
+|---|---|
+| `pnpm typecheck` | exit 0 |
+| `pnpm lint` | exit 0 |
+| `pnpm test` (with `GITHUB_TOKEN` from `gh auth token` in the environment) | 246 passed: shared 148, db 5, web 34, worker 59 (real-container tests included). Run before `d72a39b`; that commit changes only two web components |
+| `pnpm build` | exit 0 |
+| `pnpm test:e2e` | 17 passed (1.1 min) on the `d72a39b` code |
+
+### Not done / limitations
+
+- One live repair verified, for one fault, in Chromium. The other BROKEN findings on the reference shop (catalog, shipping quote, `shop.js` unavailable) are not repaired.
+- PR #1 is not merged. That is the repository owner's decision.
+- Devin's fix lets out-of-stock items be added to the cart while inventory is down (disclosed in the PR; `/api/orders` has no server-side stock check).
+- Credits: FAULTLINE stores the session's `acus_consumed` rounded to an integer (`0`); the exact figure is on the Devin session page.
+- No public deployment, no repository visibility change, no submission made.
+

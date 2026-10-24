@@ -5,7 +5,7 @@ Fill the TODO fields before submitting through the organizers' announced method.
 ## Project
 
 - **Project name:** FAULTLINE
-- **Short description:** Evidence-first web reliability engineering platform. It loads a site in real Chromium, injects faults (failing resources, slow or 5xx responses, offline, small viewport), and shows the baseline and fault runs side by side with recorded screenshots, errors, and timelines. See [README.md](README.md).
+- **Short description:** Evidence-first web reliability engineering platform. It runs a real user journey in Chromium, injects faults (failing resources, slow or 5xx responses, offline, small viewport), and maps which steps each fault breaks, with recorded evidence and a generated regression test. With operator approval it sends the evidence to Devin. Then it independently verifies the resulting pull request's exact commit in an isolated container. Verified live on 2026-10-25: Devin's PR #1 on our reference storefront was judged VERIFIED FIXED. See [README.md](README.md) and [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md).
 - **Code repository URL:** https://github.com/Invinciblx777/faultline (private)
 - **Final submitted implementation commit SHA:** TODO
 - **Working demo URL or local demo steps:** Local only. See "Quick start (local)" in [README.md](README.md).
@@ -23,9 +23,9 @@ Fill the TODO fields before submitting through the organizers' announced method.
 - **Install command:** `pnpm install`
 - **Required environment variable names:** See [.env.example](.env.example). `pnpm setup:env` generates a local `.env` with secrets.
 - **Start command:** `pnpm start:web` and `pnpm start:worker` (after `pnpm infra:up` and `pnpm db:migrate`).
-- **Demo walkthrough:** TODO
+- **Demo walkthrough:** [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) (click-by-click, with fallbacks). Pitch: [HACKATHON_PITCH.md](HACKATHON_PITCH.md).
 - **Checks performed and results:** See [PHASE_STATUS.md](PHASE_STATUS.md).
-- **Known limitations or incomplete features:** Self-hosted, operator-only. AI analysis, Devin/GitHub repair, and Fault DNA graphs are not implemented.
+- **Known limitations or incomplete features:** Self-hosted, operator-only. One live Devin repair verified (one fault, Chromium). Verification supports Node.js servers without runtime dependencies. AI analysis and Fault DNA graphs are not implemented. See [PHASE_STATUS.md](PHASE_STATUS.md).
 - **Libraries, APIs, and public datasets used:** See `package.json` files. TODO: attribution list.
 - **AI usage record:** [AI_USAGE.md](AI_USAGE.md)
 - **Development change log:** [CHANGELOG.md](CHANGELOG.md)

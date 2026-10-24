@@ -464,3 +464,38 @@ New tests: `developmentEndpointNote` (2), verdict comment heading qualifier and 
 - The backup video predates this pass: its real-app beat shows analysis `004f212e…`, not the `localhost:8081` note or the 360 px cell.
 - `docs/screenshots/real-app/01-blast-radius-map.png` is analysis `004f212e…` (no 360 px cell).
 - Repository visibility unchanged; nothing submitted; no public deployment.
+
+## Phase 4.5: Material 3 Expressive interface (2026-10-25, 03:40–04:30 IST)
+
+Milestone branches `ui/m1-tokens`, `ui/m2-primitives`, `ui/m3-blast-split`, `ui/m4-repair-lists`, `ui/m5-closeout`, `ui/m5-closeout-2`, each fast-forwarded into `main` after its gates. Spec: the operator's prompt and `docs/design/reference-android16.png`.
+
+| Milestone | Status | Evidence |
+|---|---|---|
+| M1 tokens, font, shell | Done (`be93026`) | `tokens.css` generated (DynamicScheme, tonal spot, contrast 0); warm dark surfaces (`surface` `#19120d`). Manrope substitutes for Google Sans Flex (not in repo). Rail 80 px, pill in `secondary-container`, content 1200 px + 24 px padding. `lint:tokens` in `pnpm lint`: 0 hits |
+| M2 primitives | Done (`d57a077`) | 16 primitives (the list in the prompt), `/design` showcase in both schemes. Web tests: render tests plus 20 contrast checks (10 pairs × 2 schemes, each ≥ 4.5:1) |
+| M3 Blast Radius, Reality Split | Done (`a8fde0c`) | Scallop hero "N of M experiments break the journey" (the prompt said "dependencies"; the count includes conditions such as offline, so "experiments" is accurate). Tiles single column on desktop so the step lines keep working |
+| M4 repair, lists, approval | Done (`8e67616`, `709f999`) | Approval keeps the checkbox and the human click; cancel reads "Cancel request" because it cancels the repair request. One verdict comment URL is stored, so one comment row is linked |
+| M5 close-out | Done | Screenshots 01, 02, 05, 06 and the 3 under `verification/` inspected: reference-shop and Daluxe public content only, no personal data. UI screenshots refreshed at 1440×900 dark plus `10-blast-radius-mobile.png` at 390×844 (horizontal overflow 0 px). Evidence screenshots 05, 06, `verification/*` untouched. Video re-recorded 04:17 IST: 158.9 s, 22,367,410 bytes, frames at 0:36, 0:50, 1:06, 2:20 inspected |
+| Not migrated beyond tokens and shell | Open | Journey builder, scan detail, report, settings (light pass), new-scan and new-analysis forms. `components/ui/button` and `components/ui/surface` are still used by 23 files and stay |
+
+Route timing (scripted, signed in as `phase3-demo` with the stored local test password, not printed; 1440×900, final build): A 0.04 s, B 0.42 s, C 0.42 s, D 0.44 s, E 0.44 s. The `localhost:8081` note renders on the Blast Radius card, the bottom sheet, and the experiment page (1 match each). Tab E lists VERIFIED FIXED before STILL FAILING. F, G, H (GitHub PR, Devin session) not timed: they need the operator's GitHub and Devin sign-in.
+
+### Gates (code on `ui/m5-closeout-2`)
+
+Live web stopped during build, then restarted on the new build.
+
+| Gate | Result |
+|---|---|
+| `pnpm typecheck` | exit 0 |
+| `pnpm lint` (includes `lint:tokens`) | exit 0 |
+| `pnpm build` | exit 0 |
+| `pnpm test` | exit 0 without `GITHUB_TOKEN`: 287 passed, 4 skipped (worker container tests). Worker rerun with `GITHUB_TOKEN=$(gh auth token)`: 60 passed, 0 skipped. Total 291 passed (shared 161, db 5, web 65, worker 60), 0 failed |
+| `pnpm test:e2e` | 17 passed, 0 failed, 0 skipped (1.1 min) |
+| `pnpm demo:preflight` | 10 of 10 PASS (04:20 IST) |
+
+### Not done / limitations
+
+- Screens listed above as not migrated keep their earlier layouts on the new tokens.
+- Remaining deviations from the reference: no Google Sans Flex; Blast Radius tiles are one column on desktop; buttons morph radius on press but there is no shape-morph animation between expressive shapes.
+- PR #1 body edit, repository visibility, and the submission form remain operator actions.
+

@@ -4,7 +4,7 @@ Three minutes, click by click. The words to say are in [HACKATHON_PITCH.md](HACK
 
 The storefront is **Northwind Supply**, our own reference shop (`Invinciblx777/faultline-reference-shop`). The second project is **Daluxe Official**, a live store we built for a client, scanned read-only. Say which is which.
 
-**Backup video:** [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm), 2 min 36 s, 1366×768, captions, no audio. Recorded on 2026-10-25 at 02:47 IST from a clean browser context after `pnpm demo:preflight` passed 10 of 10. It follows the route below.
+**Backup video:** [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm), 2 min 39 s, 1366×768, captions, no audio, 22.4 MB. Recorded on 2026-10-25 at 04:17 IST on the Material 3 Expressive interface from a clean browser context; `pnpm demo:preflight` passed 10 of 10 at 04:20 IST. It follows the route below, tabs A to E (F, G and H are GitHub and Devin pages).
 
 ## 10 minutes before
 

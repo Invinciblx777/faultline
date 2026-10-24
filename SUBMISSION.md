@@ -11,7 +11,7 @@ Submit through the organizers' announced method. Fields marked **OPERATOR** need
 - **Code repository URL:** https://github.com/Invinciblx777/faultline (private until the owner makes it public)
 - **Final submitted implementation commit SHA:** recorded in the final report of the 2026-10-25 judge-ready session and in [PHASE_STATUS.md](PHASE_STATUS.md). **OPERATOR:** copy it here if the form asks for it.
 - **Working demo:** local, self-hosted. Five commands in [README.md](README.md#try-it); click route in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md).
-- **Demo video:** [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm), 2 min 36 s, captions, no audio, 20.7 MB (under 25 MB, kept in Git). After the event it moves to a GitHub Release asset. **OPERATOR:** upload it wherever the form asks.
+- **Demo video:** [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm), 2 min 39 s, captions, no audio, 22.4 MB (under 25 MB, kept in Git). After the event it moves to a GitHub Release asset. **OPERATOR:** upload it wherever the form asks.
 
 ## What is real
 

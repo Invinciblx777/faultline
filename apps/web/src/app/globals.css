@@ -129,7 +129,7 @@
   .md-title-large { font: var(--md-sys-typescale-title-large); }
   .md-title-medium { font: var(--md-sys-typescale-title-medium); }
   .md-body-medium { font: var(--md-sys-typescale-body-medium); }
-  .md-label-medium { font: var(--md-sys-typescale-label-medium); letter-spacing: 0.02em; }
+  .md-label-medium { font: var(--md-sys-typescale-label-medium); letter-spacing: 0.02em; word-spacing: 0.14em; }
   .tabular {
     font-variant-numeric: tabular-nums;
   }
@@ -176,7 +176,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .md-enter { animation: md-fade 150ms linear both; }
+  .md-enter { animation: md-fade 150ms linear both !important; }
 
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

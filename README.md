@@ -45,6 +45,12 @@ Sign in at http://localhost:3000, create a project for `http://localhost:4600`, 
 - **Repair.** With one human approval, tied to a checksum of the evidence, FAULTLINE sends the package to a Devin session. Devin opens a pull request.
 - **Verify.** FAULTLINE downloads the pull request's exact commit, runs it in a container with no egress, and runs its own unchanged test. The verdict is VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, or BLOCKED, and FAULTLINE posts it on the pull request.
 
+![Blast Radius of the reference storefront: 5 of 8 experiments break the checkout journey, each fault tile linked to the steps it broke](docs/screenshots/01-blast-radius-map.png)
+
+<img src="docs/screenshots/10-blast-radius-mobile.png" width="300" alt="Blast Radius on a 390 px phone: the same count and tiles, bottom navigation, no horizontal scroll">
+
+The interface follows Android 16 / Material 3 Expressive: [design system](docs/DESIGN_SYSTEM.md).
+
 ## A real store: Daluxe Official
 
 FAULTLINE also scanned [daluxeofficial.in](https://www.daluxeofficial.in), a live skincare store we built and deployed for a client. Scan only, no repair. Journey: open home, open a product, open the cart (6 steps, nothing added, nothing ordered).

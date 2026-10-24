@@ -3,7 +3,7 @@ import { signIn } from "./helpers";
 
 test("mobile layout uses bottom navigation without horizontal overflow", async ({ page }) => {
   await signIn(page);
-  for (const path of ["/projects", "/scans", "/settings"]) {
+  for (const path of ["/projects", "/scans", "/experiments", "/settings"]) {
     await page.goto(path);
     const nav = page.getByRole("navigation", { name: "Primary" });
     await expect(nav).toBeVisible();

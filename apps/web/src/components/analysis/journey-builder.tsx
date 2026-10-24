@@ -89,8 +89,9 @@ function toDraft(step: AnyStep): DraftStep {
     draft.text = step.text;
     draft.match = step.match;
   }
-  if (step.type !== "navigate" && step.type !== "reload" && step.timeoutMs !== 5000) draft.timeoutMs = String(step.timeoutMs);
-  if ("maxDurationMs" in step && step.maxDurationMs) draft.maxDurationMs = String(step.maxDurationMs);
+  // Imported JSON may omit defaults; only carry explicit, non-default numbers into the form.
+  if (step.type !== "navigate" && step.type !== "reload" && typeof step.timeoutMs === "number" && step.timeoutMs !== 5000) draft.timeoutMs = String(step.timeoutMs);
+  if ("maxDurationMs" in step && typeof step.maxDurationMs === "number") draft.maxDurationMs = String(step.maxDurationMs);
   return draft;
 }
 

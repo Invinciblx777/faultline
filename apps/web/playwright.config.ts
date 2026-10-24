@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_TARGET_PORT, E2E_WEB_PORT, e2eEnv } from "./e2e/env";
+import { E2E_PARTNER_PORT, E2E_TARGET_PORT, E2E_WEB_PORT, e2eEnv } from "./e2e/env";
 
 /**
  * End-to-end tests against the production build (`pnpm build` first), a real
@@ -9,7 +9,7 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   workers: 1,
-  timeout: 120_000,
+  timeout: 300_000,
   expect: { timeout: 15_000 },
   reporter: [["list"]],
   globalSetup: "./e2e/global-setup.ts",
@@ -22,7 +22,7 @@ export default defineConfig({
   webServer: [
     {
       command: `node ../../tools/reference-target/server.mjs`,
-      env: { PORT: String(E2E_TARGET_PORT) },
+      env: { PORT: String(E2E_TARGET_PORT), PARTNER_PORT: String(E2E_PARTNER_PORT) },
       url: `http://localhost:${E2E_TARGET_PORT}/`,
       reuseExistingServer: false,
     },

@@ -15,6 +15,13 @@
       "when": 1792856666085,
       "tag": "0001_common_puff_adder",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792862039276,
+      "tag": "0002_lush_chat",
+      "breakpoints": true
     }
   ]
 }

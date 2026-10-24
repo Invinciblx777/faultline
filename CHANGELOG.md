@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-24T22:52+05:30 — Phase 3 repair core: Devin and GitHub clients, repair persistence, verification engine (wip)
+
+- Changed: `packages/shared` (repair lifecycle, evidence bundle and prompt builders, pull request validation, verification verdict rules, Devin API v3 and GitHub REST clients, repair env settings), `packages/db` (migration `0002`: `source_repositories`, `repair_requests`, `repair_events`, `verification_runs`, `verification_checks`; conditional lifecycle transitions), `apps/worker` (repair supervisor: Devin submission with tag-based recovery, session and pull request sync, isolated candidate builds with podman, independent verification).
+- Why: Phase 3 (Devin Strike). A finding becomes an approved Devin repair request, and FAULTLINE verifies the resulting pull request itself.
+- Validation: `pnpm typecheck` for shared, db, worker, web; shared unit tests (142 passed, including verdict rules, sanitization, prompt, PR validation, Devin client retries and error categories). Migration applied to `faultline` and `faultline_test`. Devin request and response shapes were checked against Devin's published OpenAPI document (`v3-openapi.json`).
+- Limitations: No UI yet. No live Devin call has been made: `DEVIN_API_KEY` and `DEVIN_ORG_ID` are not configured in this environment. Worker repair code is not yet covered by integration tests.
+
 ## 2026-10-24T22:10:02+05:30 — Phase 2 docs (a32e094)
 
 - Changed: Phase 2 status, Blast Radius architecture, security controls, API documentation.

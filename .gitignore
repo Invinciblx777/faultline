@@ -24,3 +24,6 @@ blob-report/
 
 # Local regression test validation runs
 .regression-runs/
+
+# Candidate builds checked out for repair verification
+.verification-runs/

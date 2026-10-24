@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseRepositoryAllowlist } from "./repair";
 import { parseAllowlist, type AllowlistEntry } from "./url";
 
 /**
@@ -41,6 +42,23 @@ const allowlistFromEnv = z
     }
   });
 
+const repositoryAllowlistFromEnv = z
+  .string()
+  .optional()
+  .transform((value, ctx): string[] => {
+    try {
+      return parseRepositoryAllowlist(value);
+    } catch (error) {
+      ctx.addIssue({ code: "custom", message: (error as Error).message });
+      return z.NEVER;
+    }
+  });
+
+const optionalSecret = z
+  .string()
+  .optional()
+  .transform((v) => (v?.trim() ? v.trim() : undefined));
+
 export const coreEnvSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required").url(),
   FAULTLINE_DEPLOYMENT_MODE: z.enum(["local", "public"]).default("local"),
@@ -52,6 +70,16 @@ export const coreEnvSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().min(1, "S3_ACCESS_KEY_ID is required"),
   S3_SECRET_ACCESS_KEY: z.string().min(1, "S3_SECRET_ACCESS_KEY is required"),
   S3_FORCE_PATH_STYLE: booleanFromEnv(true),
+  // --- Verified Repair (optional). Without these FAULTLINE works and labels repair unavailable. ---
+  /** Devin API v3 service-user key (cog_…). Server-side only. */
+  DEVIN_API_KEY: optionalSecret,
+  /** Devin organization ID (org-…). */
+  DEVIN_ORG_ID: optionalSecret,
+  DEVIN_API_BASE_URL: optionalSecret,
+  /** GitHub token with read access to linked repositories (pull requests, contents). Server-side only. */
+  GITHUB_TOKEN: optionalSecret,
+  /** owner/name repositories operators may link for repair. Empty means none. */
+  FAULTLINE_REPAIR_REPOSITORIES: repositoryAllowlistFromEnv,
 });
 
 export const workerEnvSchema = coreEnvSchema.extend({
@@ -70,6 +98,23 @@ export const workerEnvSchema = coreEnvSchema.extend({
   FAULTLINE_ANALYSIS_TIMEOUT_MS: intFromEnv(30 * 60_000, 60_000, 55 * 60_000),
   /** Execute generated regression tests with Playwright Test against the target after an analysis. */
   FAULTLINE_REGRESSION_VALIDATION: booleanFromEnv(true),
+  /** How often active Devin sessions are polled. */
+  FAULTLINE_DEVIN_POLL_INTERVAL_MS: intFromEnv(20_000, 5_000, 600_000),
+  /** Optional per-session ACU cap passed to Devin as max_acu_limit. */
+  DEVIN_MAX_ACU_LIMIT: intFromEnv(0, 0, 1000),
+  /** Upload the baseline and under-fault screenshots to Devin as session attachments. */
+  FAULTLINE_DEVIN_ATTACH_SCREENSHOTS: booleanFromEnv(true),
+  /** Container runtime used to run candidate builds in isolation. */
+  FAULTLINE_CONTAINER_RUNTIME: z.enum(["podman", "docker"]).default("podman"),
+  /** Image for node-server candidates, pinned by digest. */
+  FAULTLINE_VERIFY_IMAGE: z
+    .string()
+    .regex(/^[a-z0-9./_-]+(:[A-Za-z0-9._-]+)?@sha256:[0-9a-f]{64}$/, "must be an image reference pinned by digest (name@sha256:…)")
+    .default("docker.io/library/node@sha256:025b8e975a61d94e33abeafaad1255ef44e4898cf1a1b6446860009c72e6d284"),
+  /** Internal (no egress) container network for candidates. Created if missing. */
+  FAULTLINE_VERIFY_NETWORK: z.string().regex(/^[a-z0-9][a-z0-9_-]{0,60}$/).default("faultline-verify"),
+  /** First loopback port for candidate containers; extra ports follow it. Must be on FAULTLINE_SCAN_ALLOWLIST. */
+  FAULTLINE_VERIFY_BASE_PORT: intFromEnv(4700, 1024, 65000),
 });
 
 export const webEnvSchema = coreEnvSchema.extend({
@@ -78,6 +123,16 @@ export const webEnvSchema = coreEnvSchema.extend({
   FAULTLINE_COOKIE_SECURE: z.enum(["true", "false", "auto"]).default("auto"),
   /** Blast Radius analyses that may be queued or running at once, across all projects. */
   FAULTLINE_MAX_ACTIVE_ANALYSES: intFromEnv(2, 1, 20),
+  /** Operator usernames allowed to approve sending a finding to Devin. Empty means nobody can. */
+  FAULTLINE_REPAIR_APPROVERS: z
+    .string()
+    .optional()
+    .transform((v) =>
+      (v ?? "")
+        .split(",")
+        .map((u) => u.trim().toLowerCase())
+        .filter(Boolean),
+    ),
 });
 
 export type CoreEnv = z.infer<typeof coreEnvSchema>;

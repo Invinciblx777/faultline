@@ -13,6 +13,10 @@ import {
   workerInstances,
   type ScanJobData,
 } from "@faultline/db";
+import { fileURLToPath } from "node:url";
+import { DevinClient, devinConfigFromEnv, GitHubClient } from "@faultline/shared/integrations";
+import { cleanupStaleCandidates, runtimeAvailable, type CandidateSettings } from "./repair/candidate";
+import { startRepairSupervisor } from "./repair/supervisor";
 import { browserLaunchOptions, createRuntimeInfo } from "./runtime";
 import { runScan } from "./scan-runner";
 
@@ -102,6 +106,43 @@ async function main() {
       await runScan({ db: database.db, storage, env, runtime, log }, job.data.scanId, job.signal);
     }
   });
+  // Verified Repair: optional. Without Devin credentials the loop still verifies nothing it was not asked to.
+  const devinConfig = devinConfigFromEnv(process.env);
+  const devin = devinConfig.configured ? new DevinClient({ apiKey: devinConfig.apiKey, orgId: devinConfig.orgId, baseUrl: devinConfig.baseUrl }) : null;
+  const github = new GitHubClient({ token: env.GITHUB_TOKEN ?? null });
+  const candidateSettings: CandidateSettings = {
+    runtime: env.FAULTLINE_CONTAINER_RUNTIME,
+    image: env.FAULTLINE_VERIFY_IMAGE,
+    network: env.FAULTLINE_VERIFY_NETWORK,
+    basePort: env.FAULTLINE_VERIFY_BASE_PORT,
+    workRoot: fileURLToPath(new URL("../.verification-runs", import.meta.url)),
+    maxArchiveBytes: 50 * 1024 * 1024,
+    startTimeoutMs: 30_000,
+  };
+  const containerRuntime = await runtimeAvailable(candidateSettings);
+  if (containerRuntime.ok) await cleanupStaleCandidates(candidateSettings, log);
+  log("repair integration", {
+    devin: devinConfig.configured ? "configured" : `unavailable: ${devinConfig.reason}`,
+    github: github.hasToken ? "token set" : "no token (public repositories only)",
+    containerRuntime: containerRuntime.ok ? containerRuntime.version : containerRuntime.reason,
+    repositories: env.FAULTLINE_REPAIR_REPOSITORIES,
+  });
+  const supervisor = startRepairSupervisor({
+    pollIntervalMs: env.FAULTLINE_DEVIN_POLL_INTERVAL_MS,
+    agent: {
+      db: database.db,
+      storage,
+      devin,
+      devinUnavailable: devinConfig.configured ? null : devinConfig.reason,
+      github,
+      workerId: runtime.workerId,
+      maxAcuLimit: env.DEVIN_MAX_ACU_LIMIT || null,
+      attachScreenshots: env.FAULTLINE_DEVIN_ATTACH_SCREENSHOTS,
+      log,
+    },
+    verification: { db: database.db, storage, env, github, workerId: runtime.workerId, settings: candidateSettings, log },
+  });
+
   log("worker ready", {
     workerId: runtime.workerId,
     concurrency: env.FAULTLINE_WORKER_CONCURRENCY,
@@ -116,6 +157,7 @@ async function main() {
     log("shutting down", { signal });
     clearInterval(heartbeat);
     clearInterval(sweeper);
+    await supervisor.stop();
     await boss.stop({ graceful: true, timeout: 30_000 }).catch(() => undefined);
     await database.db
       .update(workerInstances)

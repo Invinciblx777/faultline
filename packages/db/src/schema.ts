@@ -22,6 +22,11 @@ import type {
   JourneyDefinition,
   Party,
   Reproducibility,
+  RepairEvidenceBundle,
+  RepairStatus,
+  CandidateRecipe,
+  CheckStatus,
+  VerificationVerdict,
   Verdict,
   VerdictReason,
   EvidenceSeverity,
@@ -421,6 +426,241 @@ export const workerInstances = pgTable("worker_instances", {
   stoppedAt: timestamp("stopped_at", { withTimezone: true, mode: "date" }),
 });
 
+/**
+ * A GitHub repository an operator linked to a project as the source Devin may
+ * change. The server's FAULTLINE_REPAIR_REPOSITORIES list authorizes which
+ * repositories may be linked; connection checks are recorded as facts.
+ */
+export const sourceRepositories = pgTable(
+  "source_repositories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    provider: text("provider").$type<"github">().notNull(),
+    owner: text("owner").notNull(),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    baseBranch: text("base_branch").notNull(),
+    appDir: text("app_dir"),
+    /** How a runnable candidate is obtained (data, never shell). */
+    recipe: jsonb("recipe").$type<CandidateRecipe>().notNull(),
+    linkedBy: uuid("linked_by").references(() => operators.id, { onDelete: "set null" }),
+    ...timestamps,
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    /** Last connection check: GitHub repository and branch, and Devin's view of the repository. */
+    checkedAt: timestamp("checked_at", { withTimezone: true, mode: "date" }),
+    githubStatus: text("github_status").$type<"ok" | "error" | "not_checked">().notNull().default("not_checked"),
+    githubDetail: text("github_detail"),
+    baseSha: text("base_sha"),
+    devinStatus: text("devin_status").$type<"ok" | "error" | "not_configured" | "not_checked">().notNull().default("not_checked"),
+    devinDetail: text("devin_detail"),
+    /** Devin's identifier for the repository (repo_full_name), passed as `repos` on session creation. */
+    devinRepoName: text("devin_repo_name"),
+  },
+  (t) => [uniqueIndex("source_repositories_project_key").on(t.projectId)],
+);
+
+export interface DevinAttachmentRecord {
+  artifactId: string;
+  name: string;
+  sha256: string;
+  /** Devin attachment id and URL as returned by the upload API; null when the upload failed. */
+  attachmentId: string | null;
+  url: string | null;
+  error: string | null;
+}
+
+/** One operator-approved request for Devin to repair one finding. */
+export const repairRequests = pgTable(
+  "repair_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    scanId: uuid("scan_id")
+      .notNull()
+      .references(() => scans.id, { onDelete: "cascade" }),
+    experimentId: uuid("experiment_id")
+      .notNull()
+      .references(() => experiments.id, { onDelete: "cascade" }),
+    repositoryId: uuid("repository_id")
+      .notNull()
+      .references(() => sourceRepositories.id, { onDelete: "no action" }),
+    /** Frozen copy of the linked repository at request time. */
+    repoOwner: text("repo_owner").notNull(),
+    repoName: text("repo_name").notNull(),
+    baseBranch: text("base_branch").notNull(),
+    baseSha: text("base_sha"),
+    status: text("status").$type<RepairStatus>().notNull().default("awaiting_approval"),
+    statusDetail: text("status_detail"),
+    evidence: jsonb("evidence").$type<RepairEvidenceBundle>().notNull(),
+    evidenceSha256: text("evidence_sha256").notNull(),
+    prompt: text("prompt").notNull(),
+    promptSha256: text("prompt_sha256").notNull(),
+    regressionTestId: uuid("regression_test_id")
+      .notNull()
+      .references(() => regressionTests.id, { onDelete: "no action" }),
+    regressionTestSha256: text("regression_test_sha256").notNull(),
+    createdBy: uuid("created_by").references(() => operators.id, { onDelete: "set null" }),
+    ...timestamps,
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    approvedBy: uuid("approved_by").references(() => operators.id, { onDelete: "set null" }),
+    approvedByUsername: text("approved_by_username"),
+    approvedAt: timestamp("approved_at", { withTimezone: true, mode: "date" }),
+    approvalStatement: text("approval_statement"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true, mode: "date" }),
+    /** Tag placed on the Devin session so an interrupted submission can be found instead of repeated. */
+    devinTag: text("devin_tag").notNull(),
+    workerId: text("worker_id"),
+    submitStartedAt: timestamp("submit_started_at", { withTimezone: true, mode: "date" }),
+    attachments: jsonb("attachments").$type<DevinAttachmentRecord[]>().notNull().default([]),
+    devinSessionId: text("devin_session_id"),
+    devinSessionUrl: text("devin_session_url"),
+    devinStatus: text("devin_status"),
+    devinStatusDetail: text("devin_status_detail"),
+    devinCreatedAt: timestamp("devin_created_at", { withTimezone: true, mode: "date" }),
+    devinUpdatedAt: timestamp("devin_updated_at", { withTimezone: true, mode: "date" }),
+    devinAcusConsumed: integer("devin_acus_consumed"),
+    messagesCursor: text("messages_cursor"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true, mode: "date" }),
+    syncError: text("sync_error"),
+    syncFailures: integer("sync_failures").notNull().default(0),
+    prUrl: text("pr_url"),
+    prNumber: integer("pr_number"),
+    prState: text("pr_state"),
+    prMerged: boolean("pr_merged"),
+    prDraft: boolean("pr_draft"),
+    prTitle: text("pr_title"),
+    prBaseRef: text("pr_base_ref"),
+    prHeadRef: text("pr_head_ref"),
+    prHeadSha: text("pr_head_sha"),
+    prCreatedAt: timestamp("pr_created_at", { withTimezone: true, mode: "date" }),
+    prUpdatedAt: timestamp("pr_updated_at", { withTimezone: true, mode: "date" }),
+    prCheckedAt: timestamp("pr_checked_at", { withTimezone: true, mode: "date" }),
+    prNotes: jsonb("pr_notes").$type<string[]>().notNull().default([]),
+    latestVerificationId: uuid("latest_verification_id"),
+    verdict: text("verdict").$type<VerificationVerdict>(),
+    verdictRationale: jsonb("verdict_rationale").$type<string[]>(),
+    verifiedSha: text("verified_sha"),
+    verdictAt: timestamp("verdict_at", { withTimezone: true, mode: "date" }),
+  },
+  (t) => [
+    // One open repair per finding: double clicks and reloads cannot create a second request.
+    uniqueIndex("repair_requests_open_experiment_key")
+      .on(t.experimentId)
+      .where(sql`${t.status} not in ('cancelled', 'devin_failed')`),
+    uniqueIndex("repair_requests_devin_tag_key").on(t.devinTag),
+    uniqueIndex("repair_requests_devin_session_key").on(t.devinSessionId),
+    index("repair_requests_status_idx").on(t.status),
+    index("repair_requests_project_idx").on(t.projectId, t.createdAt),
+  ],
+);
+
+export type RepairEventSource = "faultline" | "operator" | "devin" | "github" | "verification";
+
+/** Append-only audit trail of a repair: approvals, Devin messages and status changes, PR facts, verification. */
+export const repairEvents = pgTable(
+  "repair_events",
+  {
+    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+    repairId: uuid("repair_id")
+      .notNull()
+      .references(() => repairRequests.id, { onDelete: "cascade" }),
+    source: text("source").$type<RepairEventSource>().notNull(),
+    kind: text("kind").notNull(),
+    message: text("message").notNull(),
+    /** Devin message event_id, for de-duplication across polls. */
+    externalId: text("external_id"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true, mode: "date" }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    operatorId: uuid("operator_id").references(() => operators.id, { onDelete: "set null" }),
+    detail: jsonb("detail").$type<Record<string, unknown>>(),
+  },
+  (t) => [index("repair_events_repair_idx").on(t.repairId, t.id), uniqueIndex("repair_events_external_key").on(t.repairId, t.externalId)],
+);
+
+export type VerificationRunStatus = "queued" | "running" | "completed" | "failed" | "interrupted";
+
+/** One independent verification of a candidate commit. */
+export const verificationRuns = pgTable(
+  "verification_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    repairId: uuid("repair_id")
+      .notNull()
+      .references(() => repairRequests.id, { onDelete: "cascade" }),
+    status: text("status").$type<VerificationRunStatus>().notNull().default("queued"),
+    phase: text("phase"),
+    requestedBy: uuid("requested_by").references(() => operators.id, { onDelete: "set null" }),
+    originalSha: text("original_sha").notNull(),
+    candidateSha: text("candidate_sha").notNull(),
+    prNumber: integer("pr_number").notNull(),
+    regressionTestSha256: text("regression_test_sha256").notNull(),
+    /** How each revision was built and identified (archive hash, container, image digest, origin). */
+    builds: jsonb("builds").$type<Record<string, unknown>>(),
+    verdict: text("verdict").$type<VerificationVerdict>(),
+    rationale: jsonb("rationale").$type<string[]>(),
+    errorMessage: text("error_message"),
+    workerId: text("worker_id"),
+    ...timestamps,
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
+    heartbeatAt: timestamp("heartbeat_at", { withTimezone: true, mode: "date" }),
+    finishedAt: timestamp("finished_at", { withTimezone: true, mode: "date" }),
+    durationMs: integer("duration_ms"),
+  },
+  (t) => [
+    index("verification_runs_repair_idx").on(t.repairId, t.createdAt),
+    index("verification_runs_status_idx").on(t.status),
+    // One active verification per repair.
+    uniqueIndex("verification_runs_active_key")
+      .on(t.repairId)
+      .where(sql`${t.status} in ('queued', 'running')`),
+  ],
+);
+
+export type VerificationStage = "original-normal" | "original-fault" | "original-fault-evidence" | "candidate-fault" | "candidate-fault-evidence" | "candidate-normal";
+
+/** One browser execution inside a verification run, with its evidence. */
+export const verificationChecks = pgTable(
+  "verification_checks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => verificationRuns.id, { onDelete: "cascade" }),
+    ordinal: integer("ordinal").notNull(),
+    stage: text("stage").$type<VerificationStage>().notNull(),
+    revision: text("revision").$type<"original" | "candidate">().notNull(),
+    sha: text("sha").notNull(),
+    targetOrigin: text("target_origin").notNull(),
+    /** `regression-test` runs the stored test file with Playwright Test; `journey` runs the journey engine. */
+    method: text("method").$type<"regression-test" | "journey">().notNull(),
+    /** `verdict` checks decide the outcome; `evidence` checks only record screenshots and errors. */
+    purpose: text("purpose").$type<"verdict" | "evidence">().notNull(),
+    attempt: integer("attempt").notNull().default(1),
+    faultApplied: boolean("fault_applied").notNull(),
+    status: text("status").$type<CheckStatus | "running">().notNull().default("running"),
+    summary: text("summary"),
+    output: text("output"),
+    steps: jsonb("steps").$type<Array<{ index: number; description: string; status: string; error: string | null; durationMs: number | null }>>(),
+    errors: jsonb("errors").$type<Array<{ kind: string; message: string }>>(),
+    faultApplications: integer("fault_applications"),
+    screenshotKey: text("screenshot_key"),
+    screenshotSha256: text("screenshot_sha256"),
+    screenshotBytes: integer("screenshot_bytes"),
+    screenshotWidth: integer("screenshot_width"),
+    screenshotHeight: integer("screenshot_height"),
+    ...timestamps,
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
+    finishedAt: timestamp("finished_at", { withTimezone: true, mode: "date" }),
+    durationMs: integer("duration_ms"),
+  },
+  (t) => [uniqueIndex("verification_checks_run_ordinal_key").on(t.runId, t.ordinal)],
+);
+
 export type Operator = typeof operators.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type Scan = typeof scans.$inferSelect;
@@ -434,3 +674,8 @@ export type Experiment = typeof experiments.$inferSelect;
 export type NetworkRequestRow = typeof networkRequests.$inferSelect;
 export type StepResultRow = typeof stepResults.$inferSelect;
 export type RegressionTest = typeof regressionTests.$inferSelect;
+export type SourceRepository = typeof sourceRepositories.$inferSelect;
+export type RepairRequest = typeof repairRequests.$inferSelect;
+export type RepairEvent = typeof repairEvents.$inferSelect;
+export type VerificationRun = typeof verificationRuns.$inferSelect;
+export type VerificationCheck = typeof verificationChecks.$inferSelect;

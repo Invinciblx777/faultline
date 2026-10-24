@@ -123,8 +123,16 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
         {experiment.failureMessage && experiment.verdict === "test_failed" ? <p className="mt-2 text-sm text-failure">{experiment.failureMessage}</p> : null}
         <dl className="mt-4 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
           <div>
-            <dt className="text-on-surface-variant">Requests the fault acted on</dt>
-            <dd className="tabular">{experiment.affectedRequestCount}</dd>
+            <dt className="text-on-surface-variant">{experiment.kind === "offline" ? "Fault applied" : "Requests the fault acted on"}</dt>
+            <dd className="tabular">
+              {experiment.kind === "narrow-viewport"
+                ? "Not applicable (layout condition)"
+                : experiment.kind === "offline"
+                  ? experiment.affectedRequestCount
+                    ? "Browser switched offline after the first page loaded"
+                    : "Never (the first page did not load)"
+                  : experiment.affectedRequestCount}
+            </dd>
           </div>
           <div>
             <dt className="text-on-surface-variant">New natural request failures</dt>
@@ -228,7 +236,11 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
           <div className="rounded-xl bg-surface-low p-4">
             <h3 className="type-title mb-2">Requests the fault acted on ({injected.length})</h3>
             {injected.length === 0 ? (
-              <p className="text-sm text-on-surface-variant">None. A fault that never applies cannot support a verdict.</p>
+              <p className="text-sm text-on-surface-variant">
+                {experiment.kind === "offline" || experiment.kind === "narrow-viewport"
+                  ? "This condition does not intercept individual requests."
+                  : "None. A fault that never applies cannot support a verdict."}
+              </p>
             ) : (
               <ul className="flex flex-col gap-2 text-sm">
                 {injected.map((r) => (
@@ -324,7 +336,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
             Causal evidence timeline
           </h2>
           <p className="mb-4 text-sm text-on-surface-variant">Everything recorded in the first run under the fault, on one clock from the start of the run.</p>
-          <CausalTimeline attempt={first} />
+          <CausalTimeline attempt={first} baselineEvents={baseline?.events ?? []} />
         </section>
       ) : null}
 

@@ -49,7 +49,7 @@ export async function closeOpenWork(db: Database, scanIds: string[], reason: str
     .where(and(inArray(experiments.scanId, scanIds), eq(experiments.status, "running")));
   await db
     .update(experiments)
-    .set({ status: "skipped", failureMessage: reason })
+    .set({ status: "skipped", failureMessage: "Not run: the analysis stopped before this experiment started." })
     .where(and(inArray(experiments.scanId, scanIds), eq(experiments.status, "pending")));
 }
 

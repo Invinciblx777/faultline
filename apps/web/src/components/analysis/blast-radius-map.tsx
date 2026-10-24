@@ -302,9 +302,11 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
               ))}
             </ul>
           ) : null}
-          <p className="mb-4 text-sm text-on-surface-variant">
-            The fault acted on {active.affectedRequestCount} request{active.affectedRequestCount === 1 ? "" : "s"} in the first run.
-          </p>
+          {active.kind !== "offline" && active.kind !== "narrow-viewport" ? (
+            <p className="mb-4 text-sm text-on-surface-variant">
+              The fault acted on {active.affectedRequestCount} request{active.affectedRequestCount === 1 ? "" : "s"} in the first run.
+            </p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
             <Link href={`/scans/${scanId}/experiments/${active.id}`} className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-on-primary">
               Evidence and Reality Split <ArrowRight aria-hidden className="size-4" />

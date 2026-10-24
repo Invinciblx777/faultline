@@ -6,6 +6,7 @@ import {
   artifacts,
   dependencies,
   experiments,
+  failStaleScans,
   journeys,
   networkRequests,
   projects,
@@ -160,6 +161,31 @@ describe("Blast Radius analysis lifecycle", () => {
       await fixed.close();
     }
   }, 300_000);
+
+  it("an interrupted analysis is closed out: running work failed, pending experiments skipped, evidence kept", async () => {
+    const scan = await createAnalysis({ maxExperiments: 2 });
+    const stale = new Date(Date.now() - 600_000);
+    await handle.db.update(scans).set({ status: "running", startedAt: stale, heartbeatAt: stale }).where(eq(scans.id, scan.id));
+    const [baselineRun] = await handle.db.insert(scanExecutions).values({ scanId: scan.id, role: "baseline", status: "completed", conditions: {} as never, requestedUrl: shop.origin }).returning();
+    const [running, pending] = await handle.db
+      .insert(experiments)
+      .values([
+        { scanId: scan.id, ordinal: 1, kind: "offline", fault: { kind: "offline" }, status: "running" },
+        { scanId: scan.id, ordinal: 2, kind: "narrow-viewport", fault: { kind: "narrow-viewport", width: 360, height: 740 } },
+      ])
+      .returning();
+    await handle.db.insert(scanExecutions).values({ scanId: scan.id, role: "experiment", ordinal: 1, experimentId: running!.id, status: "running", conditions: {} as never, requestedUrl: shop.origin });
+
+    expect((await failStaleScans(handle.db, 90_000)).map((r) => r.id)).toContain(scan.id);
+    const [row] = await handle.db.select().from(scans).where(eq(scans.id, scan.id));
+    expect(row).toMatchObject({ status: "failed", errorCode: "worker_interrupted" });
+    const runs = await handle.db.select().from(scanExecutions).where(eq(scanExecutions.scanId, scan.id));
+    expect(runs.find((r) => r.id === baselineRun!.id)?.status).toBe("completed");
+    expect(runs.find((r) => r.role === "experiment")?.status).toBe("failed");
+    const exps = await handle.db.select().from(experiments).where(eq(experiments.scanId, scan.id));
+    expect(exps.find((e) => e.id === running!.id)).toMatchObject({ status: "failed", verdict: null });
+    expect(exps.find((e) => e.id === pending!.id)).toMatchObject({ status: "skipped", failureMessage: expect.stringMatching(/before this experiment started/) });
+  });
 
   it("refuses to run a journey snapshot that is missing", async () => {
     const scan = await createAnalysis({ maxExperiments: 1 });

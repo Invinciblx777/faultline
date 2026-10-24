@@ -49,6 +49,16 @@ Until that isolation exists, keep FAULTLINE in `local` mode and restricted to op
 
 The worker launches Chromium with its sandbox enabled (`FAULTLINE_CHROMIUM_SANDBOX=true`) and refuses to take jobs if the preflight launch fails. Some container runtimes need user namespaces or a seccomp profile for the sandbox. Disabling it (`false`) removes a major defense; only do so inside a dedicated, isolated VM.
 
+## Blast Radius safety controls
+
+- **Journeys are data, not code.** Steps are a closed set of Playwright operations with structured locators. CSS selectors refuse engine prefixes (`xpath=`, `text=`) and `>>` chaining. Navigation paths must start with a single `/` and must resolve on the project origin. FAULTLINE never runs JavaScript supplied by an operator or by the scanned site. The only page evaluations are FAULTLINE's own fixed layout measurements.
+- **No data changes by default.** Every POST, PUT, PATCH, and DELETE request is blocked in the browser and recorded as a safety block (`policy_block`), separate from injected faults. A journey may allow an exact method and path only when it is safe to call repeatedly against that environment.
+- **Password fields are never filled.** A `fill` step aimed at `input[type=password]` fails with an explanation.
+- **Injected outcomes are labeled.** Aborted, delayed, and generated responses are stored as `injected` in the network log and as `fault_injected` events. They are excluded from "natural" failure counts. Generated error responses carry `x-faultline-injected: 1`.
+- **Capacity limits.** Each project may have one queued or running analysis. Across the server, `FAULTLINE_MAX_ACTIVE_ANALYSES` applies (default 2). Both checks run under a PostgreSQL advisory lock, so concurrent launches cannot both pass. Each analysis has a time budget (`FAULTLINE_ANALYSIS_TIMEOUT_MS`) and an experiment limit (at most 20).
+- **Regression test validation** runs generated tests in a temporary directory under the worker. Chromium is forced through the egress guard with per-run proxy credentials, and the directory is deleted afterwards. A generated test contains only the journey's own data, escaped as string literals.
+- **What is stored.** Redacted URLs, methods, statuses, timings, step results, and screenshots. No request or response headers, cookies, tokens, or bodies.
+
 ## Known limitations
 
 - Login throttling is in memory per web process. Put a rate-limiting reverse proxy in front of multi-instance deployments.
@@ -56,5 +66,7 @@ The worker launches Chromium with its sandbox enabled (`FAULTLINE_CHROMIUM_SANDB
 - No content security policy is applied to the web app's own pages yet (Next.js inline scripts require nonce support to be wired in). Other security headers are set.
 - Domain-ownership verification (DNS TXT or HTTP file) is not implemented; the allowlist is the authorization source. The allowlist check is a single function (`checkScanTarget`) so verification can be added there.
 - The transfer budget counts body bytes for plain HTTP and raw tunnel bytes for HTTPS.
+- Values typed by `fill` steps are stored in the journey definition in plain text. Do not put real credentials in journeys.
+- Screenshots can contain whatever the page displays. Use journey screenshot masks for sensitive regions.
 
 Report vulnerabilities as described in [SECURITY.md](../SECURITY.md).

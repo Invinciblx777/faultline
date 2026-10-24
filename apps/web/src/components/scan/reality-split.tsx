@@ -1,13 +1,16 @@
 "use client";
 
-import { ChevronsLeftRight, Columns2, ImageOff, SplitSquareHorizontal } from "lucide-react";
+import { ChevronsLeftRight, Columns2, Diff, ImageOff, Layers, SplitSquareHorizontal } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { ToggleGroup } from "radix-ui";
 import { useCallback, useRef, useState, type KeyboardEvent, type PointerEvent, type UIEvent } from "react";
 import { cn } from "@/lib/cn";
 
 export interface SplitShot {
-  role: "baseline" | "fault";
+  /** Stable key for the pane. */
+  role: string;
+  /** Normal conditions or fault conditions; drives color and labels. */
+  tone: "normal" | "fault";
   label: string;
   outcomeLabel: string | null;
   artifactId: string | null;
@@ -18,9 +21,17 @@ export interface SplitShot {
 }
 
 const ROLE = {
-  baseline: { text: "text-normal", bg: "bg-normal", ring: "ring-normal" },
+  normal: { text: "text-normal", bg: "bg-normal", ring: "ring-normal" },
   fault: { text: "text-fault", bg: "bg-fault", ring: "ring-fault" },
 } as const;
+
+/** A stored pixel-difference image between the two screenshots. */
+export interface SplitDiff {
+  artifactId: string;
+  width: number | null;
+  height: number | null;
+  note: string;
+}
 
 function Missing({ shot }: { shot: SplitShot }) {
   return (
@@ -41,7 +52,7 @@ function Shot({ shot, className }: { shot: SplitShot; className?: string }) {
       src={`/api/artifacts/${shot.artifactId}`}
       width={shot.width ?? undefined}
       height={shot.height ?? undefined}
-      alt={`Screenshot captured under ${shot.label.toLowerCase()}`}
+      alt={`Screenshot: ${shot.label}`}
       className={cn("block h-auto w-full select-none", className)}
       draggable={false}
     />
@@ -73,8 +84,8 @@ function SideBySide({ shots }: { shots: [SplitShot, SplitShot] }) {
         {shots.map((shot, i) => (
           <figure key={shot.role} className="min-w-0">
             <figcaption className="mb-2 flex items-center gap-2">
-              <span className={cn("size-2.5 rounded-full", ROLE[shot.role].bg)} aria-hidden />
-              <span className={cn("type-title", ROLE[shot.role].text)}>{shot.label}</span>
+              <span className={cn("size-2.5 rounded-full", ROLE[shot.tone].bg)} aria-hidden />
+              <span className={cn("type-title", ROLE[shot.tone].text)}>{shot.label}</span>
               {shot.outcomeLabel ? <span className="text-sm text-on-surface-variant">· {shot.outcomeLabel}</span> : null}
             </figcaption>
             <div
@@ -84,7 +95,7 @@ function SideBySide({ shots }: { shots: [SplitShot, SplitShot] }) {
               onScroll={onScroll(i)}
               tabIndex={0}
               aria-label={`${shot.label} screenshot, scrollable`}
-              className={cn("max-h-[72vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-container ring-2", ROLE[shot.role].ring)}
+              className={cn("max-h-[72vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-container ring-2", ROLE[shot.tone].ring)}
             >
               <Shot shot={shot} />
             </div>
@@ -197,8 +208,68 @@ function Seam({ shots }: { shots: [SplitShot, SplitShot] }) {
   );
 }
 
-export function RealitySplit({ shots }: { shots: [SplitShot, SplitShot] }) {
+/** Both screenshots stacked at the top-left; the fault layer's opacity is adjustable. */
+function Overlay({ shots }: { shots: [SplitShot, SplitShot] }) {
+  const [baseline, fault] = shots;
+  const [opacity, setOpacity] = useState(50);
+  if (!baseline.artifactId || !fault.artifactId) {
+    return <Missing shot={{ ...(baseline.artifactId ? fault : baseline), missingReason: "Both screenshots are needed for the overlay view." }} />;
+  }
+  return (
+    <div>
+      <label className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+        <span className="type-title text-normal">{baseline.label}</span>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={opacity}
+          onChange={(e) => setOpacity(Number(e.target.value))}
+          aria-valuetext={`${opacity}% ${fault.label} over ${baseline.label}`}
+          className="h-11 min-w-40 flex-1 accent-[var(--fault)]"
+        />
+        <span className="type-title text-fault">{fault.label}</span>
+        <span className="tabular w-12 text-right text-on-surface-variant">{opacity}%</span>
+      </label>
+      <div className="grid items-start overflow-hidden rounded-lg bg-surface-container">
+        <div className="[grid-area:1/1]">
+          <Shot shot={baseline} />
+        </div>
+        <div className="[grid-area:1/1]" style={{ opacity: opacity / 100 }}>
+          <Shot shot={fault} />
+        </div>
+      </div>
+      <p className="mt-2 text-sm text-on-surface-variant">Shifted or missing content shows as ghosting where the two layers disagree.</p>
+    </div>
+  );
+}
+
+function DiffView({ diff }: { diff: SplitDiff }) {
+  return (
+    <figure>
+      <div className="max-h-[72vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-container">
+        {/* eslint-disable-next-line @next/next/no-img-element -- authenticated artifact stream */}
+        <img
+          src={`/api/artifacts/${diff.artifactId}`}
+          width={diff.width ?? undefined}
+          height={diff.height ?? undefined}
+          alt="Pixel difference: changed pixels are highlighted, unchanged pixels are faded"
+          className="block h-auto w-full"
+        />
+      </div>
+      <figcaption className="mt-2 text-sm text-on-surface-variant">{diff.note}</figcaption>
+    </figure>
+  );
+}
+
+export function RealitySplit({ shots, diff = null }: { shots: [SplitShot, SplitShot]; diff?: SplitDiff | null }) {
   const [mode, setMode] = useState("side");
+  const modes = [
+    { value: "side", label: "Side by side", icon: Columns2 },
+    { value: "seam", label: "Seam", icon: SplitSquareHorizontal },
+    { value: "overlay", label: "Overlay", icon: Layers },
+    ...(diff ? [{ value: "diff", label: "Pixel diff", icon: Diff }] : []),
+  ];
   return (
     <div>
       <ToggleGroup.Root
@@ -206,12 +277,9 @@ export function RealitySplit({ shots }: { shots: [SplitShot, SplitShot] }) {
         value={mode}
         onValueChange={(v) => v && setMode(v)}
         aria-label="Comparison view"
-        className="mb-5 inline-flex rounded-full border border-outline p-1"
+        className="mb-5 inline-flex max-w-full flex-wrap rounded-3xl border border-outline p-1"
       >
-        {[
-          { value: "side", label: "Side by side", icon: Columns2 },
-          { value: "seam", label: "Seam", icon: SplitSquareHorizontal },
-        ].map(({ value, label, icon: Icon }) => (
+        {modes.map(({ value, label, icon: Icon }) => (
           <ToggleGroup.Item
             key={value}
             value={value}
@@ -222,7 +290,10 @@ export function RealitySplit({ shots }: { shots: [SplitShot, SplitShot] }) {
           </ToggleGroup.Item>
         ))}
       </ToggleGroup.Root>
-      {mode === "side" ? <SideBySide shots={shots} /> : <Seam shots={shots} />}
+      {mode === "side" ? <SideBySide shots={shots} /> : null}
+      {mode === "seam" ? <Seam shots={shots} /> : null}
+      {mode === "overlay" ? <Overlay shots={shots} /> : null}
+      {mode === "diff" && diff ? <DiffView diff={diff} /> : null}
     </div>
   );
 }

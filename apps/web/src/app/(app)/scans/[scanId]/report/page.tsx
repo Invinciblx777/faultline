@@ -1,6 +1,6 @@
 import { CheckCircle2, CircleHelp, FileJson, Hourglass } from "lucide-react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { EVIDENCE_KIND_LABELS, isTerminalScanStatus, SCAN_STATUS_LABELS, type EvidenceEvent } from "@faultline/shared";
 import { ROLE_STYLE } from "@/components/scan/run-summary";
 import { BackLink } from "@/components/ui/back-link";
@@ -72,6 +72,8 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
   await requireOperator();
   const detail = await getScanDetail((await params).scanId);
   if (!detail) notFound();
+  // Blast Radius analyses have their own views.
+  if (detail.scan.scenarioKind === "blast-radius") redirect(`/scans/${detail.scan.id}/blast-radius`);
   if (!isTerminalScanStatus(detail.scan.status)) {
     return (
       <>

@@ -45,7 +45,7 @@ export function BottomNavigation() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-outline-variant bg-surface-container pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-outline-variant bg-surface-container pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       {NAV_ITEMS.map((item) => {
         const active = item.match(pathname);

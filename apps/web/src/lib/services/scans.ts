@@ -34,6 +34,7 @@ export async function createScan(
     return { ok: false, error: "Check the highlighted fields.", fieldErrors };
   }
   const { projectId, targetUrl, scenario } = parsed.data;
+  if (scenario.kind === "blast-radius") return { ok: false, error: "Blast Radius analyses are launched from a saved journey, not as a page scan." };
   const [project] = await deps.db.select().from(projects).where(eq(projects.id, projectId));
   if (!project) return { ok: false, error: "That project does not exist." };
 

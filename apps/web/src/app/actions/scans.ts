@@ -9,6 +9,7 @@ import { isUuid } from "@/lib/data/queries";
 import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { cancelScanJob, enqueueScan } from "@/lib/queue";
+import { createAnalysis } from "@/lib/services/analyses";
 import { createScan, scanInputFromForm } from "@/lib/services/scans";
 
 export interface ScanFormState {
@@ -34,6 +35,18 @@ export async function rerunScanAction(form: FormData): Promise<void> {
   if (!isUuid(scanId)) return;
   const [previous] = await getDb().select().from(scans).where(eq(scans.id, scanId));
   if (!previous) return;
+  if (previous.scenarioConfig.kind === "blast-radius") {
+    // Re-run the same journey version with the same configuration.
+    const env = getEnv();
+    const config = previous.journeySnapshot ? { ...previous.scenarioConfig, journeyId: previous.journeySnapshot.id } : previous.scenarioConfig;
+    const result = await createAnalysis(
+      { db: getDb(), allowlist: env.FAULTLINE_SCAN_ALLOWLIST, enqueue: enqueueScan, maxActive: env.FAULTLINE_MAX_ACTIVE_ANALYSES },
+      operator,
+      { projectId: previous.projectId, config },
+    );
+    if (!result.ok) redirect(`/scans/${scanId}/blast-radius?rerunError=${encodeURIComponent(result.error.slice(0, 300))}`);
+    redirect(`/scans/${result.scanId}/blast-radius`);
+  }
   const result = await createScan(deps(), operator, {
     projectId: previous.projectId,
     targetUrl: previous.targetUrl,

@@ -1,4 +1,4 @@
-import { History, Radar, ShieldCheck, ShieldX } from "lucide-react";
+import { History, Radar, Route, ShieldCheck, ShieldX, Zap } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { findAllowlistMatch } from "@faultline/shared";
@@ -42,10 +42,18 @@ export default async function ProjectPage({ params }: Params) {
             <LinkButton href={`/projects/${project.id}/history`} variant="outlined" icon={<History aria-hidden />}>
               History
             </LinkButton>
+            <LinkButton href={`/projects/${project.id}/journeys`} variant="outlined" icon={<Route aria-hidden />}>
+              Journeys
+            </LinkButton>
             {authorized ? (
-              <LinkButton href={`/projects/${project.id}/scans/new`} icon={<Radar aria-hidden />}>
-                New scan
-              </LinkButton>
+              <>
+                <LinkButton href={`/projects/${project.id}/scans/new`} variant="tonal" icon={<Radar aria-hidden />}>
+                  New scan
+                </LinkButton>
+                <LinkButton href={`/projects/${project.id}/blast-radius/new`} icon={<Zap aria-hidden />}>
+                  Blast Radius
+                </LinkButton>
+              </>
             ) : null}
           </>
         }

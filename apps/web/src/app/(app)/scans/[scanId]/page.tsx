@@ -1,7 +1,7 @@
 import { CircleAlert } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { describeScenario, findAllowlistMatch, isTerminalScanStatus, SCENARIO_LABELS } from "@faultline/shared";
 import { EvidenceTimeline, problemEvents } from "@/components/scan/evidence-timeline";
 import { RunSummary } from "@/components/scan/run-summary";
@@ -28,6 +28,8 @@ export default async function ScanPage({ params, searchParams }: Props) {
   await requireOperator();
   const detail = await getScanDetail((await params).scanId);
   if (!detail) notFound();
+  // Blast Radius analyses have their own views.
+  if (detail.scan.scenarioKind === "blast-radius") redirect(`/scans/${detail.scan.id}/blast-radius`);
   const { scan, project, executions } = detail;
   const { rerunError } = await searchParams;
   const terminal = isTerminalScanStatus(scan.status);

@@ -9,6 +9,9 @@ type Execution = ScanDetail["executions"][number];
 export const ROLE_STYLE = {
   baseline: { text: "text-normal", bg: "bg-normal", container: "bg-normal-container text-on-normal-container", border: "border-normal" },
   fault: { text: "text-fault", bg: "bg-fault", container: "bg-fault-container text-on-fault-container", border: "border-fault" },
+  // A second run under normal conditions: same tone as the baseline.
+  calibration: { text: "text-normal", bg: "bg-normal", container: "bg-normal-container text-on-normal-container", border: "border-normal" },
+  experiment: { text: "text-fault", bg: "bg-fault", container: "bg-fault-container text-on-fault-container", border: "border-fault" },
 } as const;
 
 function Stat({ label, value, tone }: { label: string; value: number | string; tone?: "failure" | "neutral" }) {

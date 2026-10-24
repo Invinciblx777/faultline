@@ -91,6 +91,7 @@ export const scenarioConfigSchema = z.discriminatedUnion("kind", [resourceBlockS
 export type ScenarioConfig = z.infer<typeof scenarioConfigSchema>;
 /** Phase 1 page-load scenarios: one baseline and one fault execution of a navigation. */
 export type PageScenarioConfig = Exclude<ScenarioConfig, BlastRadiusConfig>;
+export type PageScenarioKind = PageScenarioConfig["kind"];
 
 export function isPageScenario(config: ScenarioConfig): config is PageScenarioConfig {
   return config.kind !== "blast-radius";

@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { describeScenario, EXECUTION_ROLE_LABELS, SCENARIO_LABELS, type ExecutionRole } from "@faultline/shared";
+import { describeScenario, EXECUTION_ROLE_LABELS, SCENARIO_LABELS, VERDICTS, type ExecutionRole } from "@faultline/shared";
+import { VerdictChip } from "@/components/analysis/verdict";
 import { OutcomeChip, ScanStatusChip } from "@/components/ui/status";
 import type { ScanListItem } from "@/lib/data/queries";
 import { formatDateTime, formatDuration, formatRelative, hostOf } from "@/lib/format";
@@ -23,7 +24,7 @@ export function ScanList({ scans, showProject = false }: { scans: ScanListItem[]
       {scans.map((scan) => (
         <li key={scan.id}>
           <Link
-            href={`/scans/${scan.id}`}
+            href={scan.scenarioKind === "blast-radius" ? `/scans/${scan.id}/blast-radius` : `/scans/${scan.id}`}
             className="group flex flex-col gap-3 rounded-lg bg-surface-low px-5 py-4 transition-colors hover:bg-surface-container sm:flex-row sm:items-center sm:gap-6"
           >
             <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -36,8 +37,19 @@ export function ScanList({ scans, showProject = false }: { scans: ScanListItem[]
                 {hostOf(scan.targetUrl)}
               </span>
               <div className="flex flex-wrap gap-2 pt-1">
-                <RunOutcome scan={scan} role="baseline" />
-                <RunOutcome scan={scan} role="fault" />
+                {scan.scenarioKind === "blast-radius" ? (
+                  VERDICTS.filter((v) => scan.verdicts[v]).map((v) => (
+                    <span key={v} className="inline-flex items-center gap-1">
+                      <VerdictChip verdict={v} size="sm" />
+                      <span className="tabular text-sm">×{scan.verdicts[v]}</span>
+                    </span>
+                  ))
+                ) : (
+                  <>
+                    <RunOutcome scan={scan} role="baseline" />
+                    <RunOutcome scan={scan} role="fault" />
+                  </>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-4 sm:justify-end">

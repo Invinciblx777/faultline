@@ -3,11 +3,12 @@
  *
  *   pnpm demo:preflight
  *
- * Checks PostgreSQL, MinIO, a live worker heartbeat, the container runtime,
+ * Checks PostgreSQL, pending migrations, MinIO, a live worker heartbeat, the container runtime,
  * a Chromium launch, the web app, the reference storefront, GitHub, and
  * Devin (GET /v3/self only: no session, no credits). Then prints the demo
  * URLs from stored records. Exits 1 if any check fails.
  */
+import { readFileSync } from "node:fs";
 import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { and, desc, eq, gt, isNotNull, isNull, ne, sql } from "drizzle-orm";
 import { chromium } from "playwright";
@@ -47,6 +48,16 @@ results.push(
   await check("PostgreSQL", async () => {
     const { rows } = await pool.query<{ v: string }>("select current_setting('server_version') as v");
     return `connected, server ${rows[0]?.v}`;
+  }),
+);
+results.push(
+  await check("Database schema", async () => {
+    // A checkout that pulled new code but did not migrate fails later with obscure query errors.
+    const journal = JSON.parse(readFileSync(new URL("../../../packages/db/migrations/meta/_journal.json", import.meta.url), "utf8")) as { entries: unknown[] };
+    const { rows } = await pool.query<{ n: string }>("select count(*) as n from drizzle.__drizzle_migrations");
+    const applied = Number(rows[0]?.n ?? 0);
+    if (applied < journal.entries.length) throw new Error(`${applied} of ${journal.entries.length} migrations applied. Run: pnpm db:migrate`);
+    return `${applied} of ${journal.entries.length} migrations applied`;
   }),
 );
 results.push(
@@ -131,13 +142,13 @@ try {
     .where(isNotNull(repairRequests.verdict))
     .orderBy(desc(repairRequests.verdictAt))
     .limit(1);
-  const [realApp] = await db
+  const realApps = await db
     .select({ scanId: scans.id, name: projects.name })
     .from(scans)
     .innerJoin(projects, eq(projects.id, scans.projectId))
     .where(and(eq(scans.status, "completed"), isNotNull(scans.journeyId), ne(projects.origin, "http://localhost:4600")))
     .orderBy(desc(scans.finishedAt))
-    .limit(1);
+    .limit(3);
   console.log("\nDemo URLs\n");
   console.log(`  Storefront           http://localhost:4600/shop/`);
   if (repair) {
@@ -148,7 +159,7 @@ try {
     if (repair.prUrl) console.log(`  Pull request         ${repair.prUrl}/files`);
     if (repair.verdictCommentUrl) console.log(`  Verdict on the PR    ${repair.verdictCommentUrl}`);
   }
-  if (realApp) console.log(`  Real-app scan        ${webUrl}/scans/${realApp.scanId}/blast-radius  ${DIM}(${realApp.name})${RESET}`);
+  for (const realApp of realApps) console.log(`  Real-app scan        ${webUrl}/scans/${realApp.scanId}/blast-radius  ${DIM}(${realApp.name})${RESET}`);
 } catch (error) {
   console.log(`\n${RED}Could not read demo URLs: ${error instanceof Error ? error.message : String(error)}${RESET}`);
 }

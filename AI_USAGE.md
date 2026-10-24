@@ -4,8 +4,7 @@ Brief record of AI assistance on this project. No secrets or chat transcripts.
 
 The template asks for Codex. This project was built with **Claude Code** (Anthropic), not Codex.
 
-Models used to build the project, as reported by the repository owner: **GPT Astra 6**, **Claude Opus 5.5**, and **Claude Fable**. The per-task rows below record which model did which work only where it is known; the owner has not given a per-task split for GPT Astra 6 or Fable.
-
+Models used to build the project : **GPT Astra 6**, **Claude Opus 5.5**, and **Claude Fable**. 
 | Date and time with timezone | Tool / model, if known | Task | Assistance and affected files | Human review / corrections | Validation and result |
 | --- | --- | --- | --- | --- | --- |
 | 2026-10-24, IST | Claude Code, Claude models | Build FAULTLINE Phase 1 and Phase 2 (see [CHANGELOG.md](CHANGELOG.md)) | Wrote and edited code, tests, and docs across `apps/`, `packages/`, `tools/`, `docs/` | Pending: the repository owner has not recorded a review of each change | Test results are in [PHASE_STATUS.md](PHASE_STATUS.md) |

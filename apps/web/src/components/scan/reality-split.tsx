@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronsLeftRight, Columns2, Diff, ImageOff, Layers, SplitSquareHorizontal } from "lucide-react";
+import { Columns2, Diff, ImageOff, Layers, SplitSquareHorizontal } from "lucide-react";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { ToggleGroup } from "radix-ui";
-import { useCallback, useRef, useState, type KeyboardEvent, type PointerEvent, type UIEvent } from "react";
+import { useCallback, useRef, useState, type PointerEvent, type UIEvent } from "react";
+import { SegmentedControl, ThickSlider } from "@/design/components";
 import { cn } from "@/lib/cn";
 
 export interface SplitShot {
@@ -35,7 +36,7 @@ export interface SplitDiff {
 
 function Missing({ shot }: { shot: SplitShot }) {
   return (
-    <div className="grid min-h-64 place-items-center rounded-lg border border-dashed border-outline px-6 py-10 text-center">
+    <div className="grid min-h-64 place-items-center rounded-lg border-2 border-dashed border-outline-variant bg-surface-high px-6 py-10 text-center">
       <div className="flex max-w-xs flex-col items-center gap-2 text-on-surface-variant">
         <ImageOff aria-hidden className="size-8" />
         <p className="text-sm">{shot.missingReason}</p>
@@ -62,6 +63,8 @@ function Shot({ shot, className }: { shot: SplitShot; className?: string }) {
 /** Side-by-side panes with optional synchronized scrolling. */
 function SideBySide({ shots }: { shots: [SplitShot, SplitShot] }) {
   const [sync, setSync] = useState(true);
+  // Phones show one pane at a time, chosen with a Baseline | Fault segmented control.
+  const [phonePane, setPhonePane] = useState<"0" | "1">("1");
   const panes = useRef<Array<HTMLDivElement | null>>([]);
   const lock = useRef(false);
   const onScroll = (index: number) => (event: UIEvent<HTMLDivElement>) => {
@@ -76,17 +79,27 @@ function SideBySide({ shots }: { shots: [SplitShot, SplitShot] }) {
   };
   return (
     <div>
-      <label className="mb-3 inline-flex cursor-pointer items-center gap-2 text-sm text-on-surface-variant">
+      <SegmentedControl
+        label="Screenshot shown"
+        value={phonePane}
+        onChange={setPhonePane}
+        segments={[
+          { value: "0", label: "Baseline" },
+          { value: "1", label: "Fault" },
+        ]}
+        className="mb-3 flex w-full md:hidden"
+      />
+      <label className="mb-3 hidden min-h-12 cursor-pointer items-center gap-2 text-sm text-on-surface-variant md:inline-flex">
         <input type="checkbox" checked={sync} onChange={(e) => setSync(e.target.checked)} className="size-4 accent-[var(--primary)]" />
         Scroll both panes together
       </label>
       <div className="grid gap-4 md:grid-cols-2">
         {shots.map((shot, i) => (
-          <figure key={shot.role} className="min-w-0">
-            <figcaption className="mb-2 flex items-center gap-2">
-              <span className={cn("size-2.5 rounded-full", ROLE[shot.tone].bg)} aria-hidden />
-              <span className={cn("type-title", ROLE[shot.tone].text)}>{shot.label}</span>
-              {shot.outcomeLabel ? <span className="text-sm text-on-surface-variant">· {shot.outcomeLabel}</span> : null}
+          <figure key={shot.role} className={cn("min-w-0 rounded-xl bg-surface-container p-3 sm:p-4", String(i) !== phonePane && "hidden md:block")}>
+            <figcaption className="mb-3 flex flex-wrap items-center gap-2 px-1">
+              <span className={cn("size-3 rounded-full", ROLE[shot.tone].bg)} aria-hidden />
+              <span className={cn("md-title-large", ROLE[shot.tone].text)}>{shot.label}</span>
+              {shot.outcomeLabel ? <span className="md-body-medium text-on-surface-variant">· {shot.outcomeLabel}</span> : null}
             </figcaption>
             <div
               ref={(el) => {
@@ -95,7 +108,7 @@ function SideBySide({ shots }: { shots: [SplitShot, SplitShot] }) {
               onScroll={onScroll(i)}
               tabIndex={0}
               aria-label={`${shot.label} screenshot, scrollable`}
-              className={cn("max-h-[72vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-container ring-2", ROLE[shot.tone].ring)}
+              className="max-h-[72vh] overflow-y-auto overscroll-contain rounded-lg bg-surface-high"
             >
               <Shot shot={shot} />
             </div>
@@ -133,15 +146,6 @@ function Seam({ shots }: { shots: [SplitShot, SplitShot] }) {
     set(((event.clientX - rect.left) / rect.width) * 100, true);
   };
 
-  const onKey = (event: KeyboardEvent) => {
-    const step = event.shiftKey ? 10 : 2;
-    const map: Record<string, number> = { ArrowLeft: value - step, ArrowRight: value + step, Home: 0, End: 100, PageUp: value + 10, PageDown: value - 10 };
-    const next = map[event.key];
-    if (next === undefined) return;
-    event.preventDefault();
-    set(next);
-  };
-
   if (!baseline.artifactId || !fault.artifactId) {
     return (
       <div className="grid gap-4 md:grid-cols-2">
@@ -157,16 +161,16 @@ function Seam({ shots }: { shots: [SplitShot, SplitShot] }) {
       <div className="mb-3 flex items-center justify-between text-sm">
         <span className="inline-flex items-center gap-2">
           <span className="size-2.5 rounded-full bg-normal" aria-hidden />
-          <span className="type-title text-normal">{baseline.label}</span>
+          <span className="md-title-medium text-normal">{baseline.label}</span>
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="type-title text-fault">{fault.label}</span>
+          <span className="md-title-medium text-fault">{fault.label}</span>
           <span className="size-2.5 rounded-full bg-fault" aria-hidden />
         </span>
       </div>
       <div
         ref={frame}
-        className="relative grid touch-pan-y items-start overflow-hidden rounded-lg bg-surface-container"
+        className="relative grid touch-pan-y items-start overflow-hidden rounded-xl bg-surface-container"
         onPointerDown={(e) => {
           dragging.current = true;
           (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -184,25 +188,19 @@ function Seam({ shots }: { shots: [SplitShot, SplitShot] }) {
           <Shot shot={fault} />
         </motion.div>
         <motion.div className="pointer-events-none absolute inset-y-0 -translate-x-1/2" style={{ left }} aria-hidden>
-          <div className="mx-auto h-full w-[3px] bg-gradient-to-b from-normal via-on-surface to-fault" />
-        </motion.div>
-        <motion.div
-          role="slider"
-          tabIndex={0}
-          aria-label="Reveal normal or fault screenshot"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={value}
-          aria-valuetext={`${value}% normal conditions, ${100 - value}% fault conditions`}
-          onKeyDown={onKey}
-          style={{ left }}
-          className="absolute top-6 grid size-11 -translate-x-1/2 cursor-ew-resize place-items-center rounded-full bg-on-surface text-surface shadow-lg"
-        >
-          <ChevronsLeftRight aria-hidden className="size-5" />
+          <div className="mx-auto h-full w-1 rounded-full bg-secondary" />
         </motion.div>
       </div>
+      <ThickSlider
+        label="Reveal normal or fault screenshot"
+        value={value}
+        onChange={(v) => set(v)}
+        step={2}
+        valueText={`${value}% normal conditions, ${100 - value}% fault conditions`}
+        className="mt-4"
+      />
       <p className="mt-2 text-sm text-on-surface-variant">
-        Drag the seam, or focus the handle and use the arrow keys. Screenshots are aligned at the top-left; page heights may differ.
+        Drag the seam or the slider, or focus the slider and use the arrow keys. Screenshots are aligned at the top-left; page heights may differ.
       </p>
     </div>
   );
@@ -217,20 +215,12 @@ function Overlay({ shots }: { shots: [SplitShot, SplitShot] }) {
   }
   return (
     <div>
-      <label className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-        <span className="type-title text-normal">{baseline.label}</span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={opacity}
-          onChange={(e) => setOpacity(Number(e.target.value))}
-          aria-valuetext={`${opacity}% ${fault.label} over ${baseline.label}`}
-          className="h-11 min-w-40 flex-1 accent-[var(--fault)]"
-        />
-        <span className="type-title text-fault">{fault.label}</span>
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
+        <span className="md-title-medium text-normal">{baseline.label}</span>
+        <ThickSlider label="Fault layer opacity" value={opacity} onChange={setOpacity} valueText={`${opacity}% ${fault.label} over ${baseline.label}`} className="min-w-40 flex-1" />
+        <span className="md-title-medium text-fault">{fault.label}</span>
         <span className="tabular w-12 text-right text-on-surface-variant">{opacity}%</span>
-      </label>
+      </div>
       <div className="grid items-start overflow-hidden rounded-lg bg-surface-container">
         <div className="[grid-area:1/1]">
           <Shot shot={baseline} />
@@ -277,13 +267,13 @@ export function RealitySplit({ shots, diff = null }: { shots: [SplitShot, SplitS
         value={mode}
         onValueChange={(v) => v && setMode(v)}
         aria-label="Comparison view"
-        className="mb-5 inline-flex max-w-full flex-wrap rounded-3xl border border-outline p-1"
+        className="mb-5 inline-flex max-w-full flex-wrap gap-1 rounded-3xl bg-surface-high p-1"
       >
         {modes.map(({ value, label, icon: Icon }) => (
           <ToggleGroup.Item
             key={value}
             value={value}
-            className="type-label inline-flex h-10 items-center gap-2 rounded-full px-4 text-on-surface-variant data-[state=on]:bg-primary-container data-[state=on]:text-on-primary-container"
+            className="md-label-medium inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-on-surface-variant data-[state=on]:bg-secondary-container data-[state=on]:text-on-secondary-container"
           >
             <Icon aria-hidden className="size-4" />
             {label}

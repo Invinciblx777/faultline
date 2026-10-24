@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowRight, CheckSquare, Download, Footprints, X } from "lucide-react";
+import { ArrowRight, CheckSquare, Download, Footprints } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { VERDICT_DEFINITIONS, VERDICT_LABELS, VERDICTS, type ExperimentKind, type Reproducibility, type Verdict } from "@faultline/shared";
 import type { ExperimentStatus } from "@faultline/db";
 import { ExperimentStateChip, KindLabel, VERDICT_STYLE } from "@/components/analysis/verdict";
+import { BottomSheet } from "@/design/components";
 import { cn } from "@/lib/cn";
 
 export interface MapStep {
@@ -38,8 +39,8 @@ export interface MapExperiment {
 
 const STROKE: Record<Verdict, string> = {
   broken: "var(--failure)",
-  degraded: "var(--incomplete)",
-  resilient: "var(--success)",
+  degraded: "var(--tertiary)",
+  resilient: "var(--secondary)",
   inconclusive: "var(--unavailable)",
   test_failed: "var(--unavailable)",
 };
@@ -147,7 +148,7 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
                 aria-pressed={on}
                 onClick={() => toggle(v)}
                 title={VERDICT_DEFINITIONS[v]}
-                className={cn("type-label inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition-opacity", on ? cn(style.chip, "border-transparent") : "border-outline text-on-surface-variant opacity-60")}
+                className={cn("md-label-medium inline-flex min-h-10 items-center gap-1.5 rounded-sm px-3 transition-[opacity,border-radius] duration-200 active:rounded-lg", on ? style.chip : "border border-outline-variant text-on-surface-variant opacity-60")}
               >
                 <Icon aria-hidden className="size-4" />
                 {VERDICT_LABELS[v]}
@@ -159,7 +160,7 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <label className="inline-flex items-center gap-2">
             <span className="text-on-surface-variant">Origin</span>
-            <select value={party} onChange={(e) => setParty(e.target.value as typeof party)} className="h-9 rounded-md border border-outline bg-surface-low px-2">
+            <select value={party} onChange={(e) => setParty(e.target.value as typeof party)} className="h-10 rounded-full bg-surface-high px-4">
               <option value="all">All</option>
               <option value="first-party">First-party</option>
               <option value="third-party">Third-party</option>
@@ -196,11 +197,12 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
         <div>
           <h3 className="type-label mb-2 text-on-surface-variant">Faults and conditions ({visible.length})</h3>
           {visible.length === 0 ? <p className="text-sm text-on-surface-variant">No experiments match these filters.</p> : null}
-          <ul className="flex flex-col gap-2">
-            {visible.map((e) => {
+          <ul className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+            {visible.map((e, i) => {
               const style = e.verdict ? VERDICT_STYLE[e.verdict] : null;
               return (
-                <li key={e.id}>
+                // Staggered entrance: 30ms per tile, capped at 300ms.
+                <li key={e.id} className="md-enter" style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}>
                   <button
                     type="button"
                     ref={(el) => {
@@ -211,19 +213,19 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
                     aria-pressed={selected === e.id}
                     aria-label={`${e.title}: ${e.verdict ? VERDICT_LABELS[e.verdict] : e.status}. ${e.affectedSteps.length ? `Affects steps ${e.affectedSteps.map((s) => s + 1).join(", ")}.` : ""} Show details.`}
                     className={cn(
-                      "relative flex w-full flex-col gap-1.5 rounded-lg border-l-4 bg-surface-low px-4 py-3 text-left transition-colors hover:bg-surface-container",
-                      style ? style.border : "border-outline-variant",
-                      selected === e.id && "bg-surface-container ring-2 ring-primary",
+                      "relative flex min-h-12 w-full flex-col gap-1.5 rounded-lg px-4 py-3.5 text-left transition-[filter,border-radius] duration-200 hover:brightness-110 active:rounded-xl",
+                      style ? style.tile : "bg-surface-high text-on-surface",
+                      selected === e.id && "ring-3 ring-secondary",
                     )}
                   >
                     <span className="flex flex-wrap items-center justify-between gap-2">
-                      <KindLabel kind={e.kind} className="text-sm text-on-surface-variant" />
+                      <KindLabel kind={e.kind} className="md-label-medium opacity-80" />
                       <ExperimentStateChip status={e.status} verdict={e.verdict} />
                     </span>
-                    <span className="break-all text-sm font-medium">{e.title}</span>
-                    {e.note ? <span className="text-xs font-medium text-on-surface">{e.note}</span> : null}
+                    <span className="md-title-medium break-all">{e.title}</span>
+                    {e.note ? <span className="md-body-medium">{e.note}</span> : null}
                     {e.affectedSteps.length && (e.verdict === "broken" || e.verdict === "degraded") ? (
-                      <span className="text-xs text-on-surface-variant">
+                      <span className="md-label-medium opacity-80">
                         Steps {e.affectedSteps.map((s) => s + 1).join(", ")}
                       </span>
                     ) : null}
@@ -249,8 +251,8 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
                     else right.current.delete(s.index);
                   }}
                   className={cn(
-                    "flex gap-3 rounded-lg bg-surface-low px-4 py-3 transition-colors",
-                    hit && active?.verdict && cn("ring-2", active.verdict === "broken" ? "ring-failure" : "ring-incomplete"),
+                    "flex gap-3 rounded-lg bg-surface-container px-4 py-3 transition-colors",
+                    hit && active?.verdict && cn("ring-2", active.verdict === "broken" ? "ring-failure" : "ring-tertiary"),
                     !hit && used && "ring-1 ring-outline",
                     !s.stable && "border border-dashed border-outline",
                   )}
@@ -261,8 +263,8 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
                     <span className="inline-flex flex-wrap items-center gap-x-2 text-xs text-on-surface-variant">
                       <Icon aria-hidden className="size-3.5" />
                       {s.isAssertion ? "Assertion" : "Action"}
-                      {!s.stable ? <span className="text-incomplete">· excluded: {s.excludedReason}</span> : null}
-                      {hit ? <span className={active?.verdict === "broken" ? "text-failure" : "text-incomplete"}>· {active?.verdict === "broken" ? "failed or not reached" : "expectation violated"}</span> : null}
+                      {!s.stable ? <span className="text-tertiary">· excluded: {s.excludedReason}</span> : null}
+                      {hit ? <span className={active?.verdict === "broken" ? "text-failure" : "text-tertiary"}>· {active?.verdict === "broken" ? "failed or not reached" : "expectation violated"}</span> : null}
                     </span>
                   </span>
                 </li>
@@ -273,56 +275,52 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
       </div>
 
       <p className="mt-4 text-xs text-on-surface-variant">
-        Solid red links: steps that failed or were never reached (BROKEN). Dashed amber links: steps that held but exceeded a budget (DEGRADED). Dotted gray links: steps during which the
+        Solid error-tone links: steps that failed or were never reached (BROKEN). Dashed tertiary links: steps that held but exceeded a budget (DEGRADED). Dotted gray links: steps during which the
         dependency was requested in the baseline run. Links are drawn on wide screens; on phones the affected steps are listed on each card.
       </p>
 
-      {active ? (
-        <aside
-          aria-label="Experiment details"
-          className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-xl border-t border-outline-variant bg-surface-high p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl md:inset-x-auto md:top-6 md:right-6 md:bottom-6 md:max-h-none md:w-[26rem] md:rounded-xl md:border"
-        >
-          <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <KindLabel kind={active.kind} className="text-sm text-on-surface-variant" />
-              <h3 className="type-title mt-1 break-all">{active.title}</h3>
-              {active.note ? <p className="mt-1 text-sm font-medium">{active.note}</p> : null}
+      <BottomSheet open={Boolean(active)} onClose={() => setSelected(null)} label="Experiment details" role="complementary">
+        {active ? (
+          <>
+            <div className="mb-3 min-w-0 pr-12">
+              <KindLabel kind={active.kind} className="md-label-medium text-on-surface-variant" />
+              <h3 className="md-title-large mt-1 break-all">{active.title}</h3>
+              {active.note ? <p className="md-body-medium mt-2 rounded-md bg-tertiary-container px-3 py-2 text-on-tertiary-container">{active.note}</p> : null}
             </div>
-            <button type="button" onClick={() => setSelected(null)} aria-label="Close details" className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-surface-highest">
-              <X aria-hidden className="size-5" />
-            </button>
-          </div>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <ExperimentStateChip status={active.status} verdict={active.verdict} />
-            {active.reproducibility && active.reproducibility !== "not-applicable" ? (
-              <span className="text-sm text-on-surface-variant">{active.reproducibility === "reproduced" ? "Reproduced in a second run" : active.reproducibility === "single-run" ? "Single run" : "Did not reproduce"}</span>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <ExperimentStateChip status={active.status} verdict={active.verdict} />
+              {active.reproducibility && active.reproducibility !== "not-applicable" ? (
+                <span className="md-body-medium text-on-surface-variant">{active.reproducibility === "reproduced" ? "Reproduced in a second run" : active.reproducibility === "single-run" ? "Single run" : "Did not reproduce"}</span>
+              ) : null}
+            </div>
+            {active.verdict ? <p className="md-body-medium mb-3 text-on-surface-variant">{VERDICT_DEFINITIONS[active.verdict]}</p> : null}
+            {active.reasons.length ? (
+              <ul className="mb-4 flex flex-col gap-0.5">
+                {active.reasons.map((r, i) => (
+                  <li key={i} className="md-body-medium bg-surface-container px-4 py-3 first:rounded-t-lg last:rounded-b-lg">
+                    {r.message}
+                  </li>
+                ))}
+              </ul>
             ) : null}
-          </div>
-          {active.verdict ? <p className="mb-3 text-sm text-on-surface-variant">{VERDICT_DEFINITIONS[active.verdict]}</p> : null}
-          {active.reasons.length ? (
-            <ul className="mb-4 flex list-disc flex-col gap-1 pl-5 text-sm">
-              {active.reasons.map((r, i) => (
-                <li key={i}>{r.message}</li>
-              ))}
-            </ul>
-          ) : null}
-          {active.kind !== "offline" && active.kind !== "narrow-viewport" ? (
-            <p className="mb-4 text-sm text-on-surface-variant">
-              The fault acted on {active.affectedRequestCount} request{active.affectedRequestCount === 1 ? "" : "s"} in the first run.
-            </p>
-          ) : null}
-          <div className="flex flex-wrap gap-2">
-            <Link href={`/scans/${scanId}/experiments/${active.id}`} className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-on-primary">
-              Evidence and Reality Split <ArrowRight aria-hidden className="size-4" />
-            </Link>
-            {active.test ? (
-              <a href={`/api/experiments/${active.id}/regression-test`} download className="inline-flex h-11 items-center gap-2 rounded-full border border-outline px-5">
-                <Download aria-hidden className="size-4" /> Regression test
-              </a>
+            {active.kind !== "offline" && active.kind !== "narrow-viewport" ? (
+              <p className="md-body-medium mb-4 text-on-surface-variant">
+                The fault acted on {active.affectedRequestCount} request{active.affectedRequestCount === 1 ? "" : "s"} in the first run.
+              </p>
             ) : null}
-          </div>
-        </aside>
-      ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/scans/${scanId}/experiments/${active.id}`} className="md-title-medium inline-flex min-h-12 items-center gap-2 rounded-full bg-secondary-container px-6 text-on-secondary-container transition-[filter] hover:brightness-110">
+                Evidence and Reality Split <ArrowRight aria-hidden className="size-5" />
+              </Link>
+              {active.test ? (
+                <a href={`/api/experiments/${active.id}/regression-test`} download className="md-title-medium inline-flex min-h-12 items-center gap-2 rounded-full bg-secondary-container px-6 text-on-secondary-container transition-[filter] hover:brightness-110">
+                  <Download aria-hidden className="size-5" /> Export test
+                </a>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+      </BottomSheet>
     </div>
   );
 }

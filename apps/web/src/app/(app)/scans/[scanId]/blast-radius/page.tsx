@@ -25,6 +25,7 @@ import { getAnalysis, getAnalysisStatus } from "@/lib/data/analysis";
 import { getEnv } from "@/lib/env";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { Card, Chip, ExpressiveShape } from "@/design/components";
 
 export const metadata: Metadata = { title: "Blast Radius" };
 
@@ -161,23 +162,33 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
 
       {detail.experiments.length ? (
         <section aria-labelledby="summary-title" className="mb-8">
-          <h2 id="summary-title" className="sr-only">
-            Verdicts
-          </h2>
-          <ul className="flex flex-wrap gap-3">
-            {VERDICTS.map((v) => (
-              <li key={v} className="flex items-center gap-2 rounded-lg bg-surface-low px-4 py-3" title={VERDICT_DEFINITIONS[v]}>
-                <VerdictChip verdict={v} />
-                <span className="type-headline tabular text-2xl">{counts[v]}</span>
-              </li>
-            ))}
-            {notRun ? (
-              <li className="flex items-center gap-2 rounded-lg border border-dashed border-outline px-4 py-3 text-sm text-on-surface-variant">
-                <span className="type-headline tabular text-2xl text-on-surface">{notRun}</span> without a verdict yet or not run
-              </li>
-            ) : null}
-          </ul>
-          <p className="mt-3 text-sm text-on-surface-variant">
+          <Card tier="container" className="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <span className="relative grid size-36 shrink-0 place-items-center self-center sm:self-auto">
+              <ExpressiveShape shape="scallop" className={cn("absolute inset-0", counts.broken ? "fill-error-container" : "fill-secondary-container")} />
+              <span className={cn("md-display-large tabular relative", counts.broken ? "text-on-error-container" : "text-on-secondary-container")}>{counts.broken}</span>
+            </span>
+            <div className="flex min-w-0 flex-col gap-3">
+              <h2 id="summary-title" className="md-headline-medium">
+                {counts.broken} of {detail.experiments.length} experiment{detail.experiments.length === 1 ? "" : "s"} break the journey
+              </h2>
+              <ul className="flex flex-wrap gap-2" aria-label="Verdict counts">
+                {VERDICTS.map((v) => (
+                  <li key={v} title={VERDICT_DEFINITIONS[v]} className="flex items-center gap-1">
+                    <VerdictChip verdict={v} />
+                    <span className="md-title-medium tabular px-1">{counts[v]}</span>
+                  </li>
+                ))}
+                {notRun ? (
+                  <li>
+                    <Chip status="inconclusive" icon={null}>
+                      {notRun} without a verdict yet or not run
+                    </Chip>
+                  </li>
+                ) : null}
+              </ul>
+            </div>
+          </Card>
+          <p className="md-body-medium mt-3 text-on-surface-variant">
             Each count is one experiment: one dependency under one fault, or one condition, in a fresh browser context. These are the experiments this analysis ran; dependencies it
             did not test are listed below. Absence of a finding is not proof of resilience for untested paths.
           </p>
@@ -186,7 +197,7 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
 
       {detail.experiments.length && steps.length ? (
         <section aria-labelledby="map-title" className="mb-10">
-          <h2 id="map-title" className="type-headline mb-1 text-2xl">
+          <h2 id="map-title" className="md-headline-medium mb-1">
             Blast Radius Map
           </h2>
           <p className="mb-4 text-sm text-on-surface-variant">Select a fault to see the steps it affected, the reasons, and the evidence.</p>
@@ -199,8 +210,8 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
           <h2 id="calibration-title" className="sr-only">
             Baseline and calibration
           </h2>
-          <div className="rounded-xl bg-surface-low p-5">
-            <h3 className="type-title mb-2">Baseline stability</h3>
+          <div className="rounded-xl bg-surface-container p-5">
+            <h3 className="md-title-large mb-2">Baseline stability</h3>
             <p className="text-sm">
               {analysis.stableSteps.length} of {steps.length} steps passed in both normal runs and can support a verdict.
             </p>
@@ -220,8 +231,8 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
               </p>
             ) : null}
           </div>
-          <div className="rounded-xl bg-surface-low p-5">
-            <h3 className="type-title mb-2">Visual calibration</h3>
+          <div className="rounded-xl bg-surface-container p-5">
+            <h3 className="md-title-large mb-2">Visual calibration</h3>
             <p className="text-sm">{analysis.calibration?.note ?? "No calibration recorded."}</p>
             {analysis.visualThreshold ? <p className="mt-2 text-sm text-on-surface-variant">{analysis.visualThreshold.explanation}</p> : null}
           </div>
@@ -230,13 +241,13 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
 
       {detail.dependencies.length ? (
         <section aria-labelledby="deps-title" className="mb-10">
-          <h2 id="deps-title" className="type-headline mb-1 text-2xl">
+          <h2 id="deps-title" className="md-headline-medium mb-1">
             Observed dependencies
           </h2>
           <p className="mb-4 text-sm text-on-surface-variant">
             Grouped from requests the browser made in the two normal runs. Discovery covers only what this journey requested; other pages and code paths may use more.
           </p>
-          <div className="overflow-x-auto rounded-xl bg-surface-low">
+          <div className="overflow-x-auto rounded-xl bg-surface-container">
             <table className="w-full min-w-[42rem] text-left text-sm">
               <thead className="text-on-surface-variant">
                 <tr>
@@ -252,7 +263,7 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
                 {detail.dependencies.map((d) => {
                   const tested = detail.experiments.filter((e) => e.dependencyKey === d.key);
                   return (
-                    <tr key={d.id} className="border-t border-outline-variant align-top">
+                    <tr key={d.id} className="align-top odd:bg-surface-low">
                       <td className="px-4 py-3">
                         <span className="break-all">{d.label}</span>
                         <span className="block text-xs text-on-surface-variant">
@@ -288,7 +299,7 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
             </table>
           </div>
           {analysis?.skippedCandidates.length ? (
-            <details className="mt-4 rounded-lg border border-outline-variant p-4">
+            <details className="mt-4 rounded-lg bg-surface-container p-4">
               <summary className="cursor-pointer text-sm font-medium">{analysis.skippedCandidates.length} candidate experiments not run, with reasons</summary>
               <ul className="mt-2 flex flex-col gap-1 text-sm text-on-surface-variant">
                 {analysis.skippedCandidates.map((c, i) => (

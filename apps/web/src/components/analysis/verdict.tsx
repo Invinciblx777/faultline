@@ -26,13 +26,17 @@ import {
 import type { ExperimentStatus } from "@faultline/db";
 import { cn } from "@/lib/cn";
 
-/** Every verdict has its own icon and label; color is never the only signal. */
-export const VERDICT_STYLE: Record<Verdict, { icon: LucideIcon; chip: string; border: string; text: string; dot: string }> = {
-  broken: { icon: OctagonX, chip: "bg-failure-container text-on-failure-container", border: "border-failure", text: "text-failure", dot: "bg-failure" },
-  degraded: { icon: TriangleAlert, chip: "bg-incomplete-container text-on-incomplete-container", border: "border-incomplete", text: "text-incomplete", dot: "bg-incomplete" },
-  resilient: { icon: ShieldCheck, chip: "bg-success-container text-on-success-container", border: "border-success", text: "text-success", dot: "bg-success" },
-  inconclusive: { icon: CircleHelp, chip: "border border-dashed border-outline text-on-surface-variant", border: "border-outline border-dashed", text: "text-on-surface-variant", dot: "bg-unavailable" },
-  test_failed: { icon: FlaskConicalOff, chip: "border border-dashed border-failure text-failure", border: "border-failure border-dashed", text: "text-failure", dot: "bg-unavailable" },
+/**
+ * Every verdict has its own icon and label; color is never the only signal.
+ * Tones follow the M3 Expressive status mapping: broken = error-container, degraded = tertiary-container,
+ * resilient = secondary-container, inconclusive = dashed outline-variant, test failed = highest surface + icon.
+ */
+export const VERDICT_STYLE: Record<Verdict, { icon: LucideIcon; chip: string; tile: string; border: string; text: string; dot: string }> = {
+  broken: { icon: OctagonX, chip: "bg-error-container text-on-error-container", tile: "bg-error-container text-on-error-container", border: "border-failure", text: "text-failure", dot: "bg-failure" },
+  degraded: { icon: TriangleAlert, chip: "bg-tertiary-container text-on-tertiary-container", tile: "bg-tertiary-container text-on-tertiary-container", border: "border-tertiary", text: "text-tertiary", dot: "bg-tertiary" },
+  resilient: { icon: ShieldCheck, chip: "bg-secondary-container text-on-secondary-container", tile: "bg-secondary-container text-on-secondary-container", border: "border-secondary", text: "text-secondary", dot: "bg-secondary" },
+  inconclusive: { icon: CircleHelp, chip: "border border-dashed border-outline-variant bg-surface-high text-on-surface-variant", tile: "border-2 border-dashed border-outline-variant bg-surface-high text-on-surface", border: "border-outline-variant border-dashed", text: "text-on-surface-variant", dot: "bg-unavailable" },
+  test_failed: { icon: FlaskConicalOff, chip: "bg-surface-highest text-on-surface", tile: "bg-surface-highest text-on-surface", border: "border-outline border-dashed", text: "text-on-surface", dot: "bg-unavailable" },
 };
 
 export const KIND_ICON: Record<ExperimentKind, LucideIcon> = {
@@ -50,8 +54,8 @@ export function VerdictChip({ verdict, className, size = "md" }: { verdict: Verd
     <span
       title={VERDICT_DEFINITIONS[verdict]}
       className={cn(
-        "type-label inline-flex items-center gap-1.5 rounded-sm whitespace-nowrap",
-        size === "sm" ? "h-6 px-2 text-xs" : "h-7 px-2.5",
+        "md-label-medium inline-flex items-center gap-1.5 rounded-sm whitespace-nowrap",
+        size === "sm" ? "h-6 px-2" : "h-8 px-3",
         style.chip,
         className,
       )}
@@ -74,7 +78,7 @@ export function ExperimentStateChip({ status, verdict, className }: { status: Ex
   }[status];
   const Icon = map.icon;
   return (
-    <span className={cn("type-label inline-flex h-7 items-center gap-1.5 rounded-sm px-2.5 whitespace-nowrap", map.cls, className)}>
+    <span className={cn("md-label-medium inline-flex h-8 items-center gap-1.5 rounded-sm px-3 whitespace-nowrap", map.cls, className)}>
       <Icon aria-hidden className={cn("size-4", status === "running" && "animate-spin motion-reduce:animate-none")} />
       {map.label}
     </span>

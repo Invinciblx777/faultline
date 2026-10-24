@@ -185,3 +185,20 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Printable reports: no navigation chrome, page surface only, cards never split across pages. */
+@media print {
+  aside,
+  nav,
+  header.sticky,
+  [data-print-hide] {
+    display: none !important;
+  }
+  body {
+    background: var(--surface);
+  }
+  .report-card,
+  section[data-tier] {
+    break-inside: avoid;
+  }
+}

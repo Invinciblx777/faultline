@@ -12,14 +12,14 @@ import { getScanDetail } from "@/lib/data/queries";
 import { cn } from "@/lib/cn";
 import { formatBytes, formatDateTime, formatDuration } from "@/lib/format";
 import { reportFromDetail } from "@/lib/report";
-import { buttonStyle, LinkButton } from "@/design/components";
+import { buttonStyle, Card, LinkButton } from "@/design/components";
 
 export const metadata: Metadata = { title: "Report" };
 
 function Section({ title, children, id }: { title: string; children: React.ReactNode; id: string }) {
   return (
-    <section aria-labelledby={id} className="border-t border-outline-variant py-8">
-      <h2 id={id} className="type-headline mb-4 text-2xl">
+    <section aria-labelledby={id} data-tier="low" className="report-card mb-4 rounded-xl bg-surface-low p-5 sm:p-6">
+      <h2 id={id} className="md-headline-medium mb-4">
         {title}
       </h2>
       {children}
@@ -37,20 +37,27 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function EventTable({ events, empty }: { events: EvidenceEvent[]; empty: string }) {
-  if (!events.length) return <p className="text-sm text-on-surface-variant">{empty}</p>;
+  if (!events.length) return <p className="md-body-medium text-on-surface-variant">{empty}</p>;
   return (
-    <div className="overflow-x-auto rounded-lg border border-outline-variant">
-      <table className="w-full min-w-[36rem] text-left text-sm">
-        <thead className="bg-surface-container text-on-surface-variant">
+    <div className="overflow-x-auto">
+      {/* Gap-separated tonal rows, no rules: border-spacing leaves 2px of the card surface between rows. */}
+      <table className="w-full min-w-[36rem] border-separate border-spacing-y-0.5 text-left text-sm">
+        <thead className="text-on-surface-variant">
           <tr>
-            <th scope="col" className="px-3 py-2 font-medium">Time (UTC)</th>
-            <th scope="col" className="px-3 py-2 font-medium">Kind</th>
-            <th scope="col" className="px-3 py-2 font-medium">Detail</th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Time (UTC)
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Kind
+            </th>
+            <th scope="col" className="px-3 py-2 font-medium">
+              Detail
+            </th>
           </tr>
         </thead>
         <tbody>
           {events.map((e) => (
-            <tr key={e.seq} className="border-t border-outline-variant/60 align-top">
+            <tr key={e.seq} className="bg-surface-container align-top [&>td:first-child]:rounded-l-sm [&>td:last-child]:rounded-r-sm">
               <td className="tabular px-3 py-2 whitespace-nowrap text-on-surface-variant">{e.occurredAt.slice(11, 23)}</td>
               <td className="px-3 py-2 whitespace-nowrap">
                 {EVIDENCE_KIND_LABELS[e.kind]}
@@ -78,7 +85,11 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
     return (
       <>
         <PageHeader back={<BackLink href={`/scans/${detail.scan.id}`}>Scan</BackLink>} title="Report" />
-        <EmptyState icon={Hourglass} title="The report is written when the scan finishes" action={<LinkButton href={`/scans/${detail.scan.id}`}>Watch progress</LinkButton>} />
+        <EmptyState
+          icon={Hourglass}
+          title="The report is written when the scan finishes"
+          action={<LinkButton href={`/scans/${detail.scan.id}`}>Watch progress</LinkButton>}
+        />
       </>
     );
   }
@@ -92,7 +103,7 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
         title="Scan report"
         description={`Generated ${formatDateTime(report.generatedAt)} from stored evidence. Schema ${report.schema}.`}
         actions={
-          <a href={`/api/scans/${report.scan.id}/report`} download className={buttonStyle("filled")}>
+          <a href={`/api/scans/${report.scan.id}/report`} download className={buttonStyle("tonal")} data-print-hide>
             <FileJson aria-hidden />
             Export JSON
           </a>
@@ -101,13 +112,18 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
 
       <Section title="Target and scenario" id="target">
         <dl className="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-6 gap-y-2 text-sm">
-          <Row label="Project">{report.project.name} ({report.project.origin})</Row>
+          <Row label="Project">
+            {report.project.name} ({report.project.origin})
+          </Row>
           <Row label="Target URL">{report.scan.targetUrl}</Row>
           <Row label="Scenario">{report.scan.scenarioSummary}</Row>
           <Row label="Configuration">
             <code className="font-mono text-xs">{JSON.stringify(report.scan.scenario)}</code>
           </Row>
-          <Row label="Scan status">{SCAN_STATUS_LABELS[report.scan.status]}{report.scan.errorMessage ? ` · ${report.scan.errorMessage}` : ""}</Row>
+          <Row label="Scan status">
+            {SCAN_STATUS_LABELS[report.scan.status]}
+            {report.scan.errorMessage ? ` · ${report.scan.errorMessage}` : ""}
+          </Row>
           <Row label="Queued">{formatDateTime(report.scan.createdAt)}</Row>
           <Row label="Started">{formatDateTime(report.scan.startedAt)}</Row>
           <Row label="Finished">{formatDateTime(report.scan.finishedAt)}</Row>
@@ -125,7 +141,9 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
               {env.browserName} {env.browserVersion} ({env.headless ? "headless" : "headed"}, sandbox {env.chromiumSandbox ? "on" : "off"})
             </Row>
             <Row label="Automation">Playwright {env.playwrightVersion}</Row>
-            <Row label="Worker">FAULTLINE {env.workerVersion} on {env.platform}, Node {env.nodeVersion}</Row>
+            <Row label="Worker">
+              FAULTLINE {env.workerVersion} on {env.platform}, Node {env.nodeVersion}
+            </Row>
             <Row label="Deployment mode">{env.deploymentMode}</Row>
             <Row label="Egress control">
               {env.egress.guard}; subresources: {env.egress.subresourcePolicy}; private network: {env.egress.privateNetworkAccess}
@@ -144,9 +162,9 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
       <Section title="Outcomes" id="outcomes">
         <div className="grid gap-4 md:grid-cols-2">
           {report.executions.map((e) => (
-            <div key={e.id} className={cn("rounded-xl border-t-4 bg-surface-low p-5", ROLE_STYLE[e.role].border)}>
+            <Card key={e.id} tier="container" className="report-card">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h3 className={cn("type-title", ROLE_STYLE[e.role].text)}>{e.label}</h3>
+                <h3 className={cn("md-title-large", ROLE_STYLE[e.role].text)}>{e.label}</h3>
                 <OutcomeChip outcome={e.outcome} />
               </div>
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
@@ -163,9 +181,19 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
                 </Row>
               </dl>
               {e.screenshot ? (
-                <a href={`/api/artifacts/${e.screenshot.id}`} target="_blank" rel="noreferrer" className="mt-4 block overflow-hidden rounded-lg ring-1 ring-outline-variant">
+                <a
+                  href={`/api/artifacts/${e.screenshot.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 block overflow-hidden rounded-lg bg-surface-high"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element -- authenticated artifact stream */}
-                  <img src={`/api/artifacts/${e.screenshot.id}`} alt={`Screenshot, ${e.label.toLowerCase()}`} className="max-h-72 w-full object-cover object-top" loading="lazy" />
+                  <img
+                    src={`/api/artifacts/${e.screenshot.id}`}
+                    alt={`Screenshot, ${e.label.toLowerCase()}`}
+                    className="max-h-72 w-full object-cover object-top"
+                    loading="lazy"
+                  />
                 </a>
               ) : null}
               {e.screenshot ? (
@@ -173,7 +201,7 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
                   sha256 {e.screenshot.sha256} · {formatBytes(e.screenshot.byteSize)}
                 </p>
               ) : null}
-            </div>
+            </Card>
           ))}
         </div>
       </Section>
@@ -186,10 +214,10 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
         </ul>
         {report.comparison.consoleErrorsOnlyInFault.length ? (
           <div className="mt-4">
-            <h3 className="type-title mb-2">Errors seen only under fault conditions</h3>
-            <ul className="flex flex-col gap-1 text-sm">
+            <h3 className="md-title-medium mb-2">Errors seen only under fault conditions</h3>
+            <ul className="flex flex-col gap-0.5 text-sm">
               {report.comparison.consoleErrorsOnlyInFault.map((m) => (
-                <li key={m} className="rounded-sm bg-failure-container/40 px-3 py-1.5 break-words">
+                <li key={m} className="rounded-sm bg-error-container px-3 py-1.5 break-words text-on-error-container first:rounded-t-lg last:rounded-b-lg">
                   {m}
                 </li>
               ))}
@@ -200,7 +228,9 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
 
       {report.executions.map((e) => {
         const intentional = e.events.filter((ev) => ev.kind === "fault_injected");
-        const problems = e.events.filter((ev) => ["page_error", "console", "request_failed", "http_error", "policy_block"].includes(ev.kind) && ev.severity !== "info");
+        const problems = e.events.filter(
+          (ev) => ["page_error", "console", "request_failed", "http_error", "policy_block"].includes(ev.kind) && ev.severity !== "info",
+        );
         return (
           <Section key={e.id} title={`Captured errors and failed requests: ${e.label.toLowerCase()}`} id={`errors-${e.role}`}>
             <EventTable events={problems} empty="No console errors, uncaught exceptions, failed requests, HTTP errors, or egress refusals were recorded." />
@@ -221,7 +251,7 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
       <Section title="What this evidence supports" id="conclusions">
         <div className="grid gap-6 md:grid-cols-2">
           <div>
-            <h3 className="type-title mb-3 flex items-center gap-2">
+            <h3 className="md-title-large mb-3 flex items-center gap-2">
               <CheckCircle2 aria-hidden className="size-5 text-success" /> Can be concluded
             </h3>
             <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">
@@ -231,7 +261,7 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
             </ul>
           </div>
           <div>
-            <h3 className="type-title mb-3 flex items-center gap-2">
+            <h3 className="md-title-large mb-3 flex items-center gap-2">
               <CircleHelp aria-hidden className="size-5 text-incomplete" /> Cannot be concluded
             </h3>
             <ul className="flex list-disc flex-col gap-2 pl-5 text-sm">

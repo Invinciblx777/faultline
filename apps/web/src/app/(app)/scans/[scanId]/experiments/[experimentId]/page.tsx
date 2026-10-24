@@ -91,7 +91,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
         }
         actions={
           regressionTest ? (
-            <a href={`/api/experiments/${experiment.id}/regression-test`} download className={buttonStyle("filled")}>
+            <a href={`/api/experiments/${experiment.id}/regression-test`} download className={buttonStyle("tonal")}>
               <Download aria-hidden />
               Download regression test
             </a>

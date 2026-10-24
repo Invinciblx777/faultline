@@ -1,167 +1,15 @@
 @import "tailwindcss";
 
 /*
- * FAULTLINE design tokens.
- * Material 3 Expressive-inspired: tonal surface ladder, semantic run tones,
- * shape scale by hierarchy, spring-like motion curves.
+ * FAULTLINE design tokens live in src/design/tokens.css (generated, Material 3 Expressive).
  * Dark is the default; light is applied with data-theme="light" or by system preference.
  */
+@import "../design/tokens.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-:root {
-  color-scheme: dark;
-
-  /* Surfaces (graphite ladder) */
-  --surface: #111318;
-  --surface-dim: #0c0e12;
-  --surface-container-lowest: #0c0e13;
-  --surface-container-low: #191c21;
-  --surface-container: #1d2026;
-  --surface-container-high: #272a30;
-  --surface-container-highest: #32353b;
-  --on-surface: #e2e2e9;
-  --on-surface-variant: #c4c6d0;
-  --outline: #8e9099;
-  --outline-variant: #44474f;
-  --scrim: rgb(0 0 0 / 0.6);
-
-  /* Action tone */
-  --primary: #b4c5ff;
-  --on-primary: #1a2d60;
-  --primary-container: #324478;
-  --on-primary-container: #dbe1ff;
-
-  /* Run identities: normal (baseline) and fault */
-  --normal: #7dd3e8;
-  --on-normal: #003640;
-  --normal-container: #004e5c;
-  --on-normal-container: #b0ecff;
-  --fault: #ffb77c;
-  --on-fault: #4d2600;
-  --fault-container: #6e3900;
-  --on-fault-container: #ffdcc2;
-
-  /* Evidence states */
-  --failure: #ffb4ab;
-  --on-failure: #690005;
-  --failure-container: #93000a;
-  --on-failure-container: #ffdad6;
-  --success: #8dd7a0;
-  --on-success: #003919;
-  --success-container: #035227;
-  --on-success-container: #a8f4bb;
-  --incomplete: #e9c46a;
-  --on-incomplete: #3e2e00;
-  --incomplete-container: #594400;
-  --on-incomplete-container: #ffdf93;
-  --unavailable: #8e9099;
-  --unavailable-container: #272a30;
-
-  /* Shape scale */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 28px;
-  --radius-2xl: 36px;
-
-  /* Motion: emphasized and spring-like curves (M3 Expressive) */
-  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
-  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
-  --duration-short: 150ms;
-  --duration-medium: 300ms;
-  --duration-long: 500ms;
-}
-
-:root[data-theme="light"] {
-  color-scheme: light;
-  --surface: #f9f9ff;
-  --surface-dim: #d9d9e0;
-  --surface-container-lowest: #ffffff;
-  --surface-container-low: #f3f3fa;
-  --surface-container: #ededf4;
-  --surface-container-high: #e7e8ee;
-  --surface-container-highest: #e2e2e9;
-  --on-surface: #191c20;
-  --on-surface-variant: #44474f;
-  --outline: #74777f;
-  --outline-variant: #c4c6d0;
-  --scrim: rgb(0 0 0 / 0.4);
-  --primary: #4a5c92;
-  --on-primary: #ffffff;
-  --primary-container: #dbe1ff;
-  --on-primary-container: #324478;
-  --normal: #00687a;
-  --on-normal: #ffffff;
-  --normal-container: #b0ecff;
-  --on-normal-container: #001f26;
-  --fault: #8f4c13;
-  --on-fault: #ffffff;
-  --fault-container: #ffdcc2;
-  --on-fault-container: #2f1400;
-  --failure: #ba1a1a;
-  --on-failure: #ffffff;
-  --failure-container: #ffdad6;
-  --on-failure-container: #410002;
-  --success: #1b6d3a;
-  --on-success: #ffffff;
-  --success-container: #a8f4bb;
-  --on-success-container: #00210d;
-  --incomplete: #765b00;
-  --on-incomplete: #ffffff;
-  --incomplete-container: #ffdf93;
-  --on-incomplete-container: #241a00;
-  --unavailable: #74777f;
-  --unavailable-container: #e7e8ee;
-}
-
-@media (prefers-color-scheme: light) {
-  :root[data-theme="system"] {
-    color-scheme: light;
-    --surface: #f9f9ff;
-    --surface-dim: #d9d9e0;
-    --surface-container-lowest: #ffffff;
-    --surface-container-low: #f3f3fa;
-    --surface-container: #ededf4;
-    --surface-container-high: #e7e8ee;
-    --surface-container-highest: #e2e2e9;
-    --on-surface: #191c20;
-    --on-surface-variant: #44474f;
-    --outline: #74777f;
-    --outline-variant: #c4c6d0;
-    --scrim: rgb(0 0 0 / 0.4);
-    --primary: #4a5c92;
-    --on-primary: #ffffff;
-    --primary-container: #dbe1ff;
-    --on-primary-container: #324478;
-    --normal: #00687a;
-    --on-normal: #ffffff;
-    --normal-container: #b0ecff;
-    --on-normal-container: #001f26;
-    --fault: #8f4c13;
-    --on-fault: #ffffff;
-    --fault-container: #ffdcc2;
-    --on-fault-container: #2f1400;
-    --failure: #ba1a1a;
-    --on-failure: #ffffff;
-    --failure-container: #ffdad6;
-    --on-failure-container: #410002;
-    --success: #1b6d3a;
-    --on-success: #ffffff;
-    --success-container: #a8f4bb;
-    --on-success-container: #00210d;
-    --incomplete: #765b00;
-    --on-incomplete: #ffffff;
-    --incomplete-container: #ffdf93;
-    --on-incomplete-container: #241a00;
-    --unavailable: #74777f;
-    --unavailable-container: #e7e8ee;
-  }
-}
-
 @theme inline {
-  --font-sans: var(--font-roboto-flex), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, monospace;
 
   --color-surface: var(--surface);
@@ -181,6 +29,16 @@
   --color-on-primary: var(--on-primary);
   --color-primary-container: var(--primary-container);
   --color-on-primary-container: var(--on-primary-container);
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+  --color-inverse-surface: var(--md-sys-color-inverse-surface);
+  --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
 
   --color-normal: var(--normal);
   --color-on-normal: var(--on-normal);
@@ -228,11 +86,10 @@
     font-family: var(--font-sans);
     font-size: 16px;
     line-height: 1.5;
-    font-variation-settings: "wdth" 100, "opsz" 16;
     -webkit-font-smoothing: antialiased;
   }
   :focus-visible {
-    outline: 3px solid var(--primary);
+    outline: 3px solid var(--secondary);
     outline-offset: 2px;
   }
   ::selection {
@@ -242,31 +99,33 @@
 }
 
 @layer components {
-  /* Expressive display type: condensed, heavy, tight. Used for page titles and run labels. */
+  /* M3 Expressive type scale (Manrope variable). */
   .type-display {
-    font-variation-settings: "wdth" 72, "opsz" 72, "GRAD" 0;
-    font-weight: 760;
-    letter-spacing: -0.02em;
-    line-height: 1.02;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+    line-height: 1.04;
   }
   .type-headline {
-    font-variation-settings: "wdth" 84, "opsz" 32;
     font-weight: 650;
-    letter-spacing: -0.01em;
-    line-height: 1.15;
+    letter-spacing: -0.012em;
+    line-height: 1.18;
   }
   .type-title {
-    font-variation-settings: "wdth" 96, "opsz" 20;
     font-weight: 600;
     line-height: 1.3;
   }
   .type-label {
-    font-variation-settings: "wdth" 100, "opsz" 14;
-    font-weight: 560;
+    font-weight: 600;
     font-size: 0.875rem;
     line-height: 1.25rem;
     letter-spacing: 0.006em;
   }
+  .md-display-large { font: var(--md-sys-typescale-display-large); letter-spacing: -0.025em; }
+  .md-headline-medium { font: var(--md-sys-typescale-headline-medium); letter-spacing: -0.01em; }
+  .md-title-large { font: var(--md-sys-typescale-title-large); }
+  .md-title-medium { font: var(--md-sys-typescale-title-medium); }
+  .md-body-medium { font: var(--md-sys-typescale-body-medium); }
+  .md-label-medium { font: var(--md-sys-typescale-label-medium); letter-spacing: 0.02em; }
   .tabular {
     font-variant-numeric: tabular-nums;
   }
@@ -293,12 +152,28 @@
   to { background-position: -200% 0; }
 }
 
+@keyframes md-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @keyframes running-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.45; transform: scale(0.82); }
 }
 
+/* Staggered entrance used by tile grids (30ms per item, capped by the caller). */
+@keyframes md-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.md-enter {
+  animation: md-enter var(--md-sys-motion-spring-default) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .md-enter { animation: md-fade 150ms linear both; }
+
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;

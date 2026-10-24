@@ -1,15 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Roboto_Flex } from "next/font/google";
 import { cookies } from "next/headers";
 import { MotionProvider } from "@/components/shell/motion-provider";
+import { THEME_COLOR } from "@/design/theme-color";
+import "@fontsource-variable/manrope";
 import "./globals.css";
-
-const robotoFlex = Roboto_Flex({
-  subsets: ["latin"],
-  axes: ["wdth", "opsz", "GRAD"],
-  variable: "--font-roboto-flex",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: { default: "Faultline", template: "%s · Faultline" },
@@ -22,8 +16,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#111318" },
-    { media: "(prefers-color-scheme: light)", color: "#f9f9ff" },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
   ],
 };
 
@@ -31,7 +25,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const theme = (await cookies()).get("faultline_theme")?.value;
   const dataTheme = theme === "light" || theme === "system" ? theme : "dark";
   return (
-    <html lang="en" data-theme={dataTheme} className={robotoFlex.variable}>
+    <html lang="en" data-theme={dataTheme}>
       <body className="min-h-dvh">
         <MotionProvider>{children}</MotionProvider>
       </body>

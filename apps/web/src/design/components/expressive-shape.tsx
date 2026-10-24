@@ -20,7 +20,8 @@ const PATHS = {
 /** Decorative M3 Expressive shape placed behind hero content. Color comes from the `className` (fill-*). */
 export function ExpressiveShape({ shape, className }: { shape: keyof typeof PATHS; className?: string }) {
   return (
-    <svg viewBox="0 0 100 100" aria-hidden focusable="false" className={cn("pointer-events-none", className)}>
+    // The blob stretches to its box (it sits behind words of varying length); the scallop keeps its proportions.
+    <svg viewBox="0 0 100 100" preserveAspectRatio={shape === "blob" ? "none" : undefined} aria-hidden focusable="false" className={cn("pointer-events-none", className)}>
       <path d={PATHS[shape]} />
     </svg>
   );

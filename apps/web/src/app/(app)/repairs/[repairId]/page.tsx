@@ -281,20 +281,20 @@ function VerifiedReport({ detail, canComment }: { detail: RepairDetail; canComme
         </figure>
       ) : null}
 
-      <ListGroup>
+      <ListGroup className="overflow-hidden [&>li]:overflow-hidden">
         {repair.devinSessionUrl ? (
           <li>
-            <NotificationCard icon={<Bot aria-hidden />} source="Devin session" title={repair.devinSessionId ?? "Session"} body="Approved by a human click; FAULTLINE judges the result independently." href={repair.devinSessionUrl} />
+            <NotificationCard tier="high" icon={<Bot aria-hidden />} source="Devin session" title={repair.devinSessionId ?? "Session"} body="Approved by a human click; FAULTLINE judges the result independently." href={repair.devinSessionUrl} />
           </li>
         ) : null}
         {repair.prUrl ? (
           <li>
-            <NotificationCard icon={<GitPullRequest aria-hidden />} source={`Pull request #${repair.prNumber}`} time={repair.prMerged ? "merged" : (repair.prState ?? undefined)} title={repair.prTitle ?? `#${repair.prNumber}`} href={repair.prUrl} />
+            <NotificationCard tier="high" icon={<GitPullRequest aria-hidden />} source={`Pull request #${repair.prNumber}`} time={repair.prMerged ? "merged" : (repair.prState ?? undefined)} title={repair.prTitle ?? `#${repair.prNumber}`} href={repair.prUrl} />
           </li>
         ) : null}
         {commentIsCurrent && repair.verdictCommentUrl ? (
           <li>
-            <NotificationCard icon={<MessageSquareText aria-hidden />} source={`Verdict comment · pull request #${repair.prNumber}`} time={formatDateTime(repair.verdictCommentPostedAt)} title={`${style.label} posted on the pull request`} href={repair.verdictCommentUrl} />
+            <NotificationCard tier="high" icon={<MessageSquareText aria-hidden />} source={`Verdict comment · pull request #${repair.prNumber}`} time={formatDateTime(repair.verdictCommentPostedAt)} title={`${style.label} posted on the pull request`} href={repair.verdictCommentUrl} />
           </li>
         ) : null}
       </ListGroup>

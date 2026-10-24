@@ -7,7 +7,9 @@ import { cn } from "@/lib/cn";
  * Android 16 notification layout: app icon + source + time, title, body, optional actions row,
  * optional thumbnail, trailing chevron. With `href` the whole card is one link.
  */
-export function NotificationCard({ icon, source, time, title, body, actions, thumbnail, href, className, children }: { icon?: ReactNode; source: ReactNode; time?: ReactNode; title: ReactNode; body?: ReactNode; actions?: ReactNode; thumbnail?: ReactNode; href?: string; className?: string; children?: ReactNode }) {
+export function NotificationCard({ icon, source, time, title, body, actions, thumbnail, href, className, children, tier = "container" }: { icon?: ReactNode; source: ReactNode; time?: ReactNode; title: ReactNode; body?: ReactNode; actions?: ReactNode; thumbnail?: ReactNode; href?: string; className?: string; children?: ReactNode; tier?: "container" | "high" }) {
+  const bg = tier === "high" ? "bg-surface-high" : "bg-surface-container";
+  const hover = tier === "high" ? "hover:bg-surface-highest" : "hover:bg-surface-high";
   const content = (
     <>
       {icon ? <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-container text-on-primary-container [&_svg]:size-5">{icon}</span> : null}
@@ -29,17 +31,17 @@ export function NotificationCard({ icon, source, time, title, body, actions, thu
       {href ? <ChevronRight aria-hidden className="size-5 shrink-0 self-center text-on-surface-variant" /> : null}
     </>
   );
-  const cls = cn("flex items-start gap-4 bg-surface-container px-4 py-4", className);
+  const cls = cn("flex items-start gap-4 px-4 py-4", bg, className);
   return (
     <div className="flex flex-col">
       {href ? (
-        <Link href={href} className={cn(cls, "transition-colors hover:bg-surface-high")}>
+        <Link href={href} className={cn(cls, "transition-colors", hover)}>
           {content}
         </Link>
       ) : (
         <div className={cls}>{content}</div>
       )}
-      {actions ? <div className="flex flex-wrap gap-2 bg-surface-container px-4 pb-3 pl-18">{actions}</div> : null}
+      {actions ? <div className={cn("flex flex-wrap gap-2 px-4 pb-3 pl-18", bg)}>{actions}</div> : null}
     </div>
   );
 }

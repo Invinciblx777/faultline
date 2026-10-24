@@ -20,7 +20,7 @@ FAULTLINE breaks one dependency of your web app at a time in a real browser, sho
 
 *(Blast Radius Map of the shop.)* "FAULTLINE ran the real checkout journey in Chromium, then broke one dependency at a time. One red line: `GET /api/inventory`. A side detail, and one 503 there takes down steps 2 to 8."
 
-*(Blast Radius Map of the Daluxe project.)* "And this is what it found on a store I shipped for a client. If the main JavaScript bundle fails, the whole site is blank: 97% of pixels change. Images, styles, and a 3-second slowdown? Resilient."
+*(Blast Radius Map of the Daluxe project, the `localhost:8081` card.)* "And on a store I shipped for a real client, FAULTLINE found the production site calling `localhost:8081` from customers' browsers."
 
 ### 3. Understand (30 s)
 
@@ -32,9 +32,9 @@ FAULTLINE breaks one dependency of your web app at a time in a real browser, sho
 
 ### 5. Prove (40 s)
 
-*(Repair page, Independent verification.)* "FAULTLINE downloaded the exact commit, `b750bd3`, ran it in a container with no network, and ran our unchanged test. Original: passed 0 of 2. Devin's commit: 2 of 2 under the same fault. The healthy path is byte-identical. VERIFIED FIXED, for this journey and these assertions. FAULTLINE never merges."
+*(Repair page, Independent verification.)* "FAULTLINE downloaded the exact commit, `b750bd3`, ran it in a container with no network, and ran our unchanged test. Original: 0 of 2. Devin's commit: 2 of 2 under the same fault. VERIFIED FIXED, for this journey."
 
-*(Scroll to Cross-checks.)* "Then we asked one more question: can you still buy an out-of-stock bottle while inventory is down? Same commit, stricter journey: STILL FAILING, 2 of 2. Devin said fixed. FAULTLINE found the hole. Devin even wrote it down in the PR; now there's a browser run that proves it."
+*(Scroll to Cross-checks, then the second PR comment.)* "Then I tightened the journey with one assertion Devin's PR admitted it didn't handle. Same commit: STILL FAILING. Devin said fixed; FAULTLINE says not yet. That's why it never merges."
 
 ### 6. Close (10 s)
 
@@ -52,7 +52,8 @@ FAULTLINE breaks one dependency of your web app at a time in a real browser, sho
 | Approval at 00:59, Devin session, PR #1 four minutes later | [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md) §2–3 |
 | 0 of 2 → 2 of 2, byte-identical healthy path | Run `39c125f0…` |
 | Verdict on the PR | https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389303315 |
-| STILL FAILING with the stricter journey | Cross-check run `24f9f532…` |
-| Client store: blank page when the bundle fails, 97.38% | Project `13327180…`, analyses `004f212e…` and `e24a90ca…` |
+| STILL FAILING with the stricter journey | Cross-check run `24f9f532…`; second comment on PR #1 (link in [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md), tab H) |
+| Client store calls `http://localhost:8081` from visitors' browsers | Project `13327180…`, dependency `origin http://localhost:8081` in analyses `004f212e…`, `e24a90ca…`, `83758bb7…` |
+| Client store at 360 px: RESILIENT | Analysis `83758bb7…`, experiment `921abd8d…` (journey v2) |
 
 Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md).

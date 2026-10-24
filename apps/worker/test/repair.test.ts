@@ -539,6 +539,36 @@ describe("independent verification", () => {
     expect(after.verdict).toBeNull();
     expect(after.latestVerificationId).toBeNull();
     expect((await events(repair.id)).some((e) => e.kind === "verdict" && e.message.startsWith("Cross-check verdict"))).toBe(true);
+
+    // Its own PR comment: keyed on the cross-check run, describing the cross-check's journey, and not recorded as the repair's verdict comment.
+    await handle.db.update(repairRequests).set({ prAgentLimitations: ["First limitation.", "Second limitation."] }).where(eq(repairRequests.id, repair.id));
+    const posted: string[] = [];
+    let comments: Array<{ id: number; html_url: string; body: string; created_at: string }> = [];
+    const commenting = Object.assign(fakeGitHub((n) => pull(repair.id, { number: n })), {
+      hasToken: true,
+      listIssueComments: async () => comments,
+      createIssueComment: async (_o: string, _n: string, number: number, body: string) => {
+        posted.push(body);
+        const comment = { id: 950 + posted.length, html_url: `https://github.com/${OWNER}/${NAME}/pull/${number}#issuecomment-${950 + posted.length}`, body, created_at: new Date().toISOString() };
+        comments = [...comments, comment];
+        return comment;
+      },
+    });
+    const options = { runId: run!.id, titleDetail: "journey v2: test guard", testedLimitations: [2] };
+    expect(await postVerificationComment(handle.db, commenting, repair.id, { ...options, testedLimitations: [3] })).toMatchObject({ ok: false });
+    expect(await postVerificationComment(handle.db, commenting, repair.id, options)).toMatchObject({ ok: true, created: true });
+    expect(posted).toHaveLength(1);
+    expect(posted[0]).toContain(verdictCommentMarker(repair.id, run!.id));
+    expect(posted[0]).toContain("## FAULTLINE verification — VERIFIED FIXED (journey v2: test guard)");
+    expect(posted[0]).toContain("**Agent-stated limitation this run tests**");
+    expect(posted[0]).toContain("> Second limitation.");
+    expect(posted[0]).not.toContain("First limitation.");
+    expect(posted[0]).toContain(`\`${test!.filename}\`, SHA-256 \`${test!.sha256}\``);
+    expect(await postVerificationComment(handle.db, commenting, repair.id, options)).toMatchObject({ ok: true, created: false, commentId: 951 });
+    expect(posted).toHaveLength(1);
+    const commented = await reload(repair.id);
+    expect(commented.verdictCommentId).toBeNull();
+    expect(commented.verdictCommentClaimedAt).toBeNull();
   }, 300_000);
 
   it("STILL FAILING: the candidate does not change the behavior", async () => {

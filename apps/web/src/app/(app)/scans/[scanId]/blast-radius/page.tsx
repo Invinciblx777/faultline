@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   describeStep,
+  developmentEndpointNote,
   FAULT_KIND_LABELS,
   findAllowlistMatch,
   isAssertionStep,
@@ -61,6 +62,7 @@ export default async function BlastRadiusPage({ params, searchParams }: Props) {
       ordinal: e.ordinal,
       kind: e.kind,
       title: e.dependencyLabel ?? (e.kind === "offline" ? "Browser goes offline after the first page loads" : "360×740 viewport"),
+      note: developmentEndpointNote(e.dependencyKey, project.origin),
       party: dep?.party ?? null,
       status: e.status,
       verdict: e.verdict,

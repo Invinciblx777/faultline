@@ -425,3 +425,42 @@ Branch `feat/verdict-scope-comment` (from `main` at merge `71924ca` of `phase-3-
 - PR #1's body (written by Devin) contains a Devin attachment URL with a signed token; it becomes visible if the reference-shop repository is made public.
 - The 360 px finding needs a mobile-aware journey (a role or test-id target for the cart button) before it says anything about the store.
 - Repository visibility unchanged; nothing submitted; no public deployment.
+
+## Phase 4.2: Last mile (2026-10-25, 03:05–03:40 IST)
+
+Branch `fix/last-mile` (from `main` at `b1dd3fc`), merged to `main` with a merge commit after the gates below. Phase 4.5 not started.
+
+| Item | Status | Evidence |
+|---|---|---|
+| 1. `RULES.md` from another event | Done | `git rm RULES.md` (it described "DevDay Exchange Community Hackathon: Kochi", 10–11 Oct, Codex). References removed from `SUBMISSION.md`, `AGENTS.md`, `.github/pull_request_template.md`, `AI_USAGE.md` header. `SUBMISSION.md` organizer questions cut to six: form URL, public repo, video/length, team name, track, deadline. Its template checklist (Codex, start-from-scratch, 10:00 11 Oct) is removed |
+| 2. Daluxe 360 px false red | Done | Journey v2 `2f1fdb64-5997-4d21-b09b-8b8b1aaf04c4` (lineage of `12180c2c…`), saved through `reviseJourney`. Step 5 target `div.r-12vffkv > div.r-18u37iz > div[tabindex="0"].r-usgzl9:last-child`; no role, text, or test id exists on the store's icon buttons (React Native Web divs, no aria-label). Checked by hand in Playwright first: 1 match at 1280 px (x 1196) and 360 px (x 300), click shows "Your Cart" at both. Analysis `83758bb7-4a37-41cf-afdd-b2b73c3f020c` (launched through `createAnalysis`, 03:11:55–03:14:56 IST): 360×740 **RESILIENT** (experiment `921abd8d…`, all 3 assertions pass); main bundle unavailable BROKEN, reproduced, 97.40%, test `fails_as_expected`; `origin http://localhost:8081` unavailable RESILIENT. v1 analyses stay in history |
+| 2b. `localhost:8081` label | Done | `developmentEndpointNote` (shared) derives the note from the dependency key and analyzed origin: a public site whose visitors' browsers request a loopback origin. Shown on the Blast Radius card, drawer, and experiment page. README lists it first |
+| 3. Second verdict on PR #1 | Done | https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389982815, posted 2026-10-24 21:51:57 UTC. `pnpm repair:comment` gains `--run`, `--title-detail`, `--limitation`; a non-latest run's comment is recorded as a repair event and never replaces the repair's own verdict-comment record. Two later calls found the marker and did not post. PR comments in order: Devin bot, VERIFIED FIXED (`6389303315`), STILL FAILING (`6389982815`). Copy: `docs/PR1_VERDICT_COMMENT_V2.md`. PR not merged |
+| 4. Public readiness | Done, operator actions open | `docs/PR1_BODY_CLEAN.md`: PR #1 body with the one Devin `presigned_proxy` image line removed, rest verbatim (0 matches for `presigned` or `token=`). Not applied. Video 20,667,959 bytes (under 25 MB), stays in Git; Release asset after the event. `.gitignore` ignores `.env` and `.env.*` except `.env.example`; `.env.example` holds placeholders only (`change-me`, `change-me-too`), the only tracked env file. Screenshots reviewed for this pass: 03, 04, 07, 08, 09, real-app 01, real-app 02, the new verification PNG: reference-shop data, operator name `phase3-demo`, public store content; no personal data |
+| 5. Pitch and runbook | Done | Break: shop, then Daluxe `localhost:8081`. Prove: v1 VERIFIED FIXED, then v2 STILL FAILING and PR tab H |
+
+Defect found and fixed: `pnpm repair:comment --out docs/…` resolved the path against `packages/db` (pnpm's cwd), so the first post succeeded and the write then failed (exit 1). `--out` now resolves against `INIT_CWD`. The idempotency marker kept it to one comment.
+
+### Gates (code on `fix/last-mile`)
+
+`GITHUB_TOKEN=$(gh auth token)` set; live web stopped during build and E2E, then web and worker restarted on the new build.
+
+| Gate | Result |
+|---|---|
+| `pnpm typecheck` | exit 0 (rerun after the `--out` fix: exit 0) |
+| `pnpm lint` | exit 0 (rerun: exit 0) |
+| `pnpm build` | exit 0 (rerun: exit 0) |
+| `pnpm test` | 260 passed, 0 failed, 0 skipped: shared 161 (9 files), db 5 (1), web 34 (3), worker 60 (7, includes real podman container verification) |
+| `pnpm test:e2e` | 17 passed, 0 failed, 0 skipped (1.1 min) |
+
+New tests: `developmentEndpointNote` (2), verdict comment heading qualifier and tested-limitation wording (1), and the worker cross-check test now posts the cross-check's own comment (marker on the run, cross-check journey and test, wrong limitation number refused, second call finds it, repair verdict-comment columns untouched).
+
+`pnpm demo:preflight` after restart: 10 of 10 PASS. Route check: tabs A–E answer locally (storefront 200; app pages 307 to sign-in); Devin session 200; PR #1 404 to an unauthenticated request (private repository). The clicked three-minute route was not timed in this session: it needs the `phase3-demo` sign-in.
+
+### Not done / limitations
+
+- PR #1 body still contains the Devin signed image URL. `docs/PR1_BODY_CLEAN.md` is ready; the operator applies it.
+- The `localhost:8081` note on the Blast Radius card is covered by unit tests and typecheck; it was not viewed in a signed-in browser this session.
+- The backup video predates this pass: its real-app beat shows analysis `004f212e…`, not the `localhost:8081` note or the 360 px cell.
+- `docs/screenshots/real-app/01-blast-radius-map.png` is analysis `004f212e…` (no 360 px cell).
+- Repository visibility unchanged; nothing submitted; no public deployment.

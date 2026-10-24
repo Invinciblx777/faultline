@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T03:40+05:30 — Last mile: wrong-event rules removed, Daluxe 360 px rerun, second PR verdict
+
+- Changed: Deleted `RULES.md` (it described another event: 10–11 October, Codex) and its references in `SUBMISSION.md`, `AGENTS.md`, `.github/pull_request_template.md`, `AI_USAGE.md`. `SUBMISSION.md` keeps six organizer questions. New shared `developmentEndpointNote`: a public site whose visitors' browsers request a loopback origin gets a plain-language note on the Blast Radius card, drawer, and experiment page. `pnpm repair:comment` gains `--run`, `--title-detail`, `--limitation`; `buildRepairVerdictComment`/`postVerificationComment` accept any completed run of the repair, describe a cross-check by its own journey, fault, and test, and leave the repair's verdict-comment columns alone for runs other than the latest. `--out` resolves against `INIT_CWD`. Daluxe journey v2 (`2f1fdb64…`, width-independent cart target) and analysis `83758bb7…`. Posted the STILL FAILING (journey v2) comment on PR #1. `docs/PR1_BODY_CLEAN.md`, `docs/PR1_VERDICT_COMMENT_V2.md`, new verification screenshot `e3877d0a….png`. README, pitch, runbook (tab C now `83758bb7…`, new tab H), submission, status.
+- Why: The 360 px BROKEN cell came from a desktop-only selector in the journey, not the store. The PR needed both verdicts. The rules file belonged to a different hackathon.
+- Validation: See PHASE_STATUS.md, Phase 4.2: typecheck, lint, build exit 0; `pnpm test` 260 passed (161 + 5 + 34 + 60), 0 skipped; `pnpm test:e2e` 17 passed; preflight 10 of 10.
+- Limitations: PR #1 body not edited (operator command). The clicked route was not timed (no sign-in in this session). The backup video predates this pass.
+
 ## 2026-10-25T03:05+05:30 — Phase 4.1 status, gates, and AI usage
 
 - Changed: `PHASE_STATUS.md` gains the Phase 4.1 section (every step, real-app findings, gates, limitations). `AI_USAGE.md` records this session.

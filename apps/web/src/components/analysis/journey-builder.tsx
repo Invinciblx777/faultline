@@ -205,7 +205,7 @@ function StepEditor({
           aria-label={`Step ${index + 1} type`}
           value={step.type}
           onChange={(e) => onChange({ ...emptyStep(e.target.value as JourneyStepType), uid: step.uid, target: step.target, label: step.label })}
-          className="w-auto min-w-44 flex-1 sm:flex-none"
+          className="w-auto! min-w-44 flex-1 sm:flex-none"
         >
           {types.map((t) => (
             <option key={t} value={t}>

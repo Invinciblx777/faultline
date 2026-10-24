@@ -176,7 +176,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
           </h2>
           <p className="mb-4 text-sm text-on-surface-variant">Each step in the baseline run and under the fault. Only steps that passed in both normal runs count toward the verdict.</p>
           <div className="overflow-x-auto rounded-xl bg-surface-low">
-            <table className="w-full min-w-[40rem] text-left text-sm">
+            <table className="w-full min-w-[40rem] border-separate border-spacing-y-0.5 text-left text-sm">
               <thead className="text-on-surface-variant">
                 <tr>
                   <th className="px-4 py-3 font-medium">Step</th>
@@ -190,7 +190,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
                   const affected = experiment.affectedSteps.includes(i);
                   const excluded = experiment.excludedSteps.find((s) => s.index === i);
                   return (
-                    <tr key={i} id={`step-${i}`} className={cn("scroll-mt-24 border-t border-outline-variant align-top", affected && "bg-failure-container/20")}>
+                    <tr key={i} id={`step-${i}`} className={cn("scroll-mt-24 align-top [&>td:first-child]:rounded-l-sm [&>td:last-child]:rounded-r-sm", affected ? "bg-error-container/40" : "bg-surface-container")}>
                       <td className="px-4 py-3">
                         <span className="tabular text-on-surface-variant">{i + 1}.</span> {first?.steps.find((s) => s.phase === "journey" && s.stepIndex === i)?.description ?? step.type}
                         {"maxDurationMs" in step && step.maxDurationMs ? <span className="block text-xs text-on-surface-variant">Budget {formatDuration(step.maxDurationMs)}</span> : null}
@@ -300,7 +300,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
           <details className="mt-4 rounded-lg border border-outline-variant p-4">
             <summary className="cursor-pointer text-sm font-medium">All {first.requests.length} requests in this run</summary>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-left text-xs">
+              <table className="w-full min-w-[40rem] border-separate border-spacing-y-0.5 text-left text-xs">
                 <thead className="text-on-surface-variant">
                   <tr>
                     <th className="px-2 py-1 font-medium">#</th>
@@ -314,7 +314,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
                 </thead>
                 <tbody>
                   {first.requests.map((r) => (
-                    <tr key={r.id} className="border-t border-outline-variant">
+                    <tr key={r.id} className="bg-surface-container [&>td:first-child]:rounded-l-sm [&>td:last-child]:rounded-r-sm">
                       <td className="tabular px-2 py-1">{r.requestId}</td>
                       <td className="px-2 py-1 break-all">
                         {r.method} {r.url}

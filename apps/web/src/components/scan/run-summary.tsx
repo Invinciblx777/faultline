@@ -28,7 +28,7 @@ export function RunSummary({ execution }: { execution: Execution }) {
   const style = ROLE_STYLE[execution.role];
   const s = execution.summary;
   return (
-    <article className={cn("flex flex-col gap-4 rounded-xl border-t-4 bg-surface-low p-5 sm:p-6", style.border)}>
+    <article className="flex flex-col gap-4 rounded-xl bg-surface-low p-5 sm:p-6">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 className={cn("type-headline text-xl", style.text)}>{EXECUTION_ROLE_LABELS[execution.role]}</h3>
         {execution.status === "completed" ? (
@@ -60,7 +60,7 @@ export function RunSummary({ execution }: { execution: Execution }) {
         ) : null}
       </dl>
       {s ? (
-        <dl className="grid grid-cols-3 gap-3 border-t border-outline-variant pt-4 sm:grid-cols-5">
+        <dl className="grid grid-cols-3 gap-3 rounded-lg bg-surface-container p-4 sm:grid-cols-5">
           <Stat label="Requests" value={s.totalRequests} />
           <Stat label="Failed" value={s.failedRequests} tone="failure" />
           <Stat label="HTTP errors" value={s.httpErrors} tone="failure" />

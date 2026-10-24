@@ -165,7 +165,7 @@ export default async function SplitPage({ params }: { params: Promise<{ scanId: 
             <div className="grid gap-4 lg:grid-cols-2">
               {[baseline, fault].map((execution) =>
                 execution ? (
-                  <div key={execution.id} className={cn("rounded-xl border-t-4 bg-surface-low p-5", ROLE_STYLE[execution.role].border)}>
+                  <div key={execution.id} className="rounded-xl bg-surface-low p-5">
                     <h3 className={cn("type-title mb-2", ROLE_STYLE[execution.role].text)}>
                       {EXECUTION_ROLE_LABELS[execution.role]} <span className="text-sm font-normal text-on-surface-variant">({execution.events.length} events)</span>
                     </h3>

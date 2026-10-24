@@ -1,6 +1,6 @@
-# Vision (not implemented)
+# Roadmap
 
-Everything on this page is a direction, not a feature. What exists today is in [README.md](../README.md) and [PHASE_STATUS.md](../PHASE_STATUS.md).
+These are next steps. They are not built yet. What runs today is in the [README](../README.md).
 
 - **More stacks for verification.** Today a candidate commit must be a Node.js server without runtime dependencies. Next: dependency installation in a pinned, offline cache; static sites; container-image recipes.
 - **Preview deployments.** Verify a pull request's preview URL as well as a local container build, with the preview origin added to the allowlist per run.

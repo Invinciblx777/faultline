@@ -258,7 +258,7 @@ The repair pipeline is built end to end and verified everywhere FAULTLINE contro
 2. Restart web and worker; Settings → Test Devin connection.
 3. On repair `268eeabb…`, confirm and approve. The worker creates the session; when Devin opens a PR, select **Verify**.
 
-## Phase 3.5: Live Devin run — blocked: the configured key is not a v3 key (2026-10-25)
+## Phase 3.5: Live Devin run — v3 connected; Devin's GitHub access missing; awaiting operator approval (2026-10-25)
 
 Checked on 2026-10-25 around 00:00 IST, on branch `phase-3-devin-strike`. No code changed. **No Devin session was created and nothing was approved.**
 
@@ -283,3 +283,23 @@ Checked on 2026-10-25 around 00:00 IST, on branch `phase-3-devin-strike`. No cod
 A Devin API v3 **service-user** key (prefix `cog_`) for the organization in `DEVIN_ORG_ID`, created in Devin under Settings → Service users. The service user needs permission to create and view sessions, and Devin's GitHub integration must include `Invinciblx777/faultline-reference-shop`. Then restart web and worker and rerun the checks above. The legacy `apk_` key works only with API v1, which FAULTLINE does not implement.
 
 Not done because of the block: approval, the live Devin session, the GitHub pull request and head commit check, and the independent rerun of the unchanged regression test against the candidate build.
+
+### Rerun with the v3 service-user key (00:13–00:16 IST)
+
+The owner added a `cog_` key at 00:13, but it was saved in `DEVIN_ORG_ID`, overwriting the org ID. `DEVIN_API_KEY` still held the legacy key. A read-only `GET /v3/self` with the `cog_` value returned 200. FAULTLINE then rewrote the two lines in `.env`: `DEVIN_API_KEY` now holds the `cog_` key and `DEVIN_ORG_ID` holds the `org_id` from `/v3/self`. The previous file was backed up outside the repository with mode 600. No value was printed.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `GET /v3/self` | **Passed: HTTP 200** | `principal_type: service_user`; `org_id` equals `DEVIN_ORG_ID` |
+| v3 org reads | Passed | `GET /v3/organizations/{org}/sessions` 200; `GET /v3/organizations/{org}/repositories` 200 |
+| Devin's GitHub access to `Invinciblx777/faultline-reference-shop` | **Not granted** | `GET /v3/organizations/{org}/repositories?first=100` and `?filter_name=faultline-reference-shop` both return `items: []`. Devin's Git connections list no repositories |
+| Existing sessions in the org (v3) | One, not FAULTLINE's | `7e00f303…`, status `suspended`, no tags, "Analyze Hackathon Project and Tracks" (same session as in the v1 list) |
+| Web and worker restarted | Done (00:15 IST) | Worker: `devin: configured`, `github: token set`, podman 5.8.9, Chromium preflight ok. `/api/health` → `{"ok":true}`. Neither log contains a `cog_` or `apk_` string |
+| Repair `268eeabb…` unchanged | Yes | Still `awaiting_approval` with no approval, session, or PR, and `updated_at` still 2026-10-24 17:51:10 UTC. Evidence, prompt, and regression-test checksums recomputed again: all match |
+| Approval possible in the UI | Yes, for `phase3-demo` only | Devin now counts as configured, so the approval gate is open. `FAULTLINE_REPAIR_APPROVERS=phase3-demo` |
+| Stored repository link status | Stale | `source_repositories.devin_status` is still `not_configured` from the 2026-10-24 check. **Recheck** on the project page refreshes it |
+
+**Risk before approving:** FAULTLINE's approval gate does not require Devin's repository access. If the repair is approved before the Devin GitHub app can see the repository, the session spends credits and may be unable to clone the private repository. Grant access in Devin first (Settings → Connections → GitHub). Then confirm that **Recheck** shows Devin as connected.
+
+Not done yet: approval (left to the owner), the live session, PR validation, and the independent verification run.
+

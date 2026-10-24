@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T00:17+05:30 — Phase 3.5 rerun with v3 service-user key
+
+- Changed: `PHASE_STATUS.md` Phase 3.5 records the rerun. Local `.env` (not committed): the `cog_` key the owner had saved in `DEVIN_ORG_ID` was moved to `DEVIN_API_KEY`, and `DEVIN_ORG_ID` was set to the `org_id` from `/v3/self`. `AI_USAGE.md` records the work.
+- Why: To verify the live Devin v3 connection before the owner approves the first real session.
+- Validation: `GET /v3/self` 200 (service user, org matches). v3 sessions and repositories reads 200. Web and worker restarted; the worker reports Devin configured. Repair `268eeabb…` checksums match and it is still awaiting approval.
+- Limitations: Devin's Git connections list no repositories, so Devin's access to `faultline-reference-shop` is not granted. The approval gate does not check this. No session has been created.
+
 ## 2026-10-25T00:03+05:30 — Phase 3.5 live Devin readiness check (blocked)
 
 - Changed: `PHASE_STATUS.md` gains a Phase 3.5 section with the actual results of the live Devin readiness checks. `AI_USAGE.md` records the check.

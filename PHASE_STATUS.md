@@ -205,3 +205,55 @@ pnpm operator:create admin
   - A UI to request and track repairs.
 - **Verification:** run the same regression test (and a rerun of the same experiment) against the patched deployment. `RepairRequest.verificationScanId` already links an independent rerun. "Passes after fix" is proven to work by the worker test that runs the generated test against a fixed storefront. Only that rerun's evidence may mark a repair verified.
 - **Allowlist:** the repaired preview deployment's origin must be added to the allowlist before it can be verified.
+
+## Phase 3: Devin Strike — implemented; live Devin session blocked on credentials (2026-10-24)
+
+Branch `phase-3-devin-strike`, created from `phase-2-blast-radius` at `06e1e72` (tag `phase-2-checkpoint`). Not merged into `main`.
+
+### Status in one paragraph
+
+The repair pipeline is built end to end and verified everywhere FAULTLINE controls the outcome: evidence package and prompt, approval, single-session submission with tag recovery, session and pull request sync, GitHub validation, isolated container builds of exact commits, and independent verdicts with real Chromium. **No real Devin session has been created**, because no `DEVIN_API_KEY` / `DEVIN_ORG_ID` exist in this environment. Devin's HTTP API is exercised only through a stub that follows Devin's published OpenAPI document (`v3`). No Devin pull request exists, so no Devin-authored fix has been verified. Nothing in the UI or the data claims otherwise.
+
+### Acceptance criteria
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Phase 2 preserved | Verified | All Phase 2 tests still pass (E2E Blast Radius flow, worker analysis lifecycle); migrations additive (`0002`) |
+| Finding → evidence package with checksum | Verified | Live: repair `268eeabb-af9e-4b86-828b-fbcf065f2a88` from finding `5f64dd02`, evidence checksum `2d7ecd17…`; unit tests for content, sanitization, canonical checksum |
+| Secrets removed from evidence and prompt | Verified | Unit tests with Devin, GitHub, AWS keys, bearer tokens, cookies, connection strings, query values; prompt fences evidence as untrusted data |
+| Explicit operator approval before any spend | Verified | Approval needs approver list, checkbox, matching checksum (service and worker tests). Live: approval disabled with the reason shown, because Devin is not configured |
+| One Devin session per approval, recovery without resubmission | Verified against a stub | Worker tests: concurrent submits create one session; timeout leaves `submitting`; restarted worker adopts the session found by tag; gives up after 10 min without creating one |
+| Real Devin session | **Blocked** | `DEVIN_API_KEY` and `DEVIN_ORG_ID` not provided |
+| Pull request accepted only when GitHub confirms it | Verified against stubbed GitHub responses | Tests reject other repositories, other base branches, short SHAs, same-branch PRs; accepted PR moves the repair to ready for verification |
+| Isolated build of an exact commit | Verified (real) | `candidate.test.ts`: real podman container of `Invinciblx777/faultline-reference-shop@6c9ca4c`: label matches SHA, read-only root, uid 65534, `fetch('https://example.com')` from inside fails; busy port and unknown SHA refused |
+| Independent verdicts | Verified (real Chromium) | Fixture builds: VERIFIED FIXED, STILL FAILING, REGRESSION DETECTED, INCONCLUSIVE, VERIFICATION BLOCKED (tampered test), interrupted run closed as blocked |
+| Verification on real commits in real containers | Verified (real) | Base `6c9ca4c` vs fix `b7cc293` (branch `faultline-verification-fixture`, written by the FAULTLINE developers as a fixture, not by Devin): VERIFIED FIXED; base vs itself: STILL FAILING. The fixture has no PR, so the test answers only the PR lookup locally |
+| UI: stepper, launch, live progress, PR card, verification workspace, report | Implemented; partly exercised live | Live walkthrough covered linking, Fix with Devin, awaiting approval, repairs list, settings, mobile layout (no horizontal overflow). Session, PR, and verification panels render from stored rows but were not reached live (they need a Devin session) |
+| Build, typecheck, lint, tests | Verified | See gates |
+
+### Gates (code at `d3d17c7`)
+
+- `pnpm typecheck`, `pnpm lint`, `pnpm build`: exit 0.
+- `pnpm test` with `GITHUB_TOKEN` taken from `gh auth token` in the process environment (never written to a file): shared 142, db 5, web 27, worker 57 passed (231). Without `GITHUB_TOKEN` the four container tests are skipped with a printed reason.
+- `pnpm test:e2e`: 17 passed (adds `e2e/repair.spec.ts`: unauthorized repository refused, shell-like recipe refused, Devin shown as not configured, repair APIs return 401).
+
+### Defects found and fixed during Phase 3 verification
+
+- `GitHubClient` threw synchronously on invalid names instead of rejecting; methods are now `async`.
+- Linking a repository redirected to the same page with a hash and left the stale form on screen; the action now revalidates the page.
+- The stored owner came from the lower-cased allowlist (`invinciblx777`); FAULTLINE now stores GitHub's canonical `owner/name`. The one request created before the fix (`8b0254a4…`) was cancelled through the UI.
+- A test left a queued verification behind that a later test claimed; tests now assert they claim their own run.
+
+### Limitations (honest list)
+
+- No live Devin call has been made. Response shapes come from Devin's OpenAPI document; real behavior (timestamps unit, rate limits, PR reporting latency) is unconfirmed.
+- Verification supports Node.js servers without runtime dependencies (`node <entry>`). Other stacks are refused.
+- Faults on third-party origins cannot be verified (the candidate build has no third-party counterpart); such repairs are blocked with that reason.
+- Verification runs one candidate at a time on fixed loopback ports, which must be on the scan allowlist.
+- Operators must link the repository and approve each repair; there is no automatic retry of failed sessions.
+
+### To complete the live Devin run
+
+1. Add `DEVIN_API_KEY` (a `cog_` service-user key) and `DEVIN_ORG_ID` to `.env`; connect Devin's GitHub app to `Invinciblx777/faultline-reference-shop`.
+2. Restart web and worker; Settings → Test Devin connection.
+3. On repair `268eeabb…`, confirm and approve. The worker creates the session; when Devin opens a PR, select **Verify**.

@@ -1,6 +1,6 @@
 # HTTP API and report format
 
-All routes except `/api/health` require a signed-in operator session cookie and return `401 {"error":"unauthorized"}` otherwise. Mutations (sign-in, projects, scans, cancel, rerun) are Next.js Server Actions, not public REST endpoints, so they inherit Next.js's same-origin checks.
+All routes except `/api/health` require a signed-in operator session cookie and return `401 {"error":"unauthorized"}` otherwise. Mutations (sign-in, projects, scans, cancel, rerun, repository linking, repair requests, approval, verification) are Next.js Server Actions, not public REST endpoints, so they inherit Next.js's same-origin checks.
 
 | Method | Path | Returns |
 |---|---|---|
@@ -9,6 +9,8 @@ All routes except `/api/health` require a signed-in operator session cookie and 
 | GET | `/api/scans/{scanId}/report` | `faultline.report/v1` JSON for page scans, `faultline.analysis/v1` for Blast Radius analyses, as an attachment |
 | GET | `/api/scans/{scanId}/analysis` | Live Blast Radius progress: scan `status`, `phase`, `executions[]` (`role`, `status`, `attempt`, `experimentId`), `experiments[]` (`ordinal`, `kind`, `dependencyLabel`, `status`, `verdict`) |
 | GET | `/api/experiments/{experimentId}/regression-test` | The generated Playwright test as an attachment (`x-faultline-sha256` header) |
+| GET | `/api/repairs/{repairId}` | Live repair state from stored rows: `status`, `statusDetail`, `devinStatus`, `devinStatusDetail`, `lastSyncedAt`, `syncError`, `prHeadSha`, `updatedAt`, `events` (count), `verification` (`status`, `phase`, `checks`). Never contacts Devin or GitHub |
+| GET | `/api/verification-checks/{checkId}/screenshot` | PNG recorded by a verification check; `ETag` and `x-faultline-sha256` carry its hash |
 | GET | `/api/artifacts/{artifactId}` | The stored PNG. `ETag` and `x-faultline-sha256` carry the content hash. `?download=1` adds `Content-Disposition: attachment` |
 
 ## `faultline.report/v1`
@@ -64,3 +66,7 @@ Built by `analysisReport` in `apps/web/src/lib/analysis-report.ts` from persiste
 - `experiments[]`: fault, `verdict` (`broken`, `degraded`, `resilient`, `inconclusive`, `test_failed`), `reproducibility`, rule-based `reasons`, affected steps, new errors, visual comparison, and regression-test validation status.
 
 Verdict rules are in `evaluateExperiment` (`packages/shared/src/blast-radius.ts`). No score or percentage is synthesized. The only ratio reported is the measured share of changed pixels.
+
+## `faultline.repair-evidence/v1`
+
+Built by `buildRepairEvidence` in `packages/shared/src/repair.ts` when a repair request is created, stored in `repair_requests.evidence`, and checksummed (`evidenceSha256`, SHA-256 of canonical JSON with sorted keys). Fields: `source` (analysis, experiment, project, analyzed origin), `repository` (full name, base branch, base SHA), `finding` (verdict, fault, affected page, dependency, reasons), `journey` (steps with baseline and under-fault status), `observations` (failed assertions, console and page errors, injected requests, timeline, visual note), `artifacts` (screenshot ids, SHA-256, size), `regressionTest` (filename, SHA-256, full content, command, validation), `expectedBehavior`, `currentBehavior`, `acceptanceCriteria`, `limitations`. All page-derived text is sanitized.

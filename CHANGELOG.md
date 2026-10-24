@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-24T23:55+05:30 — Phase 3 documentation
+
+- Changed: `README.md` (Phase 3 features, repair setup), `.env.example` (Devin, GitHub, repair, and verification settings with empty values), `docs/architecture.md` (repair lifecycle and verification stages), `docs/security.md` (repair integration controls and limitations), `docs/api.md` (repair routes, `faultline.repair-evidence/v1`), `PHASE_STATUS.md` (Phase 3 criteria, gates, defects, limitations, what remains), `AI_USAGE.md`.
+- Why: Document setup, behavior, and the exact verified and unverified parts of Phase 3.
+- Validation: Claims checked against the code (redaction patterns, logged fields, container flags) and against the test and walkthrough results recorded in the previous entries.
+- Limitations: The live Devin step remains undocumented by evidence because it has not run.
+
 ## 2026-10-24T23:40+05:30 — Phase 3: real-container verification, E2E, live walkthrough fixes
 
 - Changed: `apps/worker/test/repair.test.ts` gains a real-container verification of real GitHub commits of `Invinciblx777/faultline-reference-shop` (base `6c9ca4c` and fix `b7cc293` on branch `faultline-verification-fixture`, written by the FAULTLINE developers as a verification fixture, not by Devin); tests now assert they claim their own verification run. `apps/web/e2e/repair.spec.ts` (unauthorized repository refused, shell-like recipe refused, Devin shown as not configured, repair APIs require sign-in); the Blast Radius E2E checks that repair asks for a linked repository first. Linking a repository now refreshes the project page and stores GitHub's canonical `owner/name`. The repair evidence panel labels not-reached steps as "Steps that did not pass under the fault".

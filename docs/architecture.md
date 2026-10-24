@@ -74,6 +74,36 @@ A Blast Radius analysis is a scan with `scenarioKind = "blast-radius"`. It runs 
 
 The analysis job may stay active for up to 1 hour (`ANALYSIS_JOB_EXPIRE_SECONDS`). The worker enforces `FAULTLINE_ANALYSIS_TIMEOUT_MS` (default 30 min) and skips the remaining experiments with a reason. If the worker dies, the stale sweep marks the analysis `worker_interrupted`: running work becomes failed, pending experiments become skipped, and recorded evidence is kept.
 
+## Devin repair and independent verification (Phase 3)
+
+```
+finding ──▶ repair request (evidence + checksum + prompt, awaiting_approval)
+              │ operator on FAULTLINE_REPAIR_APPROVERS approves (checksum must match)
+              ▼
+            queued ──▶ worker claims (submitting) ──▶ POST /v3/organizations/{org}/sessions
+              │                                         tags: faultline, faultline-repair-<id>
+              │  response lost? stay submitting; recover by GET sessions?tags=… ; never resend
+              ▼
+            devin_running ──poll every FAULTLINE_DEVIN_POLL_INTERVAL_MS──▶ session status, messages (deduped by event_id)
+              │  session reports a PR URL ──▶ GitHub API confirms repo, base branch, head SHA
+              ▼
+            ready_for_verification ──operator──▶ verification run for the exact head SHA
+              ▼
+            verifying: original commit and candidate commit, each in its own container
+              A original, normal journey            must pass   (valid baseline)
+              B original, regression test ×2        must fail   (failure reproduces)
+              C candidate, regression test ×2       must pass   (unchanged test)
+              D candidate, normal journey           must pass   (no regression)
+              ▼
+            verified_fixed | still_failing | regression_detected | inconclusive | verification_blocked
+```
+
+- **Web** (`apps/web/src/lib/services/repairs.ts`) only writes rows: link repository, create request, approve, cancel, request sync, queue verification. Page polling reads `/api/repairs/{id}` from the database and never calls Devin.
+- **Worker** (`apps/worker/src/repair/`) runs a supervisor with two loops: agent work (submit approved requests, recover unconfirmed submissions, sync active sessions) and verification (one run at a time, heartbeats, stale runs closed as blocked after 90 s).
+- **Verdict rules** live in `decideVerification` (`packages/shared/src/repair.ts`), a pure function covered by unit tests. Checks that only collect evidence (screenshots under the fault) never decide the verdict.
+- **Candidate builds** (`candidate.ts`): GitHub tarball of the exact SHA → archive inspection (single root naming the commit, no links, no absolute or `..` paths) → extract → `podman run` read-only, `--cap-drop=all`, `no-new-privileges`, uid 65534, pids/memory/CPU limits, source mounted read-only, on an `--internal` network, ports published on 127.0.0.1 only. The container is labeled with the commit; FAULTLINE checks the label and published ports before testing.
+- **Tables**: `source_repositories`, `repair_requests` (one open request per finding, unique Devin tag and session id), `repair_events` (append-only audit trail), `verification_runs` (one active run per repair), `verification_checks` (every browser execution with output, steps, errors, screenshot hash).
+
 ## Egress guard
 
 `apps/worker/src/egress-guard.ts` is a loopback-only HTTP/CONNECT proxy with per-execution credentials. Chromium is configured to send all traffic through it (Playwright forces `<-loopback>` so even `localhost` is proxied). For every connection the guard resolves DNS itself, rejects the destination if any resolved address is non-public (unless the host:port is allowlisted and the deployment is in `local` mode), and then connects to the exact address it checked. See [security.md](security.md).

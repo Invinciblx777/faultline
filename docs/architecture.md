@@ -54,13 +54,33 @@ Scan status and execution outcome are deliberately separate. The UI shows both.
 - Steps: navigate (`load`), bounded `networkidle` wait, optional offline switch + reload, title, full-page PNG (viewport only if the page exceeds the height limit).
 - Hard limits: navigation timeout, scenario timeout, redirect limit, request budget, transfer budget. Hitting a limit is recorded as evidence.
 
+## Blast Radius analyses (Phase 2)
+
+A Blast Radius analysis is a scan with `scenarioKind = "blast-radius"`. It runs a saved journey version many times in one pg-boss job (`apps/worker/src/blast-radius-runner.ts`):
+
+1. **Journey snapshot.** `journeys` rows are immutable versions in a lineage (`lineage_id`, `version`). The scan stores a copy of the exact definition it runs (`scans.journey_snapshot`). A journey (`faultline.journey/v1`, `packages/shared/src/journey.ts`) is data: navigate / reload / click / fill / wait / assert steps with structured locators (role, text, label, placeholder, test id, plain CSS). Nothing in it is evaluated as JavaScript.
+2. **Baseline and calibration.** Two runs under normal conditions (`apps/worker/src/journey-executor.ts`), each in a fresh context through the egress guard. Every step is timed. Assertions use Playwright's `expect`. The network log stores method, redacted URL, resource type, status, timing, step index, and whether FAULTLINE injected the outcome. It stores no headers, cookies, or bodies. Steps that did not pass in both runs are excluded from verdicts. The two final screenshots set the visual-difference threshold: 3× their difference, at least 1%.
+3. **Dependency discovery.** `discoverDependencies` groups the observed requests: third-party traffic by origin, first-party fetch/XHR by method and normalized path, other first-party resources by path. Discovery covers only what this journey requested.
+4. **Experiment planning.** `planExperiments` chooses dependency × fault pairs (explicit targets, or first-party APIs first) up to `maxExperiments`. It adds the optional offline and narrow-viewport conditions. Every candidate it does not run is stored with a reason.
+5. **Experiments.** Each experiment is one fault in a fresh context:
+   - **Unavailable:** abort with `connectionrefused`.
+   - **HTTP error:** fulfill with a FAULTLINE-generated 500/503 marked `x-faultline-injected`. This applies only to first-party GET/HEAD endpoints.
+   - **Latency:** hold the request, then continue it unchanged.
+   - **Offline:** `context.setOffline(true)` after the first navigation.
+   - **Narrow viewport:** 360×740 with overflow and off-screen control checks.
+
+   `evaluateExperiment` turns observations into BROKEN / DEGRADED / RESILIENT / INCONCLUSIVE / TEST FAILED using fixed rules. BROKEN and DEGRADED results are re-run once (`combineAttempts`); a result that does not repeat becomes INCONCLUSIVE.
+6. **Regression tests.** For each finding `generateRegressionTest` writes a standalone Playwright Test file that applies the same fault and replays the stable steps. The worker runs it with the real Playwright Test runner (`regression-validator.ts`) through the egress guard. It records whether the test fails against the current site, as expected for a reproduced finding.
+
+The analysis job may stay active for up to 1 hour (`ANALYSIS_JOB_EXPIRE_SECONDS`). The worker enforces `FAULTLINE_ANALYSIS_TIMEOUT_MS` (default 30 min) and skips the remaining experiments with a reason. If the worker dies, the stale sweep marks the analysis `worker_interrupted`: running work becomes failed, pending experiments become skipped, and recorded evidence is kept.
+
 ## Egress guard
 
 `apps/worker/src/egress-guard.ts` is a loopback-only HTTP/CONNECT proxy with per-execution credentials. Chromium is configured to send all traffic through it (Playwright forces `<-loopback>` so even `localhost` is proxied). For every connection the guard resolves DNS itself, rejects the destination if any resolved address is non-public (unless the host:port is allowlisted and the deployment is in `local` mode), and then connects to the exact address it checked. See [security.md](security.md).
 
 ## Data model
 
-`operators`, `operator_sessions` (SHA-256 of the token only), `projects`, `scans`, `scan_executions` (one per role), `execution_events` (ordered evidence timeline), `artifacts` (storage key, size, SHA-256, dimensions), `worker_instances` (heartbeats). Migrations live in `packages/db/migrations` and are generated with `pnpm db:generate`.
+`operators`, `operator_sessions` (SHA-256 of the token only), `projects`, `scans`, `scan_executions` (unique on `scan_id, role, ordinal`; experiment runs carry `experiment_id` and `attempt`), `execution_events` (ordered evidence timeline), `artifacts` (storage key, size, SHA-256, dimensions; kinds `screenshot`, `step-screenshot`, `diff`), `worker_instances` (heartbeats). Phase 2 adds `journeys`, `dependencies`, `experiments`, `network_requests`, `step_results`, and `regression_tests`. Migrations live in `packages/db/migrations` and are generated with `pnpm db:generate`.
 
 ## Designed-for extensions
 

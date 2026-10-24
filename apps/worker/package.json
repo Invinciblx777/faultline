@@ -1,0 +1,35 @@
+{
+  "name": "@faultline/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "FAULTLINE scan worker: executes authorized browser scenarios with Playwright Chromium.",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=../../.env src/main.ts",
+    "build": "node build.mjs",
+    "start": "node --env-file-if-exists=../../.env dist/main.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@faultline/db": "workspace:*",
+    "@faultline/shared": "workspace:*",
+    "pg-boss": "12.38.0",
+    "playwright": "1.64.1",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1",
+    "zod": "4.6.7",
+    "@aws-sdk/client-s3": "3.1156.0",
+    "dotenv": "18.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "eslint": "^9",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8",
+    "vitest": "5.0.5"
+  }
+}

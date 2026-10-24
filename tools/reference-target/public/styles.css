@@ -1,0 +1,19 @@
+:root {
+  --grid-columns: 3;
+  --ink: #16181d;
+  --accent: #3b5bdb;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: var(--ink); background: #f4f5f7; }
+.masthead { display: flex; gap: 16px; align-items: center; padding: 24px 32px; background: var(--ink); color: #fff; }
+.masthead h1 { margin: 0; font-size: 24px; }
+.lede { margin: 4px 0 0; opacity: 0.75; }
+main { max-width: 960px; margin: 0 auto; padding: 24px 32px; }
+.banner img { display: block; width: 100%; height: 80px; background: #dfe3ea; border-radius: 12px; }
+.grid { display: grid; grid-template-columns: repeat(var(--grid-columns), 1fr); gap: 16px; }
+.card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.card h3 { margin: 0 0 4px; font-size: 16px; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #d3f9d8; color: #2b8a3e; font-size: 13px; }
+.api { margin-top: 24px; }
+footer { text-align: center; padding: 24px; color: #667; font-size: 14px; }
+@media (max-width: 640px) { :root { --grid-columns: 1; } main, .masthead { padding: 16px; } }

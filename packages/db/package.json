@@ -1,0 +1,38 @@
+{
+  "name": "@faultline/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PostgreSQL schema, migrations, and data access for FAULTLINE.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./migrate": "./src/migrate.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx scripts/migrate.ts",
+    "operator:create": "tsx scripts/create-operator.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src scripts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@faultline/shared": "workspace:*",
+    "dotenv": "18.0.9",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1",
+    "@aws-sdk/client-s3": "3.1156.0",
+    "pg-boss": "12.38.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/pg": "^8",
+    "drizzle-kit": "0.31.11",
+    "eslint": "^9",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8",
+    "vitest": "5.0.5"
+  }
+}

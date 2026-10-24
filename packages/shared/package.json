@@ -1,0 +1,29 @@
+{
+  "name": "@faultline/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared contracts, validation schemas, and security policy for FAULTLINE.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./network": "./src/network/index.ts",
+    "./password": "./src/password.ts",
+    "./env": "./src/env.ts",
+    "./contracts": "./src/contracts/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src test",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "eslint": "^9",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8",
+    "vitest": "5.0.5"
+  }
+}

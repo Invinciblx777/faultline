@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northwind Offline-Ready Page</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="masthead"><div><h1>Offline-ready page</h1><p class="lede">Registers a service worker that caches this page.</p></div></header>
+    <main><p id="sw-state">Registering service worker…</p></main>
+    <script>
+      const state = document.getElementById("sw-state");
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/pwa/sw.js", { scope: "/pwa/" }).then(
+          () => navigator.serviceWorker.ready.then(() => (state.textContent = navigator.onLine ? "Service worker active. Online." : "Served from service worker cache while offline.")),
+          (error) => { state.textContent = "Service worker registration failed"; console.error(error.message); },
+        );
+      } else {
+        state.textContent = "Service workers unavailable";
+      }
+    </script>
+  </body>
+</html>

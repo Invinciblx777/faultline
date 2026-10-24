@@ -1,0 +1,10 @@
+{
+  "name": "@faultline/reference-target",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A deliberately imperfect local website used to verify FAULTLINE scans end to end.",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}

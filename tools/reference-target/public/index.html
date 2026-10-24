@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northwind Status Board</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="masthead">
+      <img class="logo" src="/logo.svg" alt="" width="40" height="40" />
+      <div>
+        <h1>Northwind Status Board</h1>
+        <p class="lede">Reference target for FAULTLINE. Served locally; safe to break.</p>
+      </div>
+    </header>
+    <main>
+      <section class="banner">
+        <!-- Deliberate defect: this image does not exist and returns 404 on every load. -->
+        <img src="/assets/missing-banner.png" alt="Seasonal banner" width="600" height="80" />
+      </section>
+      <section>
+        <h2>Services</h2>
+        <div id="grid" class="grid" aria-live="polite"></div>
+      </section>
+      <section class="api">
+        <h2>Live API</h2>
+        <p id="api-status">Checking…</p>
+      </section>
+    </main>
+    <footer>Rendered by <code>tools/reference-target</code>.</footer>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

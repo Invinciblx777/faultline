@@ -3,6 +3,7 @@ import {
   bigint,
   type AnyPgColumn,
   boolean,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -525,7 +526,8 @@ export const repairRequests = pgTable(
     devinStatusDetail: text("devin_status_detail"),
     devinCreatedAt: timestamp("devin_created_at", { withTimezone: true, mode: "date" }),
     devinUpdatedAt: timestamp("devin_updated_at", { withTimezone: true, mode: "date" }),
-    devinAcusConsumed: integer("devin_acus_consumed"),
+    /** As Devin reports it (fractional ACUs). Zero or null means Devin has not reported usage. */
+    devinAcusConsumed: doublePrecision("devin_acus_consumed"),
     messagesCursor: text("messages_cursor"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true, mode: "date" }),
     syncError: text("sync_error"),
@@ -543,11 +545,19 @@ export const repairRequests = pgTable(
     prUpdatedAt: timestamp("pr_updated_at", { withTimezone: true, mode: "date" }),
     prCheckedAt: timestamp("pr_checked_at", { withTimezone: true, mode: "date" }),
     prNotes: jsonb("pr_notes").$type<string[]>().notNull().default([]),
+    /** Bullets under the pull request description's "Known limitations" heading, quoted as the agent wrote them. */
+    prAgentLimitations: jsonb("pr_agent_limitations").$type<string[]>().notNull().default([]),
     latestVerificationId: uuid("latest_verification_id"),
     verdict: text("verdict").$type<VerificationVerdict>(),
     verdictRationale: jsonb("verdict_rationale").$type<string[]>(),
     verifiedSha: text("verified_sha"),
     verdictAt: timestamp("verdict_at", { withTimezone: true, mode: "date" }),
+    /** FAULTLINE's verdict comment on the pull request: one per verification run, never posted twice. */
+    verdictCommentId: bigint("verdict_comment_id", { mode: "number" }),
+    verdictCommentUrl: text("verdict_comment_url"),
+    verdictCommentRunId: uuid("verdict_comment_run_id"),
+    verdictCommentPostedAt: timestamp("verdict_comment_posted_at", { withTimezone: true, mode: "date" }),
+    verdictCommentClaimedAt: timestamp("verdict_comment_claimed_at", { withTimezone: true, mode: "date" }),
   },
   (t) => [
     // One open repair per finding: double clicks and reloads cannot create a second request.

@@ -1,12 +1,13 @@
 "use client";
 
-import { FlaskConical, RefreshCw, Send, Wrench, X } from "lucide-react";
+import { FlaskConical, MessageSquarePlus, RefreshCw, Send, Wrench, X } from "lucide-react";
 import { useActionState, useState } from "react";
 import {
   approveRepairAction,
   cancelRepairAction,
   checkRepairAccessAction,
   createRepairAction,
+  postVerdictCommentAction,
   recheckRepositoryAction,
   refreshRepairAction,
   verifyRepairAction,
@@ -115,6 +116,22 @@ export function VerifyButton({ repairId, sha, again }: { repairId: string; sha: 
       <p className="text-sm text-on-surface-variant">
         Builds the original and this exact commit in isolated containers and runs the unchanged regression test against both. The pull request&apos;s code runs only inside the container.
       </p>
+      <ErrorNote state={state} />
+    </form>
+  );
+}
+
+/** Posts the verdict comment. The server checks for an existing comment first, so a second click never posts twice. */
+export function PostVerdictCommentButton({ repairId, prNumber }: { repairId: string; prNumber: number }) {
+  const [state, action, pending] = useActionState<RepairFormState, FormData>(postVerdictCommentAction, {});
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="repairId" value={repairId} />
+      <div>
+        <Button type="submit" variant="outlined" size="sm" icon={<MessageSquarePlus aria-hidden />} disabled={pending || state.ok}>
+          {pending ? "Posting…" : `Post verdict on pull request #${prNumber}`}
+        </Button>
+      </div>
       <ErrorNote state={state} />
     </form>
   );

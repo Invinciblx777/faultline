@@ -21,6 +21,7 @@
     "db:migrate": "pnpm --filter @faultline/db migrate",
     "db:migrate:test": "pnpm --filter @faultline/db migrate --test",
     "operator:create": "pnpm --filter @faultline/db operator:create",
+    "repair:comment": "pnpm --filter @faultline/db repair:comment",
     "browsers:install": "pnpm --filter @faultline/worker exec playwright install chromium",
     "build": "pnpm -r --filter=!@faultline/reference-target build",
     "typecheck": "pnpm -r typecheck",

@@ -219,6 +219,19 @@ describe("GitHub client", () => {
     await expect(github.getCommit("acme", "shop", "abc")).rejects.toThrow(/40-character/);
   });
 
+  it("lists and posts pull request comments with a JSON POST", async () => {
+    const comment = { id: 7, html_url: "https://github.com/acme/shop/pull/3#issuecomment-7", body: "hi", created_at: "2026-10-25T00:00:00Z" };
+    const fake = fakeFetch([json(200, [comment]), json(201, comment), json(403, {})]);
+    const github = new GitHubClient({ token: "ghp_test", fetch: fake.impl });
+    expect(await github.listIssueComments("acme", "shop", 3)).toEqual([comment]);
+    expect(await github.createIssueComment("acme", "shop", 3, "hi")).toEqual(comment);
+    expect(fake.calls[1]!.url).toBe("https://api.github.com/repos/acme/shop/issues/3/comments");
+    expect(fake.calls[1]!.init.method).toBe("POST");
+    expect(JSON.parse(String(fake.calls[1]!.init.body))).toEqual({ body: "hi" });
+    await expect(github.createIssueComment("acme", "shop", 3, "hi")).rejects.toThrow(/write access/);
+    await expect(github.createIssueComment("acme", "shop", 0, "hi")).rejects.toThrow(/Invalid pull request number/);
+  });
+
   it("enforces the archive size limit while streaming", async () => {
     const big = new Response(new Uint8Array(2048), { status: 200 });
     const github = new GitHubClient({ token: null, fetch: fakeFetch([big]).impl });

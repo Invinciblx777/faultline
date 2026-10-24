@@ -10,6 +10,7 @@ import {
   journeys,
   loadRepairEvidenceInput,
   operators,
+  postVerificationComment,
   projects,
   queueVerification,
   regressionTests,
@@ -23,7 +24,7 @@ import {
   type DatabaseHandle,
   type SourceRepository,
 } from "@faultline/db";
-import { buildRepairEvidence, buildRepairPrompt, journeyDefinitionSchema, repairMarker, scenarioConfigSchema, type GitHubPullFacts } from "@faultline/shared";
+import { buildRepairEvidence, buildRepairPrompt, journeyDefinitionSchema, repairMarker, scenarioConfigSchema, verdictCommentMarker, type GitHubPullFacts } from "@faultline/shared";
 import { evidenceChecksum, sha256Hex } from "@faultline/shared/checksum";
 import type { WorkerEnv } from "@faultline/shared/env";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -485,6 +486,33 @@ describe("independent verification", () => {
       expect(sha256Hex(bytes)).toBe(c.screenshotSha256);
     }
     expect(checks.filter((c) => c.method === "regression-test").every((c) => c.output)).toBe(true);
+
+    // FAULTLINE's verdict comment: posted once, never twice, and found again after a lost response.
+    const posted: string[] = [];
+    let comments: Array<{ id: number; html_url: string; body: string; created_at: string }> = [];
+    const commenting = Object.assign(fakeGitHub((n) => pull(repair.id, { number: n })), {
+      hasToken: true,
+      listIssueComments: async () => comments,
+      createIssueComment: async (_o: string, _n: string, number: number, body: string) => {
+        posted.push(body);
+        const comment = { id: 900 + posted.length, html_url: `https://github.com/${OWNER}/${NAME}/pull/${number}#issuecomment-${900 + posted.length}`, body, created_at: new Date().toISOString() };
+        comments = [...comments, comment];
+        return comment;
+      },
+    });
+    const first = await postVerificationComment(handle.db, commenting, repair.id);
+    expect(first).toMatchObject({ ok: true, created: true });
+    expect(posted).toHaveLength(1);
+    expect(posted[0]).toContain("## FAULTLINE verification — VERIFIED FIXED");
+    expect(posted[0]).toContain(verdictCommentMarker(repair.id, run.id));
+    expect(posted[0]).toContain("| failed 2/2 |");
+    expect(posted[0]).toContain("| passed 2/2 |");
+    expect(posted[0]).toContain("(aside)");
+    expect(await postVerificationComment(handle.db, commenting, repair.id)).toMatchObject({ ok: true, created: false, commentId: 901 });
+    await handle.db.update(repairRequests).set({ verdictCommentId: null, verdictCommentUrl: null, verdictCommentRunId: null }).where(eq(repairRequests.id, repair.id));
+    expect(await postVerificationComment(handle.db, commenting, repair.id)).toMatchObject({ ok: true, created: false, commentId: 901 });
+    expect(posted).toHaveLength(1);
+    expect((await events(repair.id)).filter((e) => e.kind === "verdict_comment")).toHaveLength(1);
   }, 300_000);
 
   it("STILL FAILING: the candidate does not change the behavior", async () => {

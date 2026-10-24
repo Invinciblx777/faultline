@@ -29,6 +29,13 @@
       "when": 1792868096640,
       "tag": "0003_odd_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792873377250,
+      "tag": "0004_dry_stone_men",
+      "breakpoints": true
     }
   ]
 }

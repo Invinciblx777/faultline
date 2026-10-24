@@ -1,8 +1,8 @@
-import { ExternalLink, FileCode, GitPullRequest, ShieldCheck } from "lucide-react";
+import { Download, ExternalLink, FileCode, GitPullRequest, MessageSquareQuote, ShieldCheck } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { REPAIR_VERIFIABLE_STATUSES, VERIFICATION_VERDICT_DEFINITIONS, type RepairEvidenceBundle } from "@faultline/shared";
-import { ApproveRepairForm, CancelQueuedButton, CheckRepairAccessButton, RefreshRepairButton, VerifyButton } from "@/components/repair/repair-actions";
+import { healthyScreenshotsIdentical, REPAIR_VERIFIABLE_STATUSES, verdictScope, type RepairEvidenceBundle } from "@faultline/shared";
+import { ApproveRepairForm, CancelQueuedButton, CheckRepairAccessButton, PostVerdictCommentButton, RefreshRepairButton, VerifyButton } from "@/components/repair/repair-actions";
 import { RepairLive } from "@/components/repair/repair-live";
 import { RepairStatusChip, VERIFICATION_STYLE, VerificationVerdictChip } from "@/components/repair/repair-status";
 import { RepairStepper, repairSteps } from "@/components/repair/repair-stepper";
@@ -103,12 +103,19 @@ function SessionPanel({ detail }: { detail: RepairDetail }) {
           </dd>
           <dt className="text-on-surface-variant">Created</dt>
           <dd>{formatDateTime(repair.devinCreatedAt)}</dd>
-          {repair.devinAcusConsumed !== null ? (
-            <>
-              <dt className="text-on-surface-variant">ACUs consumed</dt>
-              <dd className="tabular">{repair.devinAcusConsumed}</dd>
-            </>
-          ) : null}
+          {/* Devin reports 0 until usage is settled; a zero is not a usage figure, so link to the session instead. */}
+          <dt className="text-on-surface-variant">Usage</dt>
+          <dd>
+            {repair.devinAcusConsumed ? (
+              <span className="tabular">{repair.devinAcusConsumed} ACUs</span>
+            ) : repair.devinSessionUrl ? (
+              <a href={repair.devinSessionUrl} target="_blank" rel="noreferrer" className="text-primary underline-offset-4 hover:underline">
+                See the session in Devin
+              </a>
+            ) : (
+              "Not reported"
+            )}
+          </dd>
           <dt className="text-on-surface-variant">Last synced</dt>
           <dd>{repair.lastSyncedAt ? formatRelative(repair.lastSyncedAt) : "Not yet"}</dd>
         </dl>
@@ -166,11 +173,12 @@ function PullRequestPanel({ detail }: { detail: RepairDetail }) {
   );
 }
 
-function VerifiedReport({ detail }: { detail: RepairDetail }) {
+function VerifiedReport({ detail, canComment }: { detail: RepairDetail; canComment: boolean }) {
   const { repair } = detail;
   if (!repair.verdict) return null;
   const style = VERIFICATION_STYLE[repair.verdict];
   const run = detail.runs.find((r) => r.id === repair.latestVerificationId);
+  const commentIsCurrent = Boolean(repair.verdictCommentUrl && run && repair.verdictCommentRunId === run.id);
   return (
     <section aria-labelledby="report-title" className={cn("rounded-xl border-2 p-5 sm:p-6", style.panel)}>
       <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -179,7 +187,7 @@ function VerifiedReport({ detail }: { detail: RepairDetail }) {
         </h2>
         <VerificationVerdictChip verdict={repair.verdict} />
       </div>
-      <p className="mb-3 text-sm">{VERIFICATION_VERDICT_DEFINITIONS[repair.verdict]}</p>
+      <p className="mb-4 rounded-lg bg-surface-lowest/70 px-4 py-3 text-sm font-medium">{verdictScope(repair.verdict, healthyScreenshotsIdentical(run?.checks ?? []))}</p>
       <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[minmax(12rem,auto)_1fr]">
         <dt className="text-on-surface-variant">Finding</dt>
         <dd>
@@ -215,6 +223,30 @@ function VerifiedReport({ detail }: { detail: RepairDetail }) {
           ))}
         </ul>
       ) : null}
+      {repair.prAgentLimitations.length ? (
+        <figure className="mt-4 rounded-lg border border-outline-variant bg-surface-lowest/70 px-4 py-3">
+          <figcaption className="type-label mb-2 inline-flex items-center gap-1.5 text-xs text-on-surface-variant">
+            <MessageSquareQuote aria-hidden className="size-4" /> Agent-stated limitation, quoted from pull request #{repair.prNumber}
+          </figcaption>
+          <blockquote className="flex flex-col gap-2 border-l-2 border-outline pl-3 text-sm italic">
+            {repair.prAgentLimitations.map((l, i) => (
+              <p key={i}>&ldquo;{l}&rdquo;</p>
+            ))}
+          </blockquote>
+        </figure>
+      ) : null}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        {commentIsCurrent ? (
+          <a href={repair.verdictCommentUrl ?? undefined} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-primary underline-offset-4 hover:underline">
+            Verdict posted on pull request #{repair.prNumber} <ExternalLink aria-hidden className="size-4" />
+          </a>
+        ) : canComment && repair.prNumber && run ? (
+          <PostVerdictCommentButton repairId={repair.id} prNumber={repair.prNumber} />
+        ) : null}
+        <a href={`/api/repairs/${repair.id}/verdict`} className="inline-flex items-center gap-1.5 text-primary underline-offset-4 hover:underline">
+          <Download aria-hidden className="size-4" /> Verdict report (Markdown)
+        </a>
+      </div>
       {repair.prHeadSha && repair.verifiedSha && repair.prHeadSha !== repair.verifiedSha ? (
         <p className="mt-3 text-sm font-medium text-incomplete">
           The pull request has moved to {repair.prHeadSha.slice(0, 12)} since verification. This verdict applies only to {repair.verifiedSha.slice(0, 12)}; verify again.
@@ -278,7 +310,7 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
 
       {/* Reports carry full SHAs and archive names with no spaces; let them wrap anywhere so phones never scroll sideways. */}
       <div className="flex flex-col gap-4 wrap-anywhere">
-        <VerifiedReport detail={detail} />
+        <VerifiedReport detail={detail} canComment={isApprover} />
 
         {repair.status === "awaiting_approval" ? (
           <Surface level="container" aria-labelledby="launch-title">

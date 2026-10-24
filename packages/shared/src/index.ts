@@ -10,3 +10,4 @@ export * from "./redact";
 export * from "./report";
 export * from "./version";
 export * from "./repair";
+export * from "./verdict-report";

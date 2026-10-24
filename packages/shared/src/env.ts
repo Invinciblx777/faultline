@@ -66,12 +66,18 @@ export const workerEnvSchema = coreEnvSchema.extend({
   FAULTLINE_CHROMIUM_SANDBOX: booleanFromEnv(true),
   /** Required in public mode: the operator confirms OS/network-level egress isolation for the worker. */
   FAULTLINE_NETWORK_ISOLATION_ACK: booleanFromEnv(false),
+  /** Wall-clock budget for one Blast Radius analysis. Must stay below the job expiry (60 min). */
+  FAULTLINE_ANALYSIS_TIMEOUT_MS: intFromEnv(30 * 60_000, 60_000, 55 * 60_000),
+  /** Execute generated regression tests with Playwright Test against the target after an analysis. */
+  FAULTLINE_REGRESSION_VALIDATION: booleanFromEnv(true),
 });
 
 export const webEnvSchema = coreEnvSchema.extend({
   FAULTLINE_SESSION_TTL_HOURS: intFromEnv(12, 1, 24 * 30),
   /** Defaults to true when NODE_ENV=production. Set false only for plain-http local use. */
   FAULTLINE_COOKIE_SECURE: z.enum(["true", "false", "auto"]).default("auto"),
+  /** Blast Radius analyses that may be queued or running at once, across all projects. */
+  FAULTLINE_MAX_ACTIVE_ANALYSES: intFromEnv(2, 1, 20),
 });
 
 export type CoreEnv = z.infer<typeof coreEnvSchema>;

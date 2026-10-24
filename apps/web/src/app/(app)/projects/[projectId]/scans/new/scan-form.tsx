@@ -10,18 +10,20 @@ import {
   RESOURCE_TYPE_LABELS,
   SCENARIO_DESCRIPTIONS,
   SCENARIO_LABELS,
-  type ScenarioKind,
+  type PageScenarioKind,
 } from "@faultline/shared";
 import { launchScanAction, type ScanFormState } from "@/app/actions/scans";
 import { Button } from "@/components/ui/button";
 import { Field, inputClasses, TextInput } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 
+// Single-page scenarios. Blast Radius analyses have their own launch form.
 const SCENARIO_ICONS = { "resource-block": FileX2, "offline-reload": CloudOff } as const;
+const PAGE_SCENARIOS = Object.keys(SCENARIO_ICONS) as PageScenarioKind[];
 
 export function ScanForm({ projectId, origin }: { projectId: string; origin: string }) {
   const [state, action, pending] = useActionState<ScanFormState, FormData>(launchScanAction, {});
-  const [kind, setKind] = useState<ScenarioKind>("resource-block");
+  const [kind, setKind] = useState<PageScenarioKind>("resource-block");
   const [types, setTypes] = useState<string[]>(["stylesheet"]);
   const [viewport, setViewport] = useState("desktop");
 
@@ -49,8 +51,8 @@ export function ScanForm({ projectId, origin }: { projectId: string; origin: str
 
       <fieldset className="flex flex-col gap-3">
         <legend className="type-label mb-3">Fault scenario</legend>
-        <RadioGroup.Root name="scenarioKind" value={kind} onValueChange={(v) => setKind(v as ScenarioKind)} className="grid gap-3 sm:grid-cols-2">
-          {(Object.keys(SCENARIO_LABELS) as ScenarioKind[]).map((value) => {
+        <RadioGroup.Root name="scenarioKind" value={kind} onValueChange={(v) => setKind(v as PageScenarioKind)} className="grid gap-3 sm:grid-cols-2">
+          {PAGE_SCENARIOS.map((value) => {
             const Icon = SCENARIO_ICONS[value];
             return (
               <RadioGroup.Item

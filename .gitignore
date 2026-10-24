@@ -21,3 +21,6 @@ blob-report/
 
 .DS_Store
 *.log
+
+# Local regression test validation runs
+.regression-runs/

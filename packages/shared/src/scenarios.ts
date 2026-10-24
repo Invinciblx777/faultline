@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { blastRadiusConfigSchema, type BlastRadiusConfig, type ExperimentFault } from "./blast-radius";
 
 /**
  * Resource types FAULTLINE can deliberately abort. These map to Playwright's
@@ -51,12 +52,13 @@ export const VIEWPORT_PRESET_LABELS: Record<ViewportPreset, string> = {
   mobile: "Mobile emulation · 430×932",
 };
 
-export const SCENARIO_KINDS = ["resource-block", "offline-reload"] as const;
+export const SCENARIO_KINDS = ["resource-block", "offline-reload", "blast-radius"] as const;
 export type ScenarioKind = (typeof SCENARIO_KINDS)[number];
 
 export const SCENARIO_LABELS: Record<ScenarioKind, string> = {
   "resource-block": "Resource failure",
   "offline-reload": "Offline reload",
+  "blast-radius": "Blast Radius analysis",
 };
 
 export const SCENARIO_DESCRIPTIONS: Record<ScenarioKind, string> = {
@@ -64,6 +66,8 @@ export const SCENARIO_DESCRIPTIONS: Record<ScenarioKind, string> = {
     "Loads the page normally, then loads it again in a fresh browser context while deliberately aborting the selected resource types.",
   "offline-reload":
     "Loads the page normally, then switches the browser context offline and reloads. This is browser-context network emulation, not physical device network loss.",
+  "blast-radius":
+    "Runs a configured user journey, discovers the dependencies it really uses, then disturbs them one at a time and compares every run with the baseline.",
 };
 
 const resourceBlockSchema = z.object({
@@ -83,8 +87,15 @@ const offlineReloadSchema = z.object({
   viewport: z.enum(VIEWPORT_PRESETS).default("desktop"),
 });
 
-export const scenarioConfigSchema = z.discriminatedUnion("kind", [resourceBlockSchema, offlineReloadSchema]);
+export const scenarioConfigSchema = z.discriminatedUnion("kind", [resourceBlockSchema, offlineReloadSchema, blastRadiusConfigSchema]);
 export type ScenarioConfig = z.infer<typeof scenarioConfigSchema>;
+/** Phase 1 page-load scenarios: one baseline and one fault execution of a navigation. */
+export type PageScenarioConfig = Exclude<ScenarioConfig, BlastRadiusConfig>;
+export type PageScenarioKind = PageScenarioConfig["kind"];
+
+export function isPageScenario(config: ScenarioConfig): config is PageScenarioConfig {
+  return config.kind !== "blast-radius";
+}
 export type ResourceBlockScenario = z.infer<typeof resourceBlockSchema>;
 export type OfflineReloadScenario = z.infer<typeof offlineReloadSchema>;
 
@@ -98,12 +109,20 @@ export function describeScenario(config: ScenarioConfig): string {
     }
     case "offline-reload":
       return "Reload while the browser context is offline";
+    case "blast-radius": {
+      const parts = [
+        config.targets?.length ? `${config.targets.length} selected dependenc${config.targets.length === 1 ? "y" : "ies"}` : `up to ${config.maxExperiments} dependency experiments`,
+        config.includeOffline ? "offline" : null,
+        config.includeNarrowViewport ? "narrow viewport" : null,
+      ].filter(Boolean);
+      return `Journey analysis: ${parts.join(", ")}`;
+    }
   }
 }
 
 /** Conditions applied to one execution, recorded verbatim in evidence. */
 export interface ExecutionConditions {
-  network: "normal" | "resource-block" | "offline-emulation";
+  network: "normal" | "resource-block" | "offline-emulation" | "dependency-fault";
   /** Exact resource types aborted (resource-block only). */
   blockedResourceTypes?: BlockableResourceType[];
   blockScope?: BlockScope;
@@ -113,9 +132,16 @@ export interface ExecutionConditions {
   viewport: ViewportPreset;
   serviceWorkers: "allow" | "block";
   notes: string[];
+  /** Journey executions: the exact fault applied, if any. */
+  fault?: ExperimentFault | null;
+  /** Journey executions: viewport size when it differs from the preset. */
+  viewportSize?: { width: number; height: number; isMobile: boolean };
+  /** Journey executions: name and version of the journey that was run. */
+  journey?: { id: string; name: string; version: number };
 }
 
 export function conditionsFor(config: ScenarioConfig, role: "baseline" | "fault"): ExecutionConditions {
+  if (config.kind === "blast-radius") throw new Error("Blast Radius executions record their own journey conditions.");
   if (config.kind === "resource-block") {
     const base = {
       viewport: config.viewport,

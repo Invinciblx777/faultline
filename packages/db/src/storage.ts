@@ -32,7 +32,12 @@ const KEY_PATTERN = /^scans\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[a-z0-9-]+\.(png)$/;
 
 /** Artifact keys are built only from server-generated UUIDs. */
 export function screenshotKey(scanId: string, executionId: string): string {
-  const key = `scans/${scanId}/${executionId}/screenshot.png`;
+  return artifactKey(scanId, executionId, "screenshot");
+}
+
+/** `name` is a fixed server-side label such as `screenshot`, `step-3`, or `diff`. */
+export function artifactKey(scanId: string, executionId: string, name: string): string {
+  const key = `scans/${scanId}/${executionId}/${name}.png`;
   if (!KEY_PATTERN.test(key)) throw new Error("Refusing to build an artifact key from unexpected identifiers");
   return key;
 }

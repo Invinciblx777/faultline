@@ -20,9 +20,9 @@ function getBoss(): Promise<PgBoss> {
   return globalForQueue.faultlineBoss;
 }
 
-export async function enqueueScan(scanId: string): Promise<string> {
+export async function enqueueScan(scanId: string, options: { expireInSeconds?: number } = {}): Promise<string> {
   const boss = await getBoss();
-  const jobId = await boss.send(SCAN_QUEUE, { scanId } satisfies ScanJobData);
+  const jobId = await boss.send(SCAN_QUEUE, { scanId } satisfies ScanJobData, options);
   if (!jobId) throw new Error("The job queue did not accept the scan.");
   return jobId;
 }

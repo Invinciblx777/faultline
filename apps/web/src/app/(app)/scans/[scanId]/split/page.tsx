@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { EXECUTION_OUTCOME_LABELS, EXECUTION_ROLE_LABELS, isTerminalScanStatus, SCENARIO_LABELS, type ExecutionRole } from "@faultline/shared";
 import { EvidenceTimeline } from "@/components/scan/evidence-timeline";
 import { RealitySplit, type SplitShot } from "@/components/scan/reality-split";
@@ -30,6 +30,7 @@ function shotFor(role: ExecutionRole, execution: Execution | undefined): SplitSh
           : "No screenshot was captured for this execution.";
   return {
     role,
+    tone: role === "baseline" || role === "calibration" ? "normal" : "fault",
     label: EXECUTION_ROLE_LABELS[role],
     outcomeLabel: execution?.outcome ? EXECUTION_OUTCOME_LABELS[execution.outcome] : null,
     artifactId: execution?.screenshot?.id ?? null,
@@ -99,6 +100,8 @@ export default async function SplitPage({ params }: { params: Promise<{ scanId: 
   await requireOperator();
   const detail = await getScanDetail((await params).scanId);
   if (!detail) notFound();
+  // Blast Radius analyses have their own views.
+  if (detail.scan.scenarioKind === "blast-radius") redirect(`/scans/${detail.scan.id}/blast-radius`);
   const { scan } = detail;
   const baseline = detail.executions.find((e) => e.role === "baseline");
   const fault = detail.executions.find((e) => e.role === "fault");

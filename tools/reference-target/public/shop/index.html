@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Northwind Supply · Shop</title>
+    <link rel="stylesheet" href="/shop/shop.css" />
+    <script async src="{{PARTNER_ORIGIN}}/analytics.js"></script>
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/shop/">Northwind Supply</a>
+      <span class="cart" aria-live="polite">Cart: <strong data-testid="cart-count">0 items</strong></span>
+    </header>
+    <main>
+      <h1>Outdoor gear</h1>
+      <p id="catalog-status" role="status">Loading products…</p>
+      <button id="catalog-retry" type="button" hidden>Try again</button>
+      <ul id="products" class="products" aria-label="Products"></ul>
+
+      <section class="checkout" aria-labelledby="checkout-title">
+        <h2 id="checkout-title">Checkout</h2>
+        <p data-testid="subtotal">Subtotal $0.00</p>
+        <form id="quote-form">
+          <label for="zip">ZIP code</label>
+          <div class="row">
+            <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code" maxlength="5" />
+            <button type="submit">Get shipping quote</button>
+          </div>
+        </form>
+        <p data-testid="order-total" aria-live="polite"></p>
+        <button id="place-order" type="button" disabled>Place order</button>
+      </section>
+
+      <section class="recs" aria-labelledby="recs-title">
+        <h2 id="recs-title">You might also like</h2>
+        <ul id="recommendations"><li>Loading recommendations…</li></ul>
+      </section>
+
+      <section class="reviews" aria-labelledby="reviews-title">
+        <h2 id="reviews-title">Customer reviews</h2>
+        <div id="reviews" data-sku="TB-01">Loading reviews…</div>
+      </section>
+    </main>
+    <footer>Reference storefront for FAULTLINE. Served locally by <code>tools/reference-target</code>.</footer>
+    <script src="/shop/shop.js" defer></script>
+    <script async src="{{PARTNER_ORIGIN}}/widget/reviews.js"></script>
+  </body>
+</html>

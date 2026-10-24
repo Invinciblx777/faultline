@@ -3,13 +3,14 @@ import { and, asc, desc, eq, gt, ilike, inArray, isNull, sql, type SQL } from "d
 import {
   artifacts,
   executionEvents,
+  experiments,
   projects,
   scanExecutions,
   scans,
   WORKER_STALE_AFTER_MS,
   workerInstances,
 } from "@faultline/db";
-import { SCAN_STATUSES, SCENARIO_KINDS, type ScanStatus, type ScenarioKind } from "@faultline/shared";
+import { SCAN_STATUSES, SCENARIO_KINDS, type ScanStatus, type ScenarioKind, type Verdict } from "@faultline/shared";
 import { getDb } from "../db";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -100,9 +101,18 @@ export async function listScans(filters: ScanListFilters = {}) {
         .from(scanExecutions)
         .where(inArray(scanExecutions.scanId, rows.map((r) => r.id)))
     : [];
+  const analysisIds = rows.filter((r) => r.scenarioKind === "blast-radius").map((r) => r.id);
+  const verdictRows = analysisIds.length
+    ? await db
+        .select({ scanId: experiments.scanId, verdict: experiments.verdict, n: sql<number>`count(*)::int` })
+        .from(experiments)
+        .where(inArray(experiments.scanId, analysisIds))
+        .groupBy(experiments.scanId, experiments.verdict)
+    : [];
   return rows.map((row) => ({
     ...row,
     executions: outcomes.filter((o) => o.scanId === row.id),
+    verdicts: Object.fromEntries(verdictRows.filter((v) => v.scanId === row.id && v.verdict).map((v) => [v.verdict, v.n])) as Partial<Record<Verdict, number>>,
   }));
 }
 

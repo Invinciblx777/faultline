@@ -10,6 +10,13 @@ export interface ScanJobData {
   scanId: string;
 }
 
+/**
+ * Blast Radius analyses run many isolated executions in one job, so their
+ * jobs may stay active longer than a page scan before pg-boss expires them.
+ * The worker enforces its own analysis budget well inside this window.
+ */
+export const ANALYSIS_JOB_EXPIRE_SECONDS = 60 * 60;
+
 /** A running scan whose worker has not reported for this long is considered interrupted. */
 export const SCAN_STALE_AFTER_MS = 90_000;
 /** A worker that has not reported for this long is shown as offline. */

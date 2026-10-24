@@ -26,12 +26,19 @@ export const SCAN_STATUS_LABELS: Record<ScanStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export const EXECUTION_ROLES = ["baseline", "fault"] as const;
+/**
+ * `baseline`/`fault` are the two page-load runs of a Phase 1 scan. A Blast
+ * Radius analysis adds `calibration` (a second, independent normal run used to
+ * measure run-to-run variability) and `experiment` (one run per fault attempt).
+ */
+export const EXECUTION_ROLES = ["baseline", "fault", "calibration", "experiment"] as const;
 export type ExecutionRole = (typeof EXECUTION_ROLES)[number];
 
 export const EXECUTION_ROLE_LABELS: Record<ExecutionRole, string> = {
   baseline: "Normal conditions",
   fault: "Fault conditions",
+  calibration: "Calibration (normal conditions)",
+  experiment: "Fault experiment",
 };
 
 export const EXECUTION_STATUSES = ["pending", "running", "completed", "failed", "skipped"] as const;

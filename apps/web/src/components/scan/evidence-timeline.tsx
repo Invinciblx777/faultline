@@ -1,6 +1,9 @@
 import {
   AlertTriangle,
   Ban,
+  Camera,
+  CheckSquare,
+  Footprints,
   CircleDot,
   FileWarning,
   Navigation,
@@ -25,6 +28,9 @@ const KIND_ICON: Record<EvidenceKind, LucideIcon> = {
   http_error: FileWarning,
   fault_injected: Ban,
   policy_block: ShieldAlert,
+  journey_step: Footprints,
+  assertion: CheckSquare,
+  screenshot: Camera,
 };
 
 const SEVERITY_TEXT = { info: "text-on-surface-variant", warning: "text-incomplete", error: "text-failure" } as const;

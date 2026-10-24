@@ -26,9 +26,12 @@ import {
 import { buildRepairEvidence, buildRepairPrompt, journeyDefinitionSchema, repairMarker, scenarioConfigSchema, type GitHubPullFacts } from "@faultline/shared";
 import { evidenceChecksum, sha256Hex } from "@faultline/shared/checksum";
 import type { WorkerEnv } from "@faultline/shared/env";
-import { DevinClient, type GitHubClient } from "@faultline/shared/integrations";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DevinClient, GitHubClient } from "@faultline/shared/integrations";
 import { recoverSubmissions, submitRepair, syncRepair, type RepairAgentDeps } from "../src/repair/devin-agent";
-import type { CandidateSettings, CandidateSpec, RunningCandidate } from "../src/repair/candidate";
+import { runtimeAvailable, type CandidateSettings, type CandidateSpec, type RunningCandidate } from "../src/repair/candidate";
 import { runVerification, type VerificationDeps } from "../src/repair/verification-runner";
 import { createRuntimeInfo } from "../src/runtime";
 import { runScan } from "../src/scan-runner";
@@ -45,6 +48,7 @@ import { openTestDatabase, resetTestDatabase, testEnv } from "./integration-env"
  */
 
 const VERIFY_PORT = 4790;
+const REAL_PORT = 4795;
 const BASE_SHA = "1".repeat(40);
 const HEAD_SHA = "2".repeat(40);
 const OWNER = "acme";
@@ -63,7 +67,7 @@ const log = (message: string) => void logs.push(message);
 
 beforeAll(async () => {
   ({ shop, partner } = await startStorefront());
-  env = testEnv({ FAULTLINE_SCAN_ALLOWLIST: `${shop.origin},${partner.origin},http://localhost:${VERIFY_PORT}` });
+  env = testEnv({ FAULTLINE_SCAN_ALLOWLIST: `${shop.origin},${partner.origin},http://localhost:${VERIFY_PORT},http://localhost:${REAL_PORT},http://localhost:${REAL_PORT + 1}` });
   handle = await openTestDatabase(env);
   storage = new ArtifactStorage(storageConfigFromEnv(env));
   await storage.ensureBucket();
@@ -124,11 +128,12 @@ async function closeOpenRepairs() {
   await handle.db.execute(sql`update repair_requests set status = 'cancelled' where experiment_id = ${experimentId} and status not in ('cancelled', 'devin_failed')`);
 }
 
-async function createRepair(extra: Partial<typeof repairRequests.$inferInsert> = {}) {
+async function createRepair(extra: Partial<typeof repairRequests.$inferInsert> = {}, linked: SourceRepository = repo) {
   await closeOpenRepairs();
   const id = randomUUID();
   const createdAt = new Date();
-  const loaded = await loadRepairEvidenceInput(handle.db, experimentId, repo, { repairRequestId: id, createdAt, baseSha: BASE_SHA });
+  const baseSha = extra.baseSha ?? BASE_SHA;
+  const loaded = await loadRepairEvidenceInput(handle.db, experimentId, linked, { repairRequestId: id, createdAt, baseSha });
   if (!loaded.ok) throw new Error(loaded.error);
   const evidence = buildRepairEvidence(loaded.input);
   const prompt = buildRepairPrompt(evidence);
@@ -139,11 +144,11 @@ async function createRepair(extra: Partial<typeof repairRequests.$inferInsert> =
       projectId: loaded.projectId,
       scanId: loaded.scanId,
       experimentId,
-      repositoryId: repo.id,
-      repoOwner: OWNER,
-      repoName: NAME,
-      baseBranch: "main",
-      baseSha: BASE_SHA,
+      repositoryId: linked.id,
+      repoOwner: linked.owner,
+      repoName: linked.name,
+      baseBranch: linked.baseBranch,
+      baseSha,
       evidence,
       evidenceSha256: evidenceChecksum(evidence),
       prompt,
@@ -401,7 +406,7 @@ describe("independent verification", () => {
     const queued = await queueVerification(handle.db, repair.id, operatorId);
     expect(queued.ok).toBe(true);
     const run = await claimNextVerification(handle.db, "test-worker");
-    expect(run).not.toBeNull();
+    expect(run?.repairId).toBe(repair.id);
     const s = seam(variants);
     const deps: VerificationDeps = {
       db: handle.db,
@@ -496,5 +501,73 @@ describe("independent verification", () => {
     const again = await queueVerification(handle.db, repair.id, operatorId);
     expect(again.ok).toBe(true);
     expect((await queueVerification(handle.db, repair.id, operatorId)).ok).toBe(false);
+    // Leave no queued run behind for later tests to claim.
+    if (again.ok) await handle.db.delete(verificationRuns).where(eq(verificationRuns.id, again.runId));
   });
+});
+
+/*
+ * The full engine on real commits: GitHub serves both archives, podman builds
+ * and isolates each one, and the stored regression test decides. Base is the
+ * reference storefront's initial commit; the candidate is a fix commit on the
+ * `faultline-verification-fixture` branch, written by FAULTLINE's developers
+ * (not by Devin) so the engine has a real commit to verify. No pull request
+ * exists for it, so only the pull request lookup is answered locally.
+ */
+const REAL = {
+  owner: "Invinciblx777",
+  name: "faultline-reference-shop",
+  base: "6c9ca4c946664392b54d530fdae95886f7f8daf4",
+  fix: "b7cc29387434f7cd29445e6a6c9126184d10289f",
+};
+const containerRuntime = await runtimeAvailable({ runtime: "podman" });
+const realSkip = !process.env.GITHUB_TOKEN ? "GITHUB_TOKEN is not set" : !containerRuntime.ok ? containerRuntime.reason : null;
+if (realSkip) console.warn(`Skipping real-container verification: ${realSkip}`);
+
+describe.skipIf(Boolean(realSkip))("independent verification in real containers", () => {
+  it("VERIFIED FIXED for the real fix commit, STILL FAILING for the unchanged base", async () => {
+    const workRoot = await mkdtemp(join(tmpdir(), "faultline-verify-"));
+    const github = new GitHubClient({ token: process.env.GITHUB_TOKEN ?? null });
+    // Point the storefront project at the real repository for this test only.
+    const [linked] = await handle.db
+      .update(sourceRepositories)
+      .set({
+        owner: REAL.owner,
+        name: REAL.name,
+        url: `https://github.com/${REAL.owner}/${REAL.name}`,
+        recipe: { kind: "node-server", entry: "server.mjs", portEnv: "PORT", extraPortEnvs: ["PARTNER_PORT"], hostEnv: "HOST" },
+        baseSha: REAL.base,
+      })
+      .where(eq(sourceRepositories.id, repo.id))
+      .returning();
+    const settings: CandidateSettings = { runtime: "podman", image: env.FAULTLINE_VERIFY_IMAGE, network: "faultline-verify-test", basePort: REAL_PORT, workRoot, maxArchiveBytes: 20 * 1024 * 1024, startTimeoutMs: 30_000 };
+    const verifyCommit = async (candidateSha: string) => {
+      const repair = await createRepair({ status: "ready_for_verification", baseSha: REAL.base, devinSessionId: `devin-${randomUUID()}`, prNumber: 1, prHeadSha: candidateSha }, linked!);
+      await queueVerification(handle.db, repair.id, operatorId);
+      const run = await claimNextVerification(handle.db, "test-worker");
+      expect(run?.repairId).toBe(repair.id);
+      const pullOnly = Object.assign(Object.create(github) as GitHubClient, {
+        getPullRequest: async () => pull(repair.id, { number: 1, headSha: candidateSha, baseRepoFullName: `${REAL.owner}/${REAL.name}`, headRepoFullName: `${REAL.owner}/${REAL.name}` }),
+      });
+      await runVerification({ db: handle.db, storage, env, github: pullOnly, workerId: "test-worker", settings, log, heartbeatIntervalMs: 500 }, run!);
+      const [saved] = await handle.db.select().from(verificationRuns).where(eq(verificationRuns.id, run!.id));
+      const checks = await handle.db.select().from(verificationChecks).where(eq(verificationChecks.runId, run!.id)).orderBy(asc(verificationChecks.ordinal));
+      return { run: saved!, checks };
+    };
+    try {
+      const fixed = await verifyCommit(REAL.fix);
+      expect(fixed.run.verdict, JSON.stringify(fixed.run.rationale)).toBe("verified_fixed");
+      const builds = fixed.run.builds as Record<string, { sha: string; archiveSha256: string; identity: string[] }>;
+      expect(builds.original!.sha).toBe(REAL.base);
+      expect(builds.candidate!.sha).toBe(REAL.fix);
+      expect(builds.candidate!.identity.join(" ")).toContain(REAL.fix);
+      expect(fixed.checks.every((c) => c.status !== "error")).toBe(true);
+
+      const unchanged = await verifyCommit(REAL.base);
+      expect(unchanged.run.verdict, JSON.stringify(unchanged.run.rationale)).toBe("still_failing");
+    } finally {
+      await rm(workRoot, { recursive: true, force: true });
+      await handle.db.update(sourceRepositories).set({ owner: repo.owner, name: repo.name, url: repo.url, recipe: repo.recipe, baseSha: repo.baseSha }).where(eq(sourceRepositories.id, repo.id));
+    }
+  }, 600_000);
 });

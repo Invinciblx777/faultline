@@ -43,7 +43,7 @@ function errorText(error: unknown): string {
 
 /** GitHub and Devin connection facts for a repository, recorded as they were observed. */
 async function checkConnections(deps: RepairServiceDeps, repo: { owner: string; name: string; baseBranch: string }) {
-  const result: Pick<SourceRepository, "githubStatus" | "githubDetail" | "baseSha" | "devinStatus" | "devinDetail" | "devinRepoName"> & { url: string } = {
+  const result: Pick<SourceRepository, "githubStatus" | "githubDetail" | "baseSha" | "devinStatus" | "devinDetail" | "devinRepoName"> & { url: string; canonicalName?: string } = {
     githubStatus: "error",
     githubDetail: null,
     baseSha: null,
@@ -57,6 +57,7 @@ async function checkConnections(deps: RepairServiceDeps, repo: { owner: string; 
     if (info.archived) throw new Error("The repository is archived.");
     const branch = await deps.github.getBranch(repo.owner, repo.name, repo.baseBranch);
     result.githubStatus = "ok";
+    result.canonicalName = info.full_name;
     result.baseSha = branch.commit.sha;
     result.url = info.html_url;
     result.githubDetail = `${info.full_name} (${info.private ? "private" : "public"}) is readable; ${branch.name} is at ${branch.commit.sha.slice(0, 12)}${branch.protected ? " and protected" : ""}.`;
@@ -65,7 +66,7 @@ async function checkConnections(deps: RepairServiceDeps, repo: { owner: string; 
   }
   if (deps.devin) {
     try {
-      const found = await deps.devin.findRepository(repositoryFullName(repo));
+      const found = await deps.devin.findRepository(result.canonicalName ?? repositoryFullName(repo));
       if (found) {
         result.devinStatus = "ok";
         result.devinRepoName = found.repo_full_name;
@@ -127,12 +128,14 @@ export async function linkRepository(deps: RepairServiceDeps, operator: Operator
   }
   const [project] = await deps.db.select({ id: projects.id }).from(projects).where(eq(projects.id, input.projectId));
   if (!project) return { ok: false, error: "That project does not exist." };
-  const checks = await checkConnections(deps, link);
+  const { canonicalName, ...checks } = await checkConnections(deps, link);
+  // Keep GitHub's own spelling of the name (the allowlist comparison is case-insensitive).
+  const [owner, name] = canonicalName?.split("/") ?? [link.owner, link.name];
   const values = {
     projectId: project.id,
     provider: link.provider,
-    owner: link.owner,
-    name: link.name,
+    owner: owner!,
+    name: name!,
     baseBranch: link.baseBranch,
     appDir: link.appDir,
     recipe: link.recipe,
@@ -154,8 +157,9 @@ export async function recheckRepository(deps: RepairServiceDeps, operator: Opera
   if (!z.uuid().safeParse(repositoryId).success) return { ok: false, error: "Unknown repository." };
   const [repo] = await deps.db.select().from(sourceRepositories).where(eq(sourceRepositories.id, repositoryId));
   if (!repo) return { ok: false, error: "Unknown repository." };
-  const checks = await checkConnections(deps, repo);
-  await deps.db.update(sourceRepositories).set({ ...checks, checkedAt: new Date() }).where(eq(sourceRepositories.id, repositoryId));
+  const { canonicalName, ...checks } = await checkConnections(deps, repo);
+  const [owner, name] = canonicalName?.split("/") ?? [repo.owner, repo.name];
+  await deps.db.update(sourceRepositories).set({ ...checks, owner: owner!, name: name!, checkedAt: new Date() }).where(eq(sourceRepositories.id, repositoryId));
   return { ok: true };
 }
 

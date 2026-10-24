@@ -26,6 +26,8 @@ export async function linkRepositoryAction(_prev: RepairFormState, form: FormDat
   const input = repositoryInputFromForm(form);
   const result = await linkRepository(getRepairDeps(), operator, input);
   if (!result.ok) return { error: result.error, fieldErrors: result.fieldErrors };
+  // Same path plus a hash would otherwise keep the cached page with the old form.
+  revalidatePath(`/projects/${input.projectId}`);
   redirect(`/projects/${input.projectId}#source-repository`);
 }
 

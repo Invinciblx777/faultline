@@ -42,7 +42,7 @@ function EvidencePanel({ evidence, sha, promptSha, prompt }: { evidence: RepairE
         <dd>{evidence.currentBehavior}</dd>
         {evidence.observations.failedAssertions.length ? (
           <>
-            <dt className="text-on-surface-variant">Failed steps</dt>
+            <dt className="text-on-surface-variant">Steps that did not pass under the fault</dt>
             <dd>
               <ul className="flex flex-col gap-1">
                 {evidence.observations.failedAssertions.map((a) => (

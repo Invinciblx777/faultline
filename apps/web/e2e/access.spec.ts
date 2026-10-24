@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("access control", () => {
   test("protected pages redirect to sign-in", async ({ page }) => {
-    for (const path of ["/projects", "/scans", "/settings", "/projects/new"]) {
+    for (const path of ["/projects", "/scans", "/settings", "/projects/new", "/repairs"]) {
       await page.goto(path);
       await expect(page).toHaveURL(/\/login/);
     }

@@ -378,3 +378,50 @@ Every row is from the FAULTLINE database, GitHub, or the Devin API. The full rec
 - Credits: FAULTLINE stores the session's `acus_consumed` rounded to an integer (`0`); the exact figure is on the Devin session page.
 - No public deployment, no repository visibility change, no submission made.
 
+
+## Phase 4.1: Judge-ready (2026-10-25, 01:46–03:05 IST)
+
+Branch `feat/verdict-scope-comment` (from `main` at merge `71924ca` of `phase-3-devin-strike`), merged to `main` with a merge commit after the gates below. Phase 4.5 (design system) not started.
+
+### Steps
+
+| Step | Status | Evidence |
+|---|---|---|
+| 0. Merge Phase 3 into `main` | Done | `71924ca` (merge commit, pushed). Reference-shop PR #1 not merged |
+| 1. Verdict scope, agent-stated limitation, credits | Done (`905595c`) | Scope line on the repair report, every verification run, and the PR comment. "Agent-stated limitation" quotes 3 bullets from PR #1's body. `devin_acus_consumed` is `double precision`; the Devin API returns `0` for session `60a680e3…`, so the UI hides the figure and links the session |
+| 2. Verdict comment on PR #1 | Done | https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389303315, posted 20:43:04 UTC once; a second call found the marker and did not post. Fallback copy: `docs/PR1_VERDICT_COMMENT.md` |
+| 3. Real-app scan | Done | Project `13327180-4c6e-41e1-9b4a-0b445cdb64fb` (`https://www.daluxeofficial.in`), journey `12180c2c…` (6 steps, home → product → cart drawer, GET only). Analyses `004f212e…` (8 experiments), `e24a90ca…` (6), `e9044023…` (4). Results in README; screenshots in `docs/screenshots/real-app/` |
+| 4. Stricter journey vs `b750bd3` | Done | Journey v2 `e70ef703…` (step 3 `assertDisabled` on "Add Camp Bottle to cart"). Analysis `76f3b920…`: BROKEN, reproduced; test `dce96fba…` `fails_as_expected`. Cross-check run `24f9f532…`: **STILL FAILING** (candidate under the fault fails step 3, "Received: enabled", 2 of 2; candidate normal passes 9 of 9). Repair verdict unchanged |
+| 5. Secrets and public readiness | PUBLIC-READY | gitleaks 8.21.2 over 37 commits: 7 matches, all synthetic fixtures in test files (`packages/shared/test/verdict-report.test.ts:42,54`; `apps/web/test/repair-services.test.ts:131`; `packages/shared/test/integrations.test.ts:4`; `packages/shared/test/repair.test.ts:139`; `apps/worker/test/repair.test.ts:230`; `packages/shared/test/redact-password.test.ts:25`). Only `.env.example` is tracked. Reference shop (4 commits): 0 matches. LICENSE (MIT), SECURITY.md, CONTRIBUTING.md present |
+| 6. README in product voice | Done | No banned words (grep). `docs/vision.md` → `docs/ROADMAP.md` |
+| 7. Demo insurance | Done | `pnpm demo:preflight` 10 of 10 PASS live; fresh-clone `pnpm quickstart` + `pnpm demo` + scripted analysis (48 s); runbook; backup video `docs/demo/faultline-walkthrough.webm` (156.7 s) |
+| 8. Pitch and submission | Done, owner fields open | `HACKATHON_PITCH.md`, `SUBMISSION.md` (participants, form, checklist, and organizer questions left to the owner) |
+
+### Real-app findings (Daluxe Official)
+
+- Main JS bundle (`/_expo/static/js/web/index-3acffe89….js`) unavailable: BROKEN, reproduced in two analyses, 97.38% pixels changed, steps 2–6 fail. Experiment `d0e19ccf-fdfb-4a40-86cb-b1e6087ffc04`; test `cfe9f5ae…` `fails_as_expected`.
+- RESILIENT with 0.00% pixel change: CSS unavailable; 5 images unavailable; bundle and CSS slowed by 3 s.
+- `http://localhost:8081` (the production bundle requests `/api/supabase-config` there from visitors' browsers): RESILIENT in `004f212e`; INCONCLUSIVE, not reproduced, in `e24a90ca` ("Step 3 (Open a product) … page.goto: Timeout 30000ms exceeded").
+- Offline after the first page: INCONCLUSIVE (no offline expectation configured; step 3 fails).
+- 360×740 viewport: BROKEN, reproduced, at step 5. Cause: the journey's CSS selector for the cart icon exists only in the desktop layout. A manual Playwright check at 360 px found a cart button at the top right that opens "Your Cart". Its regression test validation ended `error` (runner exceeded 180 000 ms against the live site).
+- HTTP-error injection skipped for every dependency (no first-party GET API endpoints in the journey).
+
+### Gates (code at `b1383a0`)
+
+`GITHUB_TOKEN=$(gh auth token)` set; live web stopped during build and E2E.
+
+| Gate | Result |
+|---|---|
+| `pnpm typecheck` | exit 0 |
+| `pnpm lint` | exit 0 |
+| `pnpm build` | exit 0 |
+| `pnpm test` | 257 passed, 0 failed, 0 skipped: shared 158 (8 files), db 5 (1), web 34 (3), worker 60 (7, 354.9 s, includes real podman container verification) |
+| `pnpm test:e2e` | 17 passed, 0 failed, 0 skipped (1.1 min) |
+
+### Not done / limitations
+
+- PR #1 is open and not merged. Its verdict comment was not updated with the cross-check.
+- The PR comment's screenshots point at `raw.githubusercontent.com/Invinciblx777/faultline/main/docs/screenshots/verification/…`; they render only once this repository is public.
+- PR #1's body (written by Devin) contains a Devin attachment URL with a signed token; it becomes visible if the reference-shop repository is made public.
+- The 360 px finding needs a mobile-aware journey (a role or test-id target for the cart button) before it says anything about the store.
+- Repository visibility unchanged; nothing submitted; no public deployment.

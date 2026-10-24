@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T03:05+05:30 — Phase 4.1 status, gates, and AI usage
+
+- Changed: `PHASE_STATUS.md` gains the Phase 4.1 section (every step, real-app findings, gates, limitations). `AI_USAGE.md` records this session.
+- Why: Keep the build record blunt and complete in the bookkeeping files, so README can speak as the product.
+- Validation: Gates at `b1383a0`: typecheck, lint, build exit 0; `pnpm test` 257 passed (158 + 5 + 34 + 60), 0 failed, 0 skipped; `pnpm test:e2e` 17 passed, 0 skipped. gitleaks over 37 commits: 7 synthetic test fixtures only.
+- Limitations: Documentation only.
+
 ## 2026-10-25T02:58+05:30 — Demo insurance: preflight migration check, runbook, backup video, submission
 
 - Changed: `pnpm demo:preflight` (`apps/worker/src/demo-preflight.ts`) gains a "Database schema" check (applied migrations vs `packages/db/migrations/meta/_journal.json`; FAIL with "Run: pnpm db:migrate") and lists up to three real-app analyses. `DEMO_RUNBOOK.md` rewritten to the three-minute Hook / Break / Understand / Fix / Prove / Close route with tabs A–G and fallbacks (phone hotspot, `pnpm worker:restart`, `pnpm db:migrate`, backup video). New backup walkthrough `docs/demo/faultline-walkthrough.webm`. `SUBMISSION.md` filled (description, track, what is real with links, stack and API attribution, organizer questions); participant names, the form, and the checklist stay with the owner.

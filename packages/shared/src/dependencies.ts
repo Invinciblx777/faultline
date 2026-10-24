@@ -232,3 +232,26 @@ export function discoverDependencies(requests: ObservedRequest[], targetOrigin: 
     })
     .sort((a, b) => (a.party === b.party ? order[a.scope] - order[b.scope] || a.key.localeCompare(b.key) : a.party === "first-party" ? -1 : 1));
 }
+
+const LOOPBACK_HOST = /^(localhost|.+\.localhost|127(\.\d{1,3}){3}|\[::1\])$/i;
+
+/**
+ * A plain-language note when a site served from a public origin makes its
+ * visitors' browsers request a loopback origin: a development endpoint that
+ * shipped to production. Derived from the dependency key and the analyzed
+ * origin only; null for everything else.
+ */
+export function developmentEndpointNote(dependencyKey: string | null, analyzedOrigin: string): string | null {
+  if (!dependencyKey) return null;
+  const url = dependencyKey.slice(dependencyKey.indexOf(" ") + 1);
+  let dependency: URL;
+  let site: URL;
+  try {
+    dependency = new URL(url);
+    site = new URL(analyzedOrigin);
+  } catch {
+    return null;
+  }
+  if (!LOOPBACK_HOST.test(dependency.host.replace(/:\d+$/, "")) || LOOPBACK_HOST.test(site.hostname)) return null;
+  return `Production site requests ${dependency.origin} from visitors' browsers (development endpoint shipped to production).`;
+}

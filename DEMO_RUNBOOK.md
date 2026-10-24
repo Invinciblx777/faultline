@@ -34,11 +34,12 @@ The storefront is **Northwind Supply**, our own reference shop (`Invinciblx777/f
    |---|---|
    | A | http://localhost:4600/shop/ |
    | B | http://localhost:3000/scans/780cac26-dc0d-46be-84cf-0032f04646f6/blast-radius |
-   | C | http://localhost:3000/scans/004f212e-40a3-4e47-971d-49a2135433c3/blast-radius |
+   | C | http://localhost:3000/scans/83758bb7-4a37-41cf-afdd-b2b73c3f020c/blast-radius |
    | D | http://localhost:3000/scans/780cac26-dc0d-46be-84cf-0032f04646f6/experiments/5f64dd02-32d0-485e-8e94-5ffcbac309b2 |
    | E | http://localhost:3000/repairs/268eeabb-af9e-4b86-828b-fbcf065f2a88 |
    | F | https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389303315 |
    | G | https://app.devin.ai/sessions/60a680e3098142b0b1b2ca8fca9cf27a |
+   | H | https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389982815 |
 
 5. Have the video open in a player, paused at 0:00.
 
@@ -48,13 +49,14 @@ The storefront is **Northwind Supply**, our own reference shop (`Invinciblx777/f
 |---|---|---|---|
 | 0:00 | A | Scroll the product list and the checkout | Hook |
 | 0:20 | B | Point at the BROKEN / RESILIENT counts. Hover the **GET /api/inventory** card; the lines show the steps it broke | Break |
-| 0:40 | C | Point at **BROKEN 1, RESILIENT 7**. Click the main JavaScript bundle card; the drawer shows steps 2–6 failing, reproduced in a second run (its Reality Split: 97.38% of pixels changed) | Break (real app) |
+| 0:40 | C | Point at the **localhost:8081** card: "Production site requests http://localhost:8081 from visitors' browsers (development endpoint shipped to production)." The 360×740 card next to it is RESILIENT | Break (real app) |
 | 1:00 | D | Show **BROKEN · Reproduced**. Scroll to **Reality Split** and drag the seam. Scroll to the timeline, then to **Regression test** | Understand |
 | 1:30 | E | Show the stepper (Finding → Evidence → Approval → Devin session → Pull request → Verification → Verdict) and **Approved by phase3-demo** | Fix |
 | 1:45 | G | Show the session | Fix |
 | 1:55 | F | Show FAULTLINE's comment on PR #1: table, screenshots, footer | Fix |
-| 2:10 | E | **Verified fix report**: scope line, then the quoted agent-stated limitation. Scroll to **Independent verification**: Before/After | Prove |
-| 2:35 | E | Scroll to **Cross-checks**: **STILL FAILING**, step 3, `Received: enabled`; the candidate screenshot shows Camp Bottle with an enabled **Add to cart** | Prove |
+| 2:10 | E | **Verified fix report**: scope line. Scroll to **Independent verification**: Before/After, VERIFIED FIXED | Prove |
+| 2:25 | E | Scroll to **Cross-checks**: **STILL FAILING**, step 3, `Received: enabled`; Camp Bottle has an enabled **Add to cart** | Prove |
+| 2:40 | H | PR #1 now shows both verdicts in order: VERIFIED FIXED (v1), then STILL FAILING (journey v2), with the agent-stated limitation it tests | Prove |
 | 2:50 | — | Close | Close |
 
 ## Optional: verify again live (about 60 s, no Devin cost)

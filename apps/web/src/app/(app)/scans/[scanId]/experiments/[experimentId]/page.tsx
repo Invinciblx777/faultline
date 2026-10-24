@@ -1,7 +1,7 @@
 import { Download, FileCode, ImageIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { describeFault, EXPERIMENT_KIND_LABELS, REPRODUCIBILITY_LABELS, VERDICT_DEFINITIONS } from "@faultline/shared";
+import { describeFault, developmentEndpointNote, EXPERIMENT_KIND_LABELS, REPRODUCIBILITY_LABELS, VERDICT_DEFINITIONS } from "@faultline/shared";
 import { CausalTimeline } from "@/components/analysis/causal-timeline";
 import { ExperimentStateChip, KindLabel } from "@/components/analysis/verdict";
 import { FixWithDevinPanel } from "@/components/repair/fix-with-devin";
@@ -71,6 +71,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
   const second = attempts[1] ?? null;
   const analysis = scan.analysis;
   const title = experiment.dependencyLabel ?? EXPERIMENT_KIND_LABELS[experiment.kind];
+  const note = developmentEndpointNote(experiment.dependencyKey, scan.targetUrl);
   const injected = first?.requests.filter((r) => r.injected && r.injected !== "mutation-blocked") ?? [];
   const natural = first?.requests.filter((r) => !r.injected && (r.outcome === "failed" || (r.status ?? 0) >= 400)) ?? [];
   const blocked = first?.requests.filter((r) => r.injected === "mutation-blocked") ?? [];
@@ -84,6 +85,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
         description={
           <span className="flex flex-col gap-2">
             <KindLabel kind={experiment.kind} />
+            {note ? <span className="font-medium text-on-surface">{note}</span> : null}
             <span>{describeFault(experiment.fault, experiment.dependencyLabel)}.</span>
           </span>
         }

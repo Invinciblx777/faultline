@@ -101,6 +101,14 @@ describe("verdict comment", () => {
     expect(md).toContain("(aside)");
   });
 
+  it("qualifies the heading and says when the run tests the quoted limitation", () => {
+    const md = buildVerdictComment({ ...input, verdict: "still_failing", titleDetail: "journey v2: out-of-stock guard", limitationsTested: true });
+    expect(md).toContain("## FAULTLINE verification — STILL FAILING (journey v2: out-of-stock guard)");
+    expect(md).toContain("**Agent-stated limitation this run tests** (quoted from this pull request's description):");
+    expect(md).not.toContain("FAULTLINE did not test it");
+    expect(buildVerdictComment(input)).toContain("FAULTLINE did not test it");
+  });
+
   it("links screenshots only when a public URL is given, and lists hashes otherwise", () => {
     expect(buildVerdictComment(input)).not.toContain("![");
     const md = buildVerdictComment({ ...input, imageUrl: (sha) => `https://example.test/${sha}.png` });

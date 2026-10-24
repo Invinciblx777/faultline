@@ -22,6 +22,8 @@ export interface MapExperiment {
   ordinal: number;
   kind: ExperimentKind;
   title: string;
+  /** Plain-language observation about the dependency itself, e.g. a development endpoint shipped to production. */
+  note: string | null;
   party: "first-party" | "third-party" | null;
   status: ExperimentStatus;
   verdict: Verdict | null;
@@ -219,6 +221,7 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
                       <ExperimentStateChip status={e.status} verdict={e.verdict} />
                     </span>
                     <span className="break-all text-sm font-medium">{e.title}</span>
+                    {e.note ? <span className="text-xs font-medium text-on-surface">{e.note}</span> : null}
                     {e.affectedSteps.length && (e.verdict === "broken" || e.verdict === "degraded") ? (
                       <span className="text-xs text-on-surface-variant">
                         Steps {e.affectedSteps.map((s) => s + 1).join(", ")}
@@ -283,6 +286,7 @@ export function BlastRadiusMap({ scanId, steps, experiments }: { scanId: string;
             <div className="min-w-0">
               <KindLabel kind={active.kind} className="text-sm text-on-surface-variant" />
               <h3 className="type-title mt-1 break-all">{active.title}</h3>
+              {active.note ? <p className="mt-1 text-sm font-medium">{active.note}</p> : null}
             </div>
             <button type="button" onClick={() => setSelected(null)} aria-label="Close details" className="grid size-10 shrink-0 place-items-center rounded-full hover:bg-surface-highest">
               <X aria-hidden className="size-5" />

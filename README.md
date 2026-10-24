@@ -16,7 +16,7 @@ FAULTLINE breaks one dependency of your web app at a time in a real browser, sho
 
 **Verdict scope.** VERIFIED FIXED means the original failing regression test passes under the identical injected fault and the healthy-path journey still passes. It covers the tested journey and assertions only, not every behavior of the change. FAULTLINE never merges.
 
-**Cross-check.** FAULTLINE then judged the same commit with a stricter journey (v2), which also asserts that an out-of-stock item cannot be added while `/api/inventory` fails. Verdict on `b750bd3`: **STILL FAILING**. The Camp Bottle shows "Stock level unavailable" but can be added to the cart, 2 of 2 runs (run `24f9f532…`, 2026-10-25 02:34 IST). The original verdict above stands for its own test.
+**Cross-check.** FAULTLINE then judged the same commit with a stricter journey (v2), which also asserts that an out-of-stock item cannot be added while `/api/inventory` fails. Verdict on `b750bd3`: **STILL FAILING**. The Camp Bottle shows "Stock level unavailable" but can be added to the cart, 2 of 2 runs (run `24f9f532…`, 2026-10-25 02:34 IST; [second verdict on the PR](https://github.com/Invinciblx777/faultline-reference-shop/pull/1#issuecomment-6389982815)). The original verdict above stands for its own test. PR #1 carries both verdicts in order: VERIFIED FIXED (journey v1), then STILL FAILING (journey v2).
 
 ![Cross-check of commit b750bd3: STILL FAILING, the out-of-stock Camp Bottle can be added while inventory is down](docs/screenshots/09-cross-check-still-failing.png)
 
@@ -51,15 +51,15 @@ FAULTLINE also scanned [daluxeofficial.in](https://www.daluxeofficial.in), a liv
 
 ![Blast Radius Map of the Daluxe store](docs/screenshots/real-app/01-blast-radius-map.png)
 
-Three analyses, 18 experiments, 2026-10-25 02:11–02:33 IST (project `13327180…`):
+Four analyses, 21 experiments, 2026-10-25 02:11–03:15 IST (project `13327180…`):
 
 | Fault | Result |
 |---|---|
-| Main JavaScript bundle unavailable | **BROKEN**, reproduced in two analyses. The page is blank: 97.38% of pixels change. The store renders only on the client, so one failed file takes down the whole journey. |
+| `http://localhost:8081` | **Production storefront requests `http://localhost:8081` from visitors' browsers (development endpoint shipped to production).** The bundle asks a developer address for `/api/supabase-config`; the call fails in every visitor's browser and the store falls back. With the address unavailable: RESILIENT in analyses `004f212e…` and `83758bb7…`; INCONCLUSIVE in `e24a90ca…`, where the product page timed out after 30 s and did not reproduce. |
+| Main JavaScript bundle unavailable | **BROKEN**, reproduced in three analyses: the page is blank (97.38–97.40% of pixels change). Expected for a client-rendered single-page app, and the reason one CDN miss takes down the whole store. |
 | Main bundle or stylesheet slowed by 3 s; stylesheet or 5 product images unavailable | RESILIENT, 0.00% pixel change |
-| `http://localhost:8081/api/supabase-config` unavailable | The production bundle calls a developer address from every visitor's browser. The call fails and the store falls back. RESILIENT in one analysis; INCONCLUSIVE in another, where the product page timed out after 30 s and did not reproduce. |
 | Offline after the first page | INCONCLUSIVE by design: no offline expectation is set, so FAULTLINE records the observation (step 3 fails) without judging it. |
-| 360 px viewport | BROKEN, reproduced. The journey's desktop CSS selector for the cart icon does not exist in the mobile layout. At 360 px the cart button sits at the top right and opens the cart, so this finding points at the journey, not the store. |
+| 360 px viewport | **RESILIENT** with journey v2 (analysis `83758bb7…`, experiment `921abd8d…`): all 3 assertions pass and the cart opens at 360 px. Journey v1 recorded BROKEN in `e9044023…` because its cart target was a desktop-only CSS path; v2 targets the last button in the header icon row, which is the cart at both widths. Both runs stay in history. |
 
 HTTP error injection was skipped: the journey calls no first-party GET API on this store.
 

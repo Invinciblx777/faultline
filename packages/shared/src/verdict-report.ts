@@ -96,6 +96,10 @@ export interface VerdictCommentInput {
   fault: string;
   regressionTest: { filename: string; sha256: string };
   agentLimitations: readonly string[];
+  /** True when this run's journey asserts the quoted limitations, so the comment must not say FAULTLINE left them untested. */
+  limitationsTested?: boolean;
+  /** Short qualifier after the verdict in the heading, e.g. "journey v2: out-of-stock guard". */
+  titleDetail?: string | null;
   /** Public URL for a screenshot by its SHA-256, or null to list the hash only. */
   imageUrl?: (sha256: string) => string | null;
 }
@@ -121,7 +125,7 @@ function iso(date: Date | null): string {
 
 export function buildVerdictComment(input: VerdictCommentInput): string {
   const identical = healthyScreenshotsIdentical(input.checks);
-  const title = VERDICT_TITLES[input.verdict];
+  const title = input.titleDetail ? `${VERDICT_TITLES[input.verdict]} (${input.titleDetail})` : VERDICT_TITLES[input.verdict];
   const lines: string[] = [verdictCommentMarker(input.repairId, input.runId), `## FAULTLINE verification — ${title}`, "", `> ${verdictScope(input.verdict, identical)}`, ""];
 
   lines.push(
@@ -133,7 +137,12 @@ export function buildVerdictComment(input: VerdictCommentInput): string {
   );
 
   if (input.agentLimitations.length) {
-    lines.push("**Agent-stated limitation** (quoted from this pull request's description; FAULTLINE did not test it):", "");
+    lines.push(
+      input.limitationsTested
+        ? "**Agent-stated limitation this run tests** (quoted from this pull request's description):"
+        : "**Agent-stated limitation** (quoted from this pull request's description; FAULTLINE did not test it):",
+      "",
+    );
     for (const item of input.agentLimitations) lines.push(`> ${item}`, ">");
     lines.pop();
     lines.push("");

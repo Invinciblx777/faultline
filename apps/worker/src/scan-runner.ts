@@ -20,6 +20,7 @@ import {
   type ArtifactStorage,
   type Database,
 } from "@faultline/db";
+import { runBlastRadiusAnalysis } from "./blast-radius-runner";
 import { runExecution, type ExecutionLimits, type ExecutionResult } from "./executor";
 import { browserLaunchOptions, type RuntimeInfo } from "./runtime";
 
@@ -114,10 +115,14 @@ export async function runScan(deps: RunnerDeps, scanId: string, jobSignal?: Abor
   jobSignal?.addEventListener("abort", onJobAbort, { once: true });
   let phase = "Starting browser";
   const heartbeat = setInterval(() => {
-    void heartbeatScan(db, scanId, phase)
+    void heartbeatScan(db, scanId, phase, runtime.workerId)
       .then((state) => {
         if (state.cancelRequested && !cancel.signal.aborted) {
           log("cancellation requested", { scanId });
+          cancel.abort();
+        } else if (!state.running && !cancel.signal.aborted) {
+          // The scan was finalized elsewhere (e.g. marked interrupted by a stale sweep); stop working on it.
+          log("scan no longer owned by this worker; stopping", { scanId });
           cancel.abort();
         }
       })
@@ -149,7 +154,31 @@ export async function runScan(deps: RunnerDeps, scanId: string, jobSignal?: Abor
       subresourcePolicy: env.FAULTLINE_SUBRESOURCE_POLICY,
     };
     const limits = limitsFromEnv(env);
-    const roles: ExecutionRole[] = ["baseline", "fault"];
+
+    if (scenario.kind === "blast-radius") {
+      const { cancelled } = await runBlastRadiusAnalysis({
+        db,
+        storage,
+        env,
+        scan,
+        origin: project.origin,
+        browser,
+        policy,
+        limits,
+        signal: cancel.signal,
+        setPhase,
+        log,
+      });
+      const environment = environmentFor(env, runtime, browser);
+      if (cancelled || cancel.signal.aborted) {
+        await finishScan(db, scanId, { status: "cancelled", errorCode: "cancelled", errorMessage: "Cancelled by operator.", environment });
+      } else {
+        await finishScan(db, scanId, { status: "completed", environment });
+      }
+      return;
+    }
+
+    const roles: Array<Extract<ExecutionRole, "baseline" | "fault">> = ["baseline", "fault"];
     let allCompleted = true;
 
     for (const role of roles) {

@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import type { ScanEnvironment, ScanStatus } from "@faultline/shared";
 import type { Database } from "./client";
-import { scans } from "./schema";
+import { experiments, scanExecutions, scans } from "./schema";
 
 /**
  * Scan lifecycle transitions. Each transition is a single conditional UPDATE,
@@ -17,14 +17,40 @@ export async function claimScan(db: Database, scanId: string, workerId: string) 
   return row ?? null;
 }
 
-/** Records liveness and progress. Returns whether cancellation was requested. */
-export async function heartbeatScan(db: Database, scanId: string, phase?: string): Promise<{ cancelRequested: boolean; running: boolean }> {
+/**
+ * Records liveness and progress. Returns whether cancellation was requested and
+ * whether the scan is still running under this worker. `running: false` means
+ * the scan was finalized elsewhere (for example by the stale sweeper) and the
+ * worker must stop.
+ */
+export async function heartbeatScan(db: Database, scanId: string, phase?: string, workerId?: string): Promise<{ cancelRequested: boolean; running: boolean }> {
   const [row] = await db
     .update(scans)
     .set({ heartbeatAt: new Date(), ...(phase ? { phase } : {}) })
-    .where(and(eq(scans.id, scanId), eq(scans.status, "running")))
+    .where(and(eq(scans.id, scanId), eq(scans.status, "running"), ...(workerId ? [eq(scans.workerId, workerId)] : [])))
     .returning({ cancelRequestedAt: scans.cancelRequestedAt });
   return { cancelRequested: Boolean(row?.cancelRequestedAt), running: Boolean(row) };
+}
+
+/**
+ * Closes work left open inside scans that just became terminal, so no
+ * execution or experiment is shown as running after its scan stopped.
+ */
+export async function closeOpenWork(db: Database, scanIds: string[], reason: string) {
+  if (scanIds.length === 0) return;
+  const now = new Date();
+  await db
+    .update(scanExecutions)
+    .set({ status: "failed", failureMessage: reason, finishedAt: now })
+    .where(and(inArray(scanExecutions.scanId, scanIds), inArray(scanExecutions.status, ["pending", "running"])));
+  await db
+    .update(experiments)
+    .set({ status: "failed", failureMessage: reason, finishedAt: now })
+    .where(and(inArray(experiments.scanId, scanIds), eq(experiments.status, "running")));
+  await db
+    .update(experiments)
+    .set({ status: "skipped", failureMessage: reason })
+    .where(and(inArray(experiments.scanId, scanIds), eq(experiments.status, "pending")));
 }
 
 export async function finishScan(
@@ -51,6 +77,7 @@ export async function finishScan(
     })
     .where(and(eq(scans.id, scanId), eq(scans.status, "running")))
     .returning();
+  if (row) await closeOpenWork(db, [scanId], result.errorMessage ?? `The scan ended with status ${result.status} before this step finished.`);
   return row ?? null;
 }
 
@@ -89,7 +116,7 @@ export async function requestScanCancellation(db: Database, scanId: string): Pro
  */
 export async function failStaleScans(db: Database, staleAfterMs: number) {
   const cutoff = new Date(Date.now() - staleAfterMs);
-  return db
+  const rows = await db
     .update(scans)
     .set({
       status: "failed",
@@ -100,12 +127,14 @@ export async function failStaleScans(db: Database, staleAfterMs: number) {
     })
     .where(and(eq(scans.status, "running"), or(lt(scans.heartbeatAt, cutoff), isNull(scans.heartbeatAt))))
     .returning({ id: scans.id });
+  await closeOpenWork(db, rows.map((r) => r.id), "The worker stopped reporting progress before this step finished.");
+  return rows;
 }
 
 /** Fails scans a given worker was running when it restarted. */
 export async function failScansOwnedBy(db: Database, workerIds: string[]) {
   if (workerIds.length === 0) return [];
-  return db
+  const rows = await db
     .update(scans)
     .set({
       status: "failed",
@@ -116,4 +145,6 @@ export async function failScansOwnedBy(db: Database, workerIds: string[]) {
     })
     .where(and(eq(scans.status, "running"), inArray(scans.workerId, workerIds)))
     .returning({ id: scans.id });
+  await closeOpenWork(db, rows.map((r) => r.id), "The worker restarted before this step finished.");
+  return rows;
 }

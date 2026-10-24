@@ -76,7 +76,7 @@ export function pngDimensions(buffer: Buffer): { width: number; height: number }
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
-function hostPort(url: string): { host: string; port: number } | null {
+export function hostPort(url: string): { host: string; port: number } | null {
   try {
     const u = new URL(url);
     return { host: u.hostname.replace(/^\[|\]$/g, "").toLowerCase(), port: u.port ? Number(u.port) : u.protocol === "https:" ? 443 : 80 };
@@ -85,7 +85,7 @@ function hostPort(url: string): { host: string; port: number } | null {
   }
 }
 
-function sameOrigin(a: string, b: string): boolean {
+export function sameOrigin(a: string, b: string): boolean {
   try {
     return new URL(a).origin === new URL(b).origin;
   } catch {
@@ -94,14 +94,14 @@ function sameOrigin(a: string, b: string): boolean {
 }
 
 /** Interprets the egress guard marker header on a response, if present. */
-function guardMarker(response: Response): { kind: "blocked" | "upstream-failed"; code: string | null } | null {
+export function guardMarker(response: Response): { kind: "blocked" | "upstream-failed"; code: string | null } | null {
   const value = response.headers()[EGRESS_BLOCK_HEADER];
   if (!value) return null;
   const code = /(?:code|reason)=([\w-]+)/.exec(value)?.[1] ?? null;
   return { kind: value.startsWith("upstream-failed") ? "upstream-failed" : "blocked", code };
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+export async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   try {
     return await Promise.race([promise, new Promise<T>((resolve) => (timer = setTimeout(() => resolve(fallback), ms)))]);

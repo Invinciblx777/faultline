@@ -13,6 +13,9 @@ export const EVIDENCE_KINDS = [
   "http_error",
   "fault_injected",
   "policy_block",
+  "journey_step",
+  "assertion",
+  "screenshot",
 ] as const;
 export type EvidenceKind = (typeof EVIDENCE_KINDS)[number];
 
@@ -23,8 +26,11 @@ export const EVIDENCE_KIND_LABELS: Record<EvidenceKind, string> = {
   page_error: "Uncaught exception",
   request_failed: "Request failed",
   http_error: "HTTP error response",
-  fault_injected: "Intentionally blocked",
-  policy_block: "Blocked by egress guard",
+  fault_injected: "Injected fault",
+  policy_block: "Blocked by safety policy",
+  journey_step: "Journey step",
+  assertion: "Assertion",
+  screenshot: "Screenshot",
 };
 
 export const EVIDENCE_SEVERITIES = ["info", "warning", "error"] as const;
@@ -57,6 +63,9 @@ export const EVIDENCE_LIMITS = {
     http_error: 300,
     fault_injected: 400,
     policy_block: 200,
+    journey_step: 120,
+    assertion: 80,
+    screenshot: 40,
   } satisfies Record<EvidenceKind, number>,
 } as const;
 

@@ -276,7 +276,8 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
         <RepairStepper steps={repairSteps(repair, latestRun)} />
       </div>
 
-      <div className="flex flex-col gap-4">
+      {/* Reports carry full SHAs and archive names with no spaces; let them wrap anywhere so phones never scroll sideways. */}
+      <div className="flex flex-col gap-4 wrap-anywhere">
         <VerifiedReport detail={detail} />
 
         {repair.status === "awaiting_approval" ? (
@@ -364,12 +365,12 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
           <Description className="mb-4">Every recorded event, oldest first. Devin messages are shown as Devin wrote them and are not treated as verification.</Description>
           <ol className="flex flex-col gap-2">
             {detail.events.map((e) => (
-              <li key={e.id} className="grid gap-1 rounded-md bg-surface-container px-4 py-3 text-sm sm:grid-cols-[9rem_7rem_1fr]">
+              <li key={e.id} className="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-md bg-surface-container px-4 py-3 text-sm sm:grid-cols-[9rem_7rem_minmax(0,1fr)]">
                 <time dateTime={e.occurredAt.toISOString()} className="tabular text-xs text-on-surface-variant">
                   {formatDateTime(e.occurredAt)}
                 </time>
                 <span className="type-label text-xs text-on-surface-variant">{SOURCE_LABELS[e.source]}</span>
-                <span className="break-words whitespace-pre-line">{e.message}</span>
+                <span className="whitespace-pre-line">{e.message}</span>
               </li>
             ))}
           </ol>

@@ -6,7 +6,31 @@ FAULTLINE is an evidence-first web reliability engineering platform. It loads yo
 
 Every screenshot, error, and number in FAULTLINE comes from a recorded browser execution. Nothing is simulated, seeded, or generated.
 
-> Status: **Phase 3 (Devin Strike)** on branch `phase-3-devin-strike`. Self-hosted, operator-only. See [PHASE_STATUS.md](PHASE_STATUS.md) for exactly what is implemented and verified.
+> Status: **Phase 3 (Devin Strike), verified live** on branch `phase-3-devin-strike`. Self-hosted, operator-only. See [PHASE_STATUS.md](PHASE_STATUS.md) for exactly what is implemented and verified.
+
+## Proven end to end: a live Devin repair, independently verified
+
+On 2026-10-25, FAULTLINE completed the full loop against **Northwind Supply**, our own controlled reference storefront (`Invinciblx777/faultline-reference-shop`, private, not a customer's site):
+
+1. **Break.** When `GET /api/inventory` returns HTTP 503, the storefront hides every product and checkout is impossible (`Promise.all` in `public/shop/shop.js`). FAULTLINE found this in real Chromium and reproduced it 2/2.
+2. **Understand.** The Blast Radius Map tied the fault to journey steps 2–8. Reality Split shows the evidence. FAULTLINE generated a Playwright regression test, and that test fails.
+3. **Fix.** An operator approved the checksum-locked evidence package in the UI. FAULTLINE created one Devin session (`60a680e3…`). Devin opened [PR #1](https://github.com/Invinciblx777/faultline-reference-shop/pull/1) about four minutes later.
+4. **Prove.** FAULTLINE built the PR's exact head commit `b750bd3` in an isolated container and ran its own unchanged test:
+   - The original failed 2 of 2 times.
+   - The candidate passed 2 of 2 under the same fault.
+   - The normal journey still passes.
+
+   Verdict: **VERIFIED FIXED**.
+
+Full record with every ID, SHA, and hash: [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md). Demo route: [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md). Pitch: [HACKATHON_PITCH.md](HACKATHON_PITCH.md).
+
+| Blast Radius Map | Finding: inventory 503 breaks the journey |
+|---|---|
+| ![Blast Radius Map](docs/screenshots/01-blast-radius-map.png) | ![Finding](docs/screenshots/02-finding-inventory-503.png) |
+| **Repair: VERIFIED FIXED** | **Independent verification of commit b750bd3** |
+| ![Verified repair](docs/screenshots/03-repair-verified-fixed.png) | ![Verification](docs/screenshots/04-independent-verification.png) |
+| **Original under the fault** (captured by FAULTLINE) | **Devin's commit under the same fault** |
+| ![Original under fault](docs/screenshots/05-storefront-original-under-fault.png) | ![Candidate under fault](docs/screenshots/06-storefront-candidate-under-fault.png) |
 
 ## What it does today
 
@@ -47,7 +71,7 @@ Every screenshot, error, and number in FAULTLINE comes from a recorded browser e
 
 Without `DEVIN_API_KEY` and `DEVIN_ORG_ID`, or without Devin access to the linked repository, repair requests can be prepared and reviewed but not approved; the UI says why. After upgrading, run `pnpm db:migrate` (migration `0003` adds `source_repositories.devin_checked_at`).
 
-Not yet: AI analysis, Fault DNA graphs. Typed contracts for the AI and repair integrations live in [`packages/shared/src/contracts`](packages/shared/src/contracts); the UI labels them unavailable.
+Not built: AI analysis and Fault DNA graphs (the UI labels them unavailable). Longer-term ideas are collected in [docs/vision.md](docs/vision.md).
 
 ## Requirements
 
@@ -168,7 +192,8 @@ docs/                  Architecture, security, deployment, API
 - [Deployment](docs/deployment.md), including the production readiness checklist
 - [HTTP API and report format](docs/api.md)
 - [Contributing](CONTRIBUTING.md)
-- Hackathon: [Rules](RULES.md), [Agent guide](AGENTS.md), [Submission](SUBMISSION.md), [Change log](CHANGELOG.md), [AI usage](AI_USAGE.md)
+- [Vision](docs/vision.md) (ideas, not features)
+- Hackathon: [Final verification report](FINAL_VERIFICATION_REPORT.md), [Demo runbook](DEMO_RUNBOOK.md), [Pitch](HACKATHON_PITCH.md), [Rules](RULES.md), [Agent guide](AGENTS.md), [Submission](SUBMISSION.md), [Change log](CHANGELOG.md), [AI usage](AI_USAGE.md)
 
 ## License
 

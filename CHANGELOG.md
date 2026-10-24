@@ -2,6 +2,20 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T01:23+05:30 — Phase 3.6 live Devin repair verified; demo documents
+
+- Changed: New `FINAL_VERIFICATION_REPORT.md`, `DEMO_RUNBOOK.md`, `HACKATHON_PITCH.md`, `docs/vision.md`, and real screenshots in `docs/screenshots/`. `README.md` now leads with the verified live result and links the new documents. `PHASE_STATUS.md` records the live run and gates. `SUBMISSION.md` no longer says repair is unimplemented. `AI_USAGE.md` records the work.
+- Why: The full loop (finding, approval, Devin session, GitHub PR, independent verification) completed with real records, and the demo needs an accurate route and report.
+- Validation: The operator approved repair `268eeabb…` in the UI at 00:59:36 IST. Devin session `60a680e3…` was confirmed through the v3 API, and it is the only session with the repair tag. PR #1 (head `b750bd3`, author `app/devin-ai-integration`) was confirmed through the GitHub API. Verification run `39c125f0…` returned VERIFIED FIXED: original fails 2/2 under the fault, candidate passes 2/2, normal journeys pass. All verification screenshots re-hashed through the API: match. The repository's own tests were run offline in containers on both commits.
+- Limitations: One fault, one journey, Chromium only. PR #1 is not merged. See PHASE_STATUS.md Phase 3.6.
+
+## 2026-10-25T01:16+05:30 — Fix repair page overflow on phones (`d72a39b`)
+
+- Changed: `apps/web/src/app/(app)/repairs/[repairId]/page.tsx`: report and audit-trail text wraps anywhere, and audit-trail grid columns can shrink. `apps/web/src/components/shell/navigation.tsx`: the bottom bar has one shrinkable column per item; it had 4 columns for 5 items. This entry was written in the following documentation commit, not in `d72a39b` itself.
+- Why: A read-only walkthrough found that the verified repair page was 53 px wider than a 430 px phone screen. The cause was full SHAs and archive names with no break points.
+- Validation: `pnpm --filter @faultline/web typecheck` and `lint` passed. `pnpm build` passed. `pnpm test:e2e` 17 passed. Live mobile check at 430 px: 0 px overflow on the repair, finding, and other pages; all five nav items fit in one row.
+- Limitations: The existing responsive E2E test does not visit a repair detail page, because none exists in the E2E database. The check was done against the live dev data.
+
 ## 2026-10-25T00:48+05:30 — Phase 3.6 connection preflight: Devin repository access confirmed
 
 - Changed: `PHASE_STATUS.md` gains a Phase 3.6 section. `AI_USAGE.md` records the check. No code changed.

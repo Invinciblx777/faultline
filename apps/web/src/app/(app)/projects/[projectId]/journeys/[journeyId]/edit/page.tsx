@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JourneyBuilder } from "@/components/analysis/journey-builder";
-import { BackLink } from "@/components/ui/back-link";
-import { PageHeader } from "@/components/ui/page-header";
+import { BackLink } from "@/design/components/back-link";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { getJourney } from "@/lib/data/analysis";
 

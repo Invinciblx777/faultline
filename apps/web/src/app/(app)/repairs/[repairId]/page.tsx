@@ -7,9 +7,8 @@ import { RepairLive } from "@/components/repair/repair-live";
 import { RepairStatusChip, VERIFICATION_STYLE, VerificationVerdictChip } from "@/components/repair/repair-status";
 import { RepairStepper, repairSteps } from "@/components/repair/repair-stepper";
 import { VerificationWorkspace } from "@/components/repair/verification-workspace";
-import { BackLink } from "@/components/ui/back-link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Description, SectionTitle, Surface } from "@/components/ui/surface";
+import { BackLink } from "@/design/components/back-link";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { getRepair, getRepairStatus, type RepairDetail } from "@/lib/data/repairs";
 import { getEnv } from "@/lib/env";
@@ -17,7 +16,7 @@ import { formatDateTime, formatRelative } from "@/lib/format";
 import { getDevinConfig } from "@/lib/integrations";
 import { APPROVAL_STATEMENT, repositoryAccessBlock } from "@/lib/services/repairs";
 import { cn } from "@/lib/cn";
-import { Card, DisplayNumeral, ExpressiveShape, ListGroup, NotificationCard } from "@/design/components";
+import { Card, CardDescription, CardTitle, DisplayNumeral, ExpressiveShape, ListGroup, NotificationCard } from "@/design/components";
 
 export const metadata: Metadata = { title: "Repair" };
 
@@ -25,11 +24,11 @@ const SOURCE_LABELS = { faultline: "FAULTLINE", operator: "Operator", devin: "De
 
 function EvidencePanel({ evidence, sha, promptSha, prompt }: { evidence: RepairEvidenceBundle; sha: string; promptSha: string; prompt: string }) {
   return (
-    <Surface>
-      <SectionTitle>Evidence package</SectionTitle>
-      <Description className="mb-4">
+    <Card tier="low">
+      <CardTitle>Evidence package</CardTitle>
+      <CardDescription className="mb-4">
         Built from stored analysis rows, with page text sanitized and credentials removed. Checksum <span className="font-mono break-all text-on-surface">{sha}</span>.
-      </Description>
+      </CardDescription>
       <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[minmax(10rem,auto)_1fr]">
         <dt className="text-on-surface-variant">Finding</dt>
         <dd>
@@ -76,7 +75,7 @@ function EvidencePanel({ evidence, sha, promptSha, prompt }: { evidence: RepairE
         <summary className="cursor-pointer text-sm text-primary">Full prompt for Devin (SHA-256 {promptSha.slice(0, 16)}…)</summary>
         <pre className="mt-2 max-h-[32rem] overflow-auto rounded-md bg-surface-lowest p-3 font-mono text-xs whitespace-pre-wrap">{prompt}</pre>
       </details>
-    </Surface>
+    </Card>
   );
 }
 
@@ -84,9 +83,9 @@ function SessionPanel({ detail }: { detail: RepairDetail }) {
   const { repair } = detail;
   if (!repair.approvedAt && repair.status !== "cancelled") return null;
   return (
-    <Surface>
+    <Card tier="low">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <SectionTitle>Devin session</SectionTitle>
+        <CardTitle>Devin session</CardTitle>
         {repair.devinSessionUrl ? (
           <a href={repair.devinSessionUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline">
             Open in Devin <ExternalLink aria-hidden className="size-4" />
@@ -121,14 +120,14 @@ function SessionPanel({ detail }: { detail: RepairDetail }) {
           <dd>{repair.lastSyncedAt ? formatRelative(repair.lastSyncedAt) : "Not yet"}</dd>
         </dl>
       ) : (
-        <Description>{repair.statusDetail ?? "No session has been created."}</Description>
+        <CardDescription>{repair.statusDetail ?? "No session has been created."}</CardDescription>
       )}
       {repair.syncError ? <p className="mt-3 text-sm text-failure">Last sync failed: {repair.syncError}</p> : null}
       <div className="mt-4 flex flex-wrap gap-2">
         {repair.devinSessionId && repair.status !== "cancelled" ? <RefreshRepairButton repairId={repair.id} /> : null}
         {repair.status === "queued" ? <CancelQueuedButton repairId={repair.id} /> : null}
       </div>
-    </Surface>
+    </Card>
   );
 }
 
@@ -136,16 +135,16 @@ function PullRequestPanel({ detail }: { detail: RepairDetail }) {
   const { repair } = detail;
   if (!repair.prUrl) return null;
   return (
-    <Surface>
+    <Card tier="low">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <SectionTitle className="inline-flex items-center gap-2">
+        <CardTitle className="inline-flex items-center gap-2">
           <GitPullRequest aria-hidden className="size-5" /> Pull request #{repair.prNumber}
-        </SectionTitle>
+        </CardTitle>
         <a href={repair.prUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary underline-offset-4 hover:underline">
           Open on GitHub <ExternalLink aria-hidden className="size-4" />
         </a>
       </div>
-      <Description className="mb-3">Facts below come from the GitHub API, not from Devin&apos;s message. FAULTLINE never merges this pull request.</Description>
+      <CardDescription className="mb-3">Facts below come from the GitHub API, not from Devin&apos;s message. FAULTLINE never merges this pull request.</CardDescription>
       <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[minmax(10rem,auto)_1fr]">
         <dt className="text-on-surface-variant">Title</dt>
         <dd className="break-words">{repair.prTitle}</dd>
@@ -170,7 +169,7 @@ function PullRequestPanel({ detail }: { detail: RepairDetail }) {
           ))}
         </ul>
       ) : null}
-    </Surface>
+    </Card>
   );
 }
 
@@ -377,14 +376,14 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
         <VerifiedReport detail={detail} canComment={isApprover} />
 
         {repair.status === "awaiting_approval" ? (
-          <Surface level="low" aria-labelledby="launch-title">
+          <Card tier="low" aria-labelledby="launch-title">
             <h2 id="launch-title" className="md-title-large mb-1">
               Launch a Devin repair session
             </h2>
-            <Description className="mb-4">
+            <CardDescription className="mb-4">
               Approving creates one Devin session that may push a branch and open a pull request in {repair.repoOwner}/{repair.repoName}. Devin credits are spent only after this approval.
               The server never creates sessions on page load or while polling.
-            </Description>
+            </CardDescription>
             <ApproveRepairForm
               repairId={repair.id}
               evidenceSha256={repair.evidenceSha256}
@@ -401,7 +400,7 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
                 </p>
               </div>
             ) : null}
-          </Surface>
+          </Card>
         ) : null}
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -410,11 +409,11 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
         </div>
 
         {repair.prHeadSha ? (
-          <Surface aria-labelledby="verify-title">
+          <Card tier="low" aria-labelledby="verify-title">
             <h2 id="verify-title" className="type-title mb-1 inline-flex items-center gap-2 text-lg">
               <ShieldCheck aria-hidden className="size-5" /> Independent verification
             </h2>
-            <Description className="mb-4">FAULTLINE decides the verdict from its own browser runs against the exact commit. Devin&apos;s own claims never count.</Description>
+            <CardDescription className="mb-4">FAULTLINE decides the verdict from its own browser runs against the exact commit. Devin&apos;s own claims never count.</CardDescription>
             {verifiable ? <VerifyButton repairId={repair.id} sha={repair.prHeadSha} again={Boolean(latestRun)} /> : null}
             {latestRun ? (
               <div className="mt-6">
@@ -431,17 +430,17 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
                 </div>
               </details>
             ) : null}
-          </Surface>
+          </Card>
         ) : null}
 
         {repair.prHeadSha && (crossRuns.length || detail.crossCheckFindings.length) ? (
-          <Surface aria-labelledby="cross-title">
+          <Card tier="low" aria-labelledby="cross-title">
             <h2 id="cross-title" className="type-title mb-1 inline-flex items-center gap-2 text-lg">
               <ShieldCheck aria-hidden className="size-5" /> Cross-checks
             </h2>
-            <Description className="mb-4">
+            <CardDescription className="mb-4">
               The same commit, judged by another finding&apos;s unchanged regression test and journey (for example a newer journey version with more assertions). Each cross-check has its own verdict and scope; it never replaces the verdict above.
-            </Description>
+            </CardDescription>
             {verifiable && detail.crossCheckFindings.length ? (
               <CrossCheckForm repairId={repair.id} sha={repair.prHeadSha} findings={detail.crossCheckFindings.map((f) => ({ experimentId: f.experimentId, label: findingLabel(f) }))} />
             ) : null}
@@ -456,15 +455,15 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
                 </div>
               );
             })}
-          </Surface>
+          </Card>
         ) : null}
 
         <EvidencePanel evidence={repair.evidence} sha={repair.evidenceSha256} promptSha={repair.promptSha256} prompt={repair.prompt} />
 
         {detail.originalShots.length ? (
-          <Surface>
-            <SectionTitle>Original analysis screenshots</SectionTitle>
-            <Description className="mb-4">Recorded by the Blast Radius analysis that produced this finding.</Description>
+          <Card tier="low">
+            <CardTitle>Original analysis screenshots</CardTitle>
+            <CardDescription className="mb-4">Recorded by the Blast Radius analysis that produced this finding.</CardDescription>
             <div className="grid gap-4 md:grid-cols-2">
               {detail.originalShots.map((s) => (
                 <figure key={s.id} className="flex flex-col gap-2">
@@ -476,14 +475,14 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
                 </figure>
               ))}
             </div>
-          </Surface>
+          </Card>
         ) : null}
 
-        <Surface aria-labelledby="audit-title">
+        <Card tier="low" aria-labelledby="audit-title">
           <h2 id="audit-title" className="type-title mb-1 text-lg">
             Audit trail
           </h2>
-          <Description className="mb-4">Every recorded event, oldest first. Devin messages are shown as Devin wrote them and are not treated as verification.</Description>
+          <CardDescription className="mb-4">Every recorded event, oldest first. Devin messages are shown as Devin wrote them and are not treated as verification.</CardDescription>
           <ol className="flex flex-col gap-2">
             {detail.events.map((e) => (
               <li key={e.id} className="grid grid-cols-[minmax(0,1fr)] gap-1 rounded-md bg-surface-container px-4 py-3 text-sm sm:grid-cols-[9rem_7rem_minmax(0,1fr)]">
@@ -495,7 +494,7 @@ export default async function RepairPage({ params }: { params: Promise<{ repairI
               </li>
             ))}
           </ol>
-        </Surface>
+        </Card>
 
         <p className="flex items-center gap-1.5 text-xs text-on-surface-variant">
           <FileCode aria-hidden className="size-4" /> Repair {repair.id} · Devin tag <span className="font-mono">{repair.devinTag}</span>

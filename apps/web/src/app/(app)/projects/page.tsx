@@ -1,10 +1,9 @@
 import { ChevronRight, FolderPlus, Globe, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
-import { ListGroup } from "@/design/components";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
+import { LinkButton, ListGroup } from "@/design/components";
 import { requireOperator } from "@/lib/auth/dal";
 import { listProjects } from "@/lib/data/queries";
 import { formatRelative } from "@/lib/format";

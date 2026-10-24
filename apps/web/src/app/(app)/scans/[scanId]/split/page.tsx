@@ -4,15 +4,15 @@ import { EXECUTION_OUTCOME_LABELS, EXECUTION_ROLE_LABELS, isTerminalScanStatus, 
 import { EvidenceTimeline } from "@/components/scan/evidence-timeline";
 import { RealitySplit, type SplitShot } from "@/components/scan/reality-split";
 import { ROLE_STYLE, RunSummary } from "@/components/scan/run-summary";
-import { BackLink } from "@/components/ui/back-link";
-import { LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { BackLink } from "@/design/components/back-link";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { getScanDetail, type ScanDetail } from "@/lib/data/queries";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { Hourglass } from "lucide-react";
+import { LinkButton } from "@/design/components";
 
 export const metadata: Metadata = { title: "Reality Split" };
 

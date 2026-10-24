@@ -3,15 +3,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { findAllowlistMatch, isAssertionStep } from "@faultline/shared";
-import { BackLink } from "@/components/ui/back-link";
-import { LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { BackLink } from "@/design/components/back-link";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { listJourneys } from "@/lib/data/analysis";
 import { getProject } from "@/lib/data/queries";
 import { getEnv } from "@/lib/env";
 import { formatRelative } from "@/lib/format";
+import { LinkButton } from "@/design/components";
 
 export const metadata: Metadata = { title: "Journeys" };
 

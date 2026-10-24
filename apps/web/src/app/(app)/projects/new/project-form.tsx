@@ -3,9 +3,9 @@
 import { Check } from "lucide-react";
 import { useActionState, useState } from "react";
 import { createProjectAction, type ProjectFormState } from "@/app/actions/projects";
-import { Button } from "@/components/ui/button";
-import { Field, TextArea, TextInput } from "@/components/ui/field";
+import { Field, TextArea, TextInput } from "@/design/components/field";
 import { cn } from "@/lib/cn";
+import { FilledButton } from "@/design/components";
 
 export function ProjectForm({ allowlist }: { allowlist: Array<{ source: string; wildcard: boolean }> }) {
   const [state, action, pending] = useActionState<ProjectFormState, FormData>(createProjectAction, {});
@@ -74,9 +74,9 @@ export function ProjectForm({ allowlist }: { allowlist: Array<{ source: string; 
         </p>
       ) : null}
       <div>
-        <Button type="submit" size="lg" disabled={pending}>
+        <FilledButton type="submit" disabled={pending}>
           {pending ? "Creating…" : "Create project"}
-        </Button>
+        </FilledButton>
       </div>
     </form>
   );

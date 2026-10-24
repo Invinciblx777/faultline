@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { EXECUTION_OUTCOME_LABELS, isTerminalScanStatus, type ExecutionOutcome, type ExecutionRole, type ExecutionStatus, type ScanStatus } from "@faultline/shared";
-import { ScanStatusChip } from "@/components/ui/status";
+import { ScanStatusChip } from "@/design/components/status";
 import { cn } from "@/lib/cn";
 import { formatDuration } from "@/lib/format";
 

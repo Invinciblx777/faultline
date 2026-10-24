@@ -14,7 +14,6 @@ import {
   verifyRepairAction,
   type RepairFormState,
 } from "@/app/actions/repairs";
-import { Button } from "@/components/ui/button";
 import { DialogPanel, FilledButton, OutlinedButton } from "@/design/components";
 
 function ErrorNote({ state }: { state: RepairFormState }) {
@@ -32,9 +31,9 @@ export function CreateRepairButton({ experimentId }: { experimentId: string }) {
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="experimentId" value={experimentId} />
       <div>
-        <Button type="submit" size="lg" icon={<Wrench aria-hidden />} disabled={pending}>
+        <FilledButton type="submit" icon={<Wrench aria-hidden />} disabled={pending}>
           {pending ? "Preparing evidence…" : "Fix with Devin"}
-        </Button>
+        </FilledButton>
       </div>
       <p className="text-sm text-on-surface-variant">Prepares the evidence package and repair prompt for your review. Nothing is sent to Devin until you approve it.</p>
       <ErrorNote state={state} />
@@ -96,9 +95,9 @@ export function CheckRepairAccessButton({ repairId }: { repairId: string }) {
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="repairId" value={repairId} />
       <div>
-        <Button type="submit" variant="outlined" size="sm" icon={<RefreshCw aria-hidden />} disabled={pending}>
+        <OutlinedButton className="min-h-10 px-4" type="submit" icon={<RefreshCw aria-hidden />} disabled={pending}>
           {pending ? "Checking…" : "Check repository access"}
-        </Button>
+        </OutlinedButton>
       </div>
       <ErrorNote state={state} />
     </form>
@@ -110,9 +109,9 @@ export function CancelQueuedButton({ repairId }: { repairId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="repairId" value={repairId} />
-      <Button type="submit" variant="outlined" size="sm" icon={<X aria-hidden />} disabled={pending}>
+      <OutlinedButton className="min-h-10 px-4" type="submit" icon={<X aria-hidden />} disabled={pending}>
         Cancel before submission
-      </Button>
+      </OutlinedButton>
       <ErrorNote state={state} />
     </form>
   );
@@ -124,9 +123,9 @@ export function VerifyButton({ repairId, sha, again }: { repairId: string; sha: 
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="repairId" value={repairId} />
       <div>
-        <Button type="submit" size="lg" icon={<FlaskConical aria-hidden />} disabled={pending}>
+        <FilledButton type="submit" icon={<FlaskConical aria-hidden />} disabled={pending}>
           {pending ? "Queuing…" : `${again ? "Verify again" : "Verify"} commit ${sha.slice(0, 12)}`}
-        </Button>
+        </FilledButton>
       </div>
       <p className="text-sm text-on-surface-variant">
         Builds the original and this exact commit in isolated containers and runs the unchanged regression test against both. The pull request&apos;s code runs only inside the container.
@@ -153,9 +152,9 @@ export function CrossCheckForm({ repairId, sha, findings }: { repairId: string; 
         </select>
       </label>
       <div>
-        <Button type="submit" variant="outlined" icon={<FlaskConical aria-hidden />} disabled={pending}>
+        <OutlinedButton type="submit" icon={<FlaskConical aria-hidden />} disabled={pending}>
           {pending ? "Queuing…" : "Cross-check this commit"}
-        </Button>
+        </OutlinedButton>
       </div>
       <ErrorNote state={state} />
     </form>
@@ -169,9 +168,9 @@ export function PostVerdictCommentButton({ repairId, prNumber }: { repairId: str
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="repairId" value={repairId} />
       <div>
-        <Button type="submit" variant="outlined" size="sm" icon={<MessageSquarePlus aria-hidden />} disabled={pending || state.ok}>
+        <OutlinedButton className="min-h-10 px-4" type="submit" icon={<MessageSquarePlus aria-hidden />} disabled={pending || state.ok}>
           {pending ? "Posting…" : `Post verdict on pull request #${prNumber}`}
-        </Button>
+        </OutlinedButton>
       </div>
       <ErrorNote state={state} />
     </form>
@@ -183,9 +182,9 @@ export function RefreshRepairButton({ repairId }: { repairId: string }) {
   return (
     <form action={action}>
       <input type="hidden" name="repairId" value={repairId} />
-      <Button type="submit" variant="outlined" size="sm" icon={<RefreshCw aria-hidden />} disabled={pending}>
+      <OutlinedButton className="min-h-10 px-4" type="submit" icon={<RefreshCw aria-hidden />} disabled={pending}>
         {state.ok ? "Sync requested" : "Sync with Devin now"}
-      </Button>
+      </OutlinedButton>
       <ErrorNote state={state} />
     </form>
   );
@@ -197,9 +196,9 @@ export function RecheckRepositoryButton({ repositoryId, projectId }: { repositor
     <form action={action}>
       <input type="hidden" name="repositoryId" value={repositoryId} />
       <input type="hidden" name="projectId" value={projectId} />
-      <Button type="submit" variant="outlined" size="sm" icon={<RefreshCw aria-hidden />} disabled={pending}>
+      <OutlinedButton className="min-h-10 px-4" type="submit" icon={<RefreshCw aria-hidden />} disabled={pending}>
         {pending ? "Checking…" : "Check connections"}
-      </Button>
+      </OutlinedButton>
       <ErrorNote state={state} />
     </form>
   );

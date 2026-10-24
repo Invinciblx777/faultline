@@ -6,9 +6,9 @@ import { useActionState, useState } from "react";
 import { FAULT_KIND_LABELS, FAULT_KINDS, NARROW_VIEWPORT, type FaultKind } from "@faultline/shared";
 import { launchAnalysisAction, type AnalysisFormState } from "@/app/actions/analyses";
 import { KIND_ICON } from "@/components/analysis/verdict";
-import { Button } from "@/components/ui/button";
-import { inputClasses } from "@/components/ui/field";
+import { inputClasses, selectClasses } from "@/design/components/field";
 import { cn } from "@/lib/cn";
+import { Card, CardTitle, FilledButton, LinkButton } from "@/design/components";
 
 export interface JourneyOption {
   id: string;
@@ -30,26 +30,65 @@ const FAULT_HELP: Record<FaultKind, string> = {
   latency: "Matching requests are held in the browser before being sent. Not bandwidth throttling.",
 };
 
-function CheckRow({ name, value, checked, onChange, title, help, icon: Icon }: { name: string; value: string; checked: boolean; onChange: (v: boolean) => void; title: string; help: string; icon?: typeof Zap }) {
+function CheckRow({
+  name,
+  value,
+  checked,
+  onChange,
+  title,
+  help,
+  icon: Icon,
+}: {
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  title: string;
+  help: string;
+  icon?: typeof Zap;
+}) {
   return (
-    <label className={cn("flex cursor-pointer gap-3 rounded-lg border p-4 transition-colors", checked ? "border-fault bg-fault-container/30" : "border-outline-variant hover:bg-surface-low")}>
-      <Checkbox.Root name={name} value={value} checked={checked} onCheckedChange={(v) => onChange(v === true)} className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-[4px] border-2 border-outline data-[state=checked]:border-fault data-[state=checked]:bg-fault">
+    <label
+      className={cn(
+        "flex cursor-pointer gap-3 rounded-sm p-4 transition-[background-color,border-radius] duration-200 ease-emphasized",
+        checked ? "rounded-lg bg-secondary-container text-on-secondary-container" : "bg-surface-container text-on-surface hover:bg-surface-high",
+      )}
+    >
+      <Checkbox.Root
+        name={name}
+        value={value}
+        checked={checked}
+        onCheckedChange={(v) => onChange(v === true)}
+        className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-surface-highest outline-none focus-visible:ring-2 focus-visible:ring-primary data-[state=checked]:bg-on-secondary-container"
+      >
         <Checkbox.Indicator>
-          <Check aria-hidden className="size-4 text-on-fault" />
+          <Check aria-hidden className="size-4 text-secondary-container" strokeWidth={3} />
         </Checkbox.Indicator>
       </Checkbox.Root>
       <span className="min-w-0">
-        <span className="type-title flex items-center gap-2">
-          {Icon ? <Icon aria-hidden className="size-4 text-fault" /> : null}
+        <span className="md-title-medium flex items-center gap-2">
+          {Icon ? <Icon aria-hidden className="size-4" /> : null}
           {title}
         </span>
-        <span className="block text-sm text-on-surface-variant">{help}</span>
+        <span className="block md-body-medium opacity-80">{help}</span>
       </span>
     </label>
   );
 }
 
-export function AnalysisForm({ projectId, journeys, initialJourneyId, targets, targetsFrom }: { projectId: string; journeys: JourneyOption[]; initialJourneyId: string | null; targets: TargetOption[]; targetsFrom: string | null }) {
+export function AnalysisForm({
+  projectId,
+  journeys,
+  initialJourneyId,
+  targets,
+  targetsFrom,
+}: {
+  projectId: string;
+  journeys: JourneyOption[];
+  initialJourneyId: string | null;
+  targets: TargetOption[];
+  targetsFrom: string | null;
+}) {
   const [state, action, pending] = useActionState<AnalysisFormState, FormData>(launchAnalysisAction, {});
   const [journeyId, setJourneyId] = useState(initialJourneyId ?? journeys[0]?.id ?? "");
   const [faults, setFaults] = useState<FaultKind[]>([...FAULT_KINDS]);
@@ -61,165 +100,191 @@ export function AnalysisForm({ projectId, journeys, initialJourneyId, targets, t
   const selected = journeys.find((j) => j.id === journeyId);
 
   return (
-    <form action={action} className="flex max-w-3xl flex-col gap-8" noValidate>
+    <form action={action} className="flex max-w-3xl flex-col gap-4" noValidate>
       <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="viewport" value={viewport} />
       {state.error ? (
-        <p role="alert" className="rounded-md bg-failure-container px-4 py-3 text-sm text-on-failure-container">
+        <p role="alert" className="rounded-md bg-error-container px-4 py-3 md-body-medium text-on-error-container">
           {state.error}
         </p>
       ) : null}
 
-      <fieldset>
-        <legend className="type-label mb-3">Journey</legend>
-        <RadioGroup.Root name="journeyId" value={journeyId} onValueChange={setJourneyId} className="flex flex-col gap-2">
-          {journeys.map((j) => (
-            <RadioGroup.Item
-              key={j.id}
-              value={j.id}
-              className="flex items-center gap-3 rounded-lg border border-outline-variant p-4 text-left data-[state=checked]:border-primary data-[state=checked]:bg-primary-container/30"
-            >
-              <span className="grid size-5 shrink-0 place-items-center rounded-full border-2 border-outline">
-                <RadioGroup.Indicator className="size-2.5 rounded-full bg-primary" />
-              </span>
-              <span>
-                <span className="type-title block">{j.name}</span>
-                <span className="text-sm text-on-surface-variant">
-                  Version {j.version} · {j.steps} steps · {j.assertions} assertion{j.assertions === 1 ? "" : "s"}
-                </span>
-              </span>
-            </RadioGroup.Item>
-          ))}
-        </RadioGroup.Root>
-        {selected && selected.assertions === 0 ? (
-          <p className="mt-2 text-sm text-incomplete">This journey has no assertions, so every dependency experiment will be INCONCLUSIVE. Add assertions to get verdicts.</p>
-        ) : null}
-      </fieldset>
-
-      {targets.length ? (
+      <Card tier="low" className="flex flex-col gap-6">
         <fieldset>
-          <legend className="type-label mb-1">Specific dependencies (optional)</legend>
-          <p className="mb-3 text-sm text-on-surface-variant">
-            Observed in the analysis from {targetsFrom}. Picking any replaces automatic selection; dependencies must be observed again in this run to be tested.
-          </p>
-          <ul className="flex max-h-80 flex-col gap-1 overflow-y-auto rounded-lg border border-outline-variant p-2">
-            {targets.flatMap((t) =>
-              t.eligibleFaults.map((fault) => {
-                const value = `${fault}|${t.dependencyKey}`;
-                const Icon = KIND_ICON[fault];
-                return (
-                  <li key={value}>
-                    <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-surface-low">
-                      <input
-                        type="checkbox"
-                        name="target"
-                        value={value}
-                        checked={picked.includes(value)}
-                        onChange={(e) => setPicked(e.target.checked ? [...picked, value] : picked.filter((p) => p !== value))}
-                        className="size-4 shrink-0 accent-[var(--fault)]"
-                      />
-                      <Icon aria-hidden className="size-4 shrink-0 text-fault" />
-                      <span className="min-w-0 text-sm">
-                        <span className="text-on-surface-variant">{FAULT_KIND_LABELS[fault]}:</span> <span className="break-all">{t.label}</span>
-                      </span>
-                    </label>
-                  </li>
-                );
-              }),
-            )}
-          </ul>
+          <legend className="md-title-large mb-3 text-on-surface">Journey</legend>
+          <RadioGroup.Root name="journeyId" value={journeyId} onValueChange={setJourneyId} className="flex flex-col gap-0.5">
+            {journeys.map((j) => (
+              <RadioGroup.Item
+                key={j.id}
+                value={j.id}
+                className="flex items-center gap-3 rounded-sm bg-surface-container p-4 text-left transition-[background-color,border-radius] duration-200 first:rounded-t-lg last:rounded-b-lg hover:bg-surface-high data-[state=checked]:rounded-lg data-[state=checked]:bg-secondary-container data-[state=checked]:text-on-secondary-container"
+              >
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-surface-highest">
+                  <RadioGroup.Indicator className="size-3 rounded-full bg-primary" />
+                </span>
+                <span>
+                  <span className="md-title-medium block">{j.name}</span>
+                  <span className="md-body-medium opacity-80">
+                    Version {j.version} · {j.steps} steps · {j.assertions} assertion{j.assertions === 1 ? "" : "s"}
+                  </span>
+                </span>
+              </RadioGroup.Item>
+            ))}
+          </RadioGroup.Root>
+          {selected && selected.assertions === 0 ? (
+            <p className="mt-2 px-4 md-body-medium text-error">
+              This journey has no assertions, so every dependency experiment will be INCONCLUSIVE. Add assertions to get verdicts.
+            </p>
+          ) : null}
         </fieldset>
-      ) : null}
 
-      <fieldset className={cn(picked.length > 0 && "opacity-60")} disabled={picked.length > 0}>
-        <legend className="type-label mb-1">Faults for automatically selected dependencies</legend>
-        <p className="mb-3 text-sm text-on-surface-variant">
-          FAULTLINE records every request the journey makes in two normal runs, groups them into dependencies, and tests them one at a time, first-party APIs first.
-        </p>
-        <div className="grid gap-3">
-          {FAULT_KINDS.map((kind) => (
-            <CheckRow
-              key={kind}
-              name="faults"
-              value={kind}
-              checked={faults.includes(kind)}
-              onChange={(v) => setFaults(v ? [...faults, kind] : faults.filter((f) => f !== kind))}
-              title={FAULT_KIND_LABELS[kind]}
-              help={FAULT_HELP[kind]}
-              icon={KIND_ICON[kind]}
-            />
-          ))}
+        {targets.length ? (
+          <fieldset>
+            <legend className="md-title-medium mb-1 text-on-surface">Specific dependencies (optional)</legend>
+            <p className="mb-3 md-body-medium text-on-surface-variant">
+              Observed in the analysis from {targetsFrom}. Picking any replaces automatic selection; dependencies must be observed again in this run to be
+              tested.
+            </p>
+            <ul className="flex max-h-80 flex-col gap-0.5 overflow-y-auto rounded-lg bg-surface-container p-2">
+              {targets.flatMap((t) =>
+                t.eligibleFaults.map((fault) => {
+                  const value = `${fault}|${t.dependencyKey}`;
+                  const Icon = KIND_ICON[fault];
+                  return (
+                    <li key={value}>
+                      <label className="flex cursor-pointer items-center gap-3 rounded-sm px-2 py-2 hover:bg-surface-high">
+                        <input
+                          type="checkbox"
+                          name="target"
+                          value={value}
+                          checked={picked.includes(value)}
+                          onChange={(e) => setPicked(e.target.checked ? [...picked, value] : picked.filter((p) => p !== value))}
+                          className="size-4 shrink-0 accent-[var(--fault)]"
+                        />
+                        <Icon aria-hidden className="size-4 shrink-0 text-fault" />
+                        <span className="min-w-0 md-body-medium">
+                          <span className="text-on-surface-variant">{FAULT_KIND_LABELS[fault]}:</span> <span className="break-all">{t.label}</span>
+                        </span>
+                      </label>
+                    </li>
+                  );
+                }),
+              )}
+            </ul>
+          </fieldset>
+        ) : null}
+      </Card>
+
+      <Card tier="low" className="flex flex-col gap-6">
+        <fieldset className={cn(picked.length > 0 && "opacity-60")} disabled={picked.length > 0}>
+          <legend className="md-title-large mb-1 text-on-surface">Faults</legend>
+          <p className="mb-3 md-body-medium text-on-surface-variant">
+            FAULTLINE records every request the journey makes in two normal runs, groups them into dependencies, and tests them one at a time, first-party APIs
+            first.
+          </p>
+          <div className="grid gap-0.5">
+            {FAULT_KINDS.map((kind) => (
+              <CheckRow
+                key={kind}
+                name="faults"
+                value={kind}
+                checked={faults.includes(kind)}
+                onChange={(v) => setFaults(v ? [...faults, kind] : faults.filter((f) => f !== kind))}
+                title={FAULT_KIND_LABELS[kind]}
+                help={FAULT_HELP[kind]}
+                icon={KIND_ICON[kind]}
+              />
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="grid gap-0.5">
+          <legend className="md-title-large mb-3 text-on-surface">Conditions</legend>
+          <CheckRow
+            name="includeOffline"
+            value="on"
+            checked={offline}
+            onChange={setOffline}
+            title="Online → offline"
+            help="Load the first page online, then emulate offline in the browser context for the rest of the journey. Needs offline expectations for a verdict."
+            icon={KIND_ICON.offline}
+          />
+          <CheckRow
+            name="includeNarrowViewport"
+            value="on"
+            checked={narrow}
+            onChange={setNarrow}
+            title={`Small viewport (${NARROW_VIEWPORT.width}×${NARROW_VIEWPORT.height})`}
+            help="Chromium viewport emulation with touch. Checks horizontal overflow and that controls stay on screen. Not Safari, not a physical phone."
+            icon={KIND_ICON["narrow-viewport"]}
+          />
+          <CheckRow
+            name="confirmFindings"
+            value="on"
+            checked={confirm}
+            onChange={setConfirm}
+            title="Confirm findings"
+            help="Re-run BROKEN and DEGRADED experiments once in a fresh browser context. A result that does not repeat is reported as INCONCLUSIVE."
+          />
+        </fieldset>
+      </Card>
+
+      <Card tier="low" className="flex flex-col gap-6">
+        <CardTitle>Options</CardTitle>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="px-4 md-label-medium text-on-surface-variant">Injected error status</span>
+            <select name="errorStatus" defaultValue="503" className={cn(selectClasses, "h-14")}>
+              <option value="503">503 Service Unavailable</option>
+              <option value="500">500 Internal Server Error</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="px-4 md-label-medium text-on-surface-variant">Added delay (ms)</span>
+            <input name="latencyMs" type="number" min={250} max={20000} step={250} defaultValue={3000} className={cn(inputClasses, "h-14")} />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="px-4 md-label-medium text-on-surface-variant">Max dependency experiments</span>
+            <input name="maxExperiments" type="number" min={1} max={20} defaultValue={8} className={cn(inputClasses, "h-14")} />
+          </label>
         </div>
-      </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <label className="flex flex-col gap-1.5">
-          <span className="type-label">Injected error status</span>
-          <select name="errorStatus" defaultValue="503" className={cn(inputClasses, "h-12 bg-surface-low")}>
-            <option value="503">503 Service Unavailable</option>
-            <option value="500">500 Internal Server Error</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="type-label">Added delay (ms)</span>
-          <input name="latencyMs" type="number" min={250} max={20000} step={250} defaultValue={3000} className={cn(inputClasses, "h-12")} />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="type-label">Max dependency experiments</span>
-          <input name="maxExperiments" type="number" min={1} max={20} defaultValue={8} className={cn(inputClasses, "h-12")} />
-        </label>
-      </div>
-
-      <fieldset className="grid gap-3">
-        <legend className="type-label mb-3">Conditions</legend>
-        <CheckRow
-          name="includeOffline"
-          value="on"
-          checked={offline}
-          onChange={setOffline}
-          title="Online → offline"
-          help="Load the first page online, then emulate offline in the browser context for the rest of the journey. Needs offline expectations for a verdict."
-          icon={KIND_ICON.offline}
-        />
-        <CheckRow
-          name="includeNarrowViewport"
-          value="on"
-          checked={narrow}
-          onChange={setNarrow}
-          title={`Small viewport (${NARROW_VIEWPORT.width}×${NARROW_VIEWPORT.height})`}
-          help="Chromium viewport emulation with touch. Checks horizontal overflow and that controls stay on screen. Not Safari, not a physical phone."
-          icon={KIND_ICON["narrow-viewport"]}
-        />
-        <CheckRow
-          name="confirmFindings"
-          value="on"
-          checked={confirm}
-          onChange={setConfirm}
-          title="Confirm findings"
-          help="Re-run BROKEN and DEGRADED experiments once in a fresh browser context. A result that does not repeat is reported as INCONCLUSIVE."
-        />
-      </fieldset>
-
-      <fieldset>
-        <legend className="type-label mb-3">Baseline viewport</legend>
-        <ToggleGroup.Root type="single" value={viewport} onValueChange={(v) => v && setViewport(v)} aria-label="Baseline viewport" className="inline-flex rounded-full border border-outline p-1">
-          {[
-            { value: "desktop", label: "Desktop 1366×900", icon: Monitor },
-            { value: "mobile", label: "Mobile 430×932", icon: Smartphone },
-          ].map(({ value, label, icon: Icon }) => (
-            <ToggleGroup.Item key={value} value={value} className="type-label inline-flex h-10 items-center gap-2 rounded-full px-4 text-on-surface-variant data-[state=on]:bg-primary-container data-[state=on]:text-on-primary-container">
-              <Icon aria-hidden className="size-4" />
-              {label}
-            </ToggleGroup.Item>
-          ))}
-        </ToggleGroup.Root>
-      </fieldset>
+        <fieldset>
+          <legend className="mb-3 md-title-medium text-on-surface">Baseline viewport</legend>
+          <ToggleGroup.Root
+            type="single"
+            value={viewport}
+            onValueChange={(v) => v && setViewport(v)}
+            aria-label="Baseline viewport"
+            className="grid grid-cols-2 gap-2"
+          >
+            {[
+              { value: "desktop", label: "Desktop 1366×900", icon: Monitor },
+              { value: "mobile", label: "Mobile 430×932", icon: Smartphone },
+            ].map(({ value, label, icon: Icon }) => (
+              <ToggleGroup.Item
+                key={value}
+                value={value}
+                className="md-title-medium flex min-h-16 items-center justify-center gap-2 rounded-lg bg-surface-container px-4 text-on-surface-variant transition-[border-radius,background-color] duration-200 data-[state=on]:rounded-xl data-[state=on]:bg-secondary-container data-[state=on]:text-on-secondary-container"
+              >
+                <Icon aria-hidden className="size-5" />
+                {label}
+              </ToggleGroup.Item>
+            ))}
+          </ToggleGroup.Root>
+        </fieldset>
+      </Card>
 
       <div>
-        <Button type="submit" size="lg" disabled={pending || !journeyId} icon={<Zap aria-hidden />}>
-          {pending ? "Queuing…" : "Launch analysis"}
-        </Button>
-        <p className="mt-2 text-sm text-on-surface-variant">
+        <div className="flex gap-3">
+          <LinkButton variant="tonal" href={`/projects/${projectId}`} className="min-w-28">
+            Cancel
+          </LinkButton>
+          <FilledButton type="submit" fullWidth className="flex-1" disabled={pending || !journeyId} icon={<Zap aria-hidden />}>
+            {pending ? "Queuing…" : "Launch analysis"}
+          </FilledButton>
+        </div>
+        <p className="mt-2 px-4 md-body-medium text-on-surface-variant">
           Every run uses a fresh Chromium context through the egress guard. Requests that could change data are blocked unless the journey allows them.
         </p>
       </div>

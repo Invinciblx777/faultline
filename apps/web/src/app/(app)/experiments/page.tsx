@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { EXPERIMENT_KIND_LABELS, EXPERIMENT_KINDS, VERDICT_LABELS, VERDICTS } from "@faultline/shared";
 import { ExperimentStateChip, KindLabel } from "@/components/analysis/verdict";
-import { Button, LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { inputClasses } from "@/components/ui/field";
-import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/design/components/empty-state";
+import { selectClasses } from "@/design/components/field";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { listExperiments, normalizeExperimentFilters } from "@/lib/data/analysis";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { LinkButton, TonalButton } from "@/design/components";
 
 export const metadata: Metadata = { title: "Findings" };
 
@@ -27,7 +27,7 @@ export default async function ExperimentsPage({ searchParams }: { searchParams: 
       <form method="get" action="/experiments" className="mb-5 grid gap-3 sm:grid-cols-[auto_auto_auto] sm:items-end sm:justify-start">
         <label className="flex flex-col gap-1.5">
           <span className="type-label">Verdict</span>
-          <select name="verdict" defaultValue={filters.verdict ?? ""} className={cn(inputClasses, "h-12 bg-surface pr-8")}>
+          <select name="verdict" defaultValue={filters.verdict ?? ""} className={cn(selectClasses, "h-12")}>
             <option value="">Any verdict</option>
             {VERDICTS.map((v) => (
               <option key={v} value={v}>
@@ -38,7 +38,7 @@ export default async function ExperimentsPage({ searchParams }: { searchParams: 
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="type-label">Fault</span>
-          <select name="kind" defaultValue={filters.kind ?? ""} className={cn(inputClasses, "h-12 bg-surface pr-8")}>
+          <select name="kind" defaultValue={filters.kind ?? ""} className={cn(selectClasses, "h-12")}>
             <option value="">Any fault</option>
             {EXPERIMENT_KINDS.map((k) => (
               <option key={k} value={k}>
@@ -48,11 +48,11 @@ export default async function ExperimentsPage({ searchParams }: { searchParams: 
           </select>
         </label>
         <div className="flex gap-2">
-          <Button type="submit" variant="tonal" size="lg" className="h-12">
+          <TonalButton type="submit" className="h-12">
             Filter
-          </Button>
+          </TonalButton>
           {filtered ? (
-            <LinkButton href="/experiments" variant="text" size="lg" className="h-12">
+            <LinkButton href="/experiments" variant="text" className="h-12">
               Clear
             </LinkButton>
           ) : null}

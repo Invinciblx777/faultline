@@ -5,10 +5,9 @@ import { and, desc, eq } from "drizzle-orm";
 import { dependencies, scans } from "@faultline/db";
 import { findAllowlistMatch, isAssertionStep } from "@faultline/shared";
 import { WorkerNotice } from "@/components/scan/worker-notice";
-import { BackLink } from "@/components/ui/back-link";
-import { LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { BackLink } from "@/design/components/back-link";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { listJourneys } from "@/lib/data/analysis";
 import { getProject } from "@/lib/data/queries";
@@ -16,6 +15,7 @@ import { getDb } from "@/lib/db";
 import { getEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { AnalysisForm, type TargetOption } from "./analysis-form";
+import { LinkButton } from "@/design/components";
 
 export const metadata: Metadata = { title: "New Blast Radius analysis" };
 

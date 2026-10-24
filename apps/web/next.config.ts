@@ -24,6 +24,9 @@ const nextConfig: NextConfig = {
   // Every page is session-gated and reads live scan state, so Cache Components /
   // partial prerendering is intentionally not enabled in Phase 1.
   poweredByHeader: false,
+  // Gate runs set NEXT_DIST_DIR=.next-gate so a verification build never replaces the build a
+  // running demo server is serving from.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@faultline/shared", "@faultline/db"],
   serverExternalPackages: ["pg", "pg-boss", "@aws-sdk/client-s3"],
   turbopack: {

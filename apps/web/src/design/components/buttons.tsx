@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -13,7 +14,16 @@ const variants = {
   tonal: "bg-secondary-container text-on-secondary-container hover:brightness-110",
   outlined: "border border-outline text-on-surface hover:bg-surface-high",
   text: "px-4 text-primary hover:bg-surface-high",
+  // Destructive outline in the error role (danger zones, cancel/stop actions).
+  error: "border border-error text-error hover:bg-error-container hover:text-on-error-container",
 } as const;
+
+export type ButtonVariant = keyof typeof variants;
+
+/** Class string for elements that must stay native (download anchors, links). */
+export function buttonStyle(variant: ButtonVariant = "filled", extra?: string) {
+  return cn(base, variants[variant], extra);
+}
 
 type ButtonProps = { icon?: ReactNode; fullWidth?: boolean } & ComponentProps<"button">;
 
@@ -34,6 +44,17 @@ export const FilledButton = make("filled", "FilledButton");
 export const TonalButton = make("tonal", "TonalButton");
 export const OutlinedButton = make("outlined", "OutlinedButton");
 export const TextButton = make("text", "TextButton");
+export const ErrorButton = make("error", "ErrorButton");
+
+/** Navigation styled as a button. Use the variant that matches the action's emphasis. */
+export function LinkButton({ variant = "filled", icon, fullWidth, className, children, ...rest }: { variant?: ButtonVariant; icon?: ReactNode; fullWidth?: boolean } & ComponentProps<typeof Link>) {
+  return (
+    <Link className={cn(base, variants[variant], fullWidth && "w-full", className)} {...rest}>
+      {icon}
+      {children}
+    </Link>
+  );
+}
 
 const iconVariants = {
   standard: "text-on-surface-variant hover:bg-surface-high",

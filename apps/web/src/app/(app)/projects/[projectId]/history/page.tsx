@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ScanFilters } from "@/components/scan/scan-filters";
 import { ScanList } from "@/components/scan/scan-list";
-import { BackLink } from "@/components/ui/back-link";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { BackLink } from "@/design/components/back-link";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { getProject, listScans, normalizeFilters } from "@/lib/data/queries";
 

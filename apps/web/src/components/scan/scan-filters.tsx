@@ -1,9 +1,9 @@
 import { Search } from "lucide-react";
 import { SCAN_STATUS_LABELS, SCAN_STATUSES, SCENARIO_KINDS, SCENARIO_LABELS } from "@faultline/shared";
-import { Button, LinkButton } from "@/components/ui/button";
-import { inputClasses } from "@/components/ui/field";
+import { inputClasses, selectClasses } from "@/design/components/field";
 import { cn } from "@/lib/cn";
 import type { ScanListFilters } from "@/lib/data/queries";
+import { LinkButton, TonalButton } from "@/design/components";
 
 /** Plain GET form so filters are shareable URLs and work without JavaScript. */
 export function ScanFilters({ filters, action }: { filters: ScanListFilters; action: string }) {
@@ -19,7 +19,7 @@ export function ScanFilters({ filters, action }: { filters: ScanListFilters; act
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="type-label">Status</span>
-        <select name="status" defaultValue={filters.status ?? ""} className={cn(inputClasses, "h-12 bg-surface pr-8")}>
+        <select name="status" defaultValue={filters.status ?? ""} className={cn(selectClasses, "h-12")}>
           <option value="">Any status</option>
           {SCAN_STATUSES.map((s) => (
             <option key={s} value={s}>
@@ -30,7 +30,7 @@ export function ScanFilters({ filters, action }: { filters: ScanListFilters; act
       </label>
       <label className="flex flex-col gap-1.5">
         <span className="type-label">Scenario</span>
-        <select name="scenario" defaultValue={filters.scenario ?? ""} className={cn(inputClasses, "h-12 bg-surface pr-8")}>
+        <select name="scenario" defaultValue={filters.scenario ?? ""} className={cn(selectClasses, "h-12")}>
           <option value="">Any scenario</option>
           {SCENARIO_KINDS.map((s) => (
             <option key={s} value={s}>
@@ -40,11 +40,11 @@ export function ScanFilters({ filters, action }: { filters: ScanListFilters; act
         </select>
       </label>
       <div className="flex gap-2">
-        <Button type="submit" variant="tonal" size="lg" className="h-12">
+        <TonalButton type="submit" className="h-12">
           Filter
-        </Button>
+        </TonalButton>
         {active ? (
-          <LinkButton href={action} variant="text" size="lg" className="h-12">
+          <LinkButton href={action} variant="text" className="h-12">
             Clear
           </LinkButton>
         ) : null}

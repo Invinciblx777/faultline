@@ -2,8 +2,8 @@ import { History } from "lucide-react";
 import type { Metadata } from "next";
 import { ScanFilters } from "@/components/scan/scan-filters";
 import { ScanList } from "@/components/scan/scan-list";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { listScans, normalizeFilters } from "@/lib/data/queries";
 

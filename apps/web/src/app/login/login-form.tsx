@@ -3,8 +3,8 @@
 import { LogIn } from "lucide-react";
 import { useActionState } from "react";
 import { login, type LoginState } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/field";
+import { Field, TextInput } from "@/design/components/field";
+import { FilledButton } from "@/design/components";
 
 export function LoginForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
@@ -35,9 +35,9 @@ export function LoginForm({ next }: { next?: string }) {
           {state.error}
         </p>
       ) : null}
-      <Button type="submit" size="lg" disabled={pending} icon={<LogIn aria-hidden />}>
+      <FilledButton type="submit" disabled={pending} icon={<LogIn aria-hidden />}>
         {pending ? "Signing in…" : "Sign in"}
-      </Button>
+      </FilledButton>
     </form>
   );
 }

@@ -1,6 +1,6 @@
 import { SearchX } from "lucide-react";
-import { LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { EmptyState } from "@/design/components/empty-state";
+import { LinkButton } from "@/design/components";
 
 export default function NotFound() {
   return (

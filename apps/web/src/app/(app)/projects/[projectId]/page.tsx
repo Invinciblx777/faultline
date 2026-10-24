@@ -5,14 +5,14 @@ import { findAllowlistMatch } from "@faultline/shared";
 import { SourceRepositoryCard } from "@/components/repair/source-repository";
 import { ScanList } from "@/components/scan/scan-list";
 import { WorkerNotice } from "@/components/scan/worker-notice";
-import { BackLink } from "@/components/ui/back-link";
-import { LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { BackLink } from "@/design/components/back-link";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
 import { requireOperator } from "@/lib/auth/dal";
 import { getProject, listScans } from "@/lib/data/queries";
 import { getEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
+import { LinkButton } from "@/design/components";
 
 type Params = { params: Promise<{ projectId: string }> };
 

@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { describeScenario, EXECUTION_ROLE_LABELS, SCENARIO_LABELS, VERDICTS, type ExecutionRole } from "@faultline/shared";
 import { VerdictChip } from "@/components/analysis/verdict";
-import { OutcomeChip, ScanStatusChip } from "@/components/ui/status";
+import { OutcomeChip, ScanStatusChip } from "@/design/components/status";
 import { ListGroup, SegmentedProgress, type SegmentState } from "@/design/components";
 import type { ScanListItem } from "@/lib/data/queries";
 import { formatDateTime, formatDuration, formatRelative, hostOf } from "@/lib/format";

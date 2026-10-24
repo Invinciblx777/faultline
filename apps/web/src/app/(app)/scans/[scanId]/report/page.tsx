@@ -3,16 +3,16 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { EVIDENCE_KIND_LABELS, isTerminalScanStatus, SCAN_STATUS_LABELS, type EvidenceEvent } from "@faultline/shared";
 import { ROLE_STYLE } from "@/components/scan/run-summary";
-import { BackLink } from "@/components/ui/back-link";
-import { buttonClasses, LinkButton } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeader } from "@/components/ui/page-header";
-import { OutcomeChip } from "@/components/ui/status";
+import { BackLink } from "@/design/components/back-link";
+import { EmptyState } from "@/design/components/empty-state";
+import { PageHeader } from "@/design/components/page-header";
+import { OutcomeChip } from "@/design/components/status";
 import { requireOperator } from "@/lib/auth/dal";
 import { getScanDetail } from "@/lib/data/queries";
 import { cn } from "@/lib/cn";
 import { formatBytes, formatDateTime, formatDuration } from "@/lib/format";
 import { reportFromDetail } from "@/lib/report";
+import { buttonStyle, LinkButton } from "@/design/components";
 
 export const metadata: Metadata = { title: "Report" };
 
@@ -92,7 +92,7 @@ export default async function ReportPage({ params }: { params: Promise<{ scanId:
         title="Scan report"
         description={`Generated ${formatDateTime(report.generatedAt)} from stored evidence. Schema ${report.schema}.`}
         actions={
-          <a href={`/api/scans/${report.scan.id}/report`} download className={buttonClasses("filled", "md")}>
+          <a href={`/api/scans/${report.scan.id}/report`} download className={buttonStyle("filled")}>
             <FileJson aria-hidden />
             Export JSON
           </a>

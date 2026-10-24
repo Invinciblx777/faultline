@@ -1,6 +1,6 @@
 export { BottomSheet } from "./bottom-sheet";
-export { FilledButton, IconButton, OutlinedButton, TextButton, TonalButton } from "./buttons";
-export { Card, type CardTier } from "./card";
+export { buttonStyle, ErrorButton, FilledButton, IconButton, LinkButton, OutlinedButton, TextButton, TonalButton, type ButtonVariant } from "./buttons";
+export { Card, CardDescription, CardTitle, type CardTier } from "./card";
 export { Chip, chipTones, type ChipStatus } from "./chip";
 export { DialogPanel } from "./dialog";
 export { DisplayNumeral } from "./display-numeral";

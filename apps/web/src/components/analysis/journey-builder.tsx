@@ -5,9 +5,9 @@ import { ToggleGroup } from "radix-ui";
 import { useActionState, useMemo, useState } from "react";
 import { LOCATOR_ROLES, STEP_TYPE_LABELS, type JourneyDefinition, type JourneyStepType } from "@faultline/shared";
 import { saveJourneyAction, type JourneyFormState } from "@/app/actions/journeys";
-import { Button } from "@/components/ui/button";
-import { inputClasses } from "@/components/ui/field";
+import { inputClasses, selectClasses } from "@/design/components/field";
 import { cn } from "@/lib/cn";
+import { FilledButton, OutlinedButton, TextButton, TonalButton } from "@/design/components";
 
 /**
  * Structured editor for a declarative journey. The draft is plain data; the
@@ -125,7 +125,7 @@ function fromDraft(d: DraftStep): Record<string, unknown> {
 }
 
 function Select({ className, ...rest }: React.ComponentProps<"select">) {
-  return <select className={cn(inputClasses, "h-11 bg-surface-low pr-8", className)} {...rest} />;
+  return <select className={cn(selectClasses, "h-11", className)} {...rest} />;
 }
 function Input({ className, ...rest }: React.ComponentProps<"input">) {
   return <input className={cn(inputClasses, "h-11", className)} {...rest} />;
@@ -180,9 +180,9 @@ function StepEditor({
           ))}
         </Select>
         <span className="ml-auto flex gap-1">
-          <Button type="button" variant="text" size="sm" aria-label={`Move step ${index + 1} up`} disabled={index === 0} onClick={() => onMove(-1)} icon={<ArrowUp aria-hidden />} />
-          <Button type="button" variant="text" size="sm" aria-label={`Move step ${index + 1} down`} disabled={index === count - 1} onClick={() => onMove(1)} icon={<ArrowDown aria-hidden />} />
-          <Button type="button" variant="text" size="sm" aria-label={`Remove step ${index + 1}`} onClick={onRemove} icon={<Trash2 aria-hidden />} />
+          <TextButton className="min-h-10 px-4" type="button" aria-label={`Move step ${index + 1} up`} disabled={index === 0} onClick={() => onMove(-1)} icon={<ArrowUp aria-hidden />} />
+          <TextButton className="min-h-10 px-4" type="button" aria-label={`Move step ${index + 1} down`} disabled={index === count - 1} onClick={() => onMove(1)} icon={<ArrowDown aria-hidden />} />
+          <TextButton className="min-h-10 px-4" type="button" aria-label={`Remove step ${index + 1}`} onClick={onRemove} icon={<Trash2 aria-hidden />} />
         </span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -392,9 +392,9 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
               {jsonError}
             </p>
           ) : null}
-          <Button type="button" variant="tonal" onClick={applyJson} className="self-start">
+          <TonalButton type="button" onClick={applyJson} className="self-start">
             Apply JSON
-          </Button>
+          </TonalButton>
         </div>
       ) : (
         <>
@@ -425,9 +425,9 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
             </ol>
             <div className="flex flex-wrap gap-2">
               {(["click", "fill", "assertVisible", "assertText", "navigate"] as JourneyStepType[]).map((type) => (
-                <Button key={type} type="button" variant="outlined" size="sm" disabled={steps.length >= 30} onClick={() => setSteps([...steps, emptyStep(type)])} icon={<Plus aria-hidden />}>
+                <OutlinedButton className="min-h-10 px-4" key={type} type="button" disabled={steps.length >= 30} onClick={() => setSteps([...steps, emptyStep(type)])} icon={<Plus aria-hidden />}>
                   {STEP_TYPE_LABELS[type]}
-                </Button>
+                </OutlinedButton>
               ))}
             </div>
           </section>
@@ -452,9 +452,9 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
                 />
               ))}
             </ol>
-            <Button type="button" variant="outlined" size="sm" className="mt-3" disabled={offline.length >= 5} onClick={() => setOffline([...offline, emptyStep("assertVisible")])} icon={<Plus aria-hidden />}>
+            <OutlinedButton type="button" className="min-h-10 px-4 mt-3" disabled={offline.length >= 5} onClick={() => setOffline([...offline, emptyStep("assertVisible")])} icon={<Plus aria-hidden />}>
               Offline expectation
-            </Button>
+            </OutlinedButton>
           </details>
 
           <details className="rounded-lg border border-outline-variant p-4" open={mutations.length > 0}>
@@ -476,13 +476,13 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
                   <Mini label="Path" className="flex-1">
                     <Input value={m.path} onChange={(e) => setMutations(mutations.map((x, j) => (j === i ? { ...x, path: e.target.value } : x)))} placeholder="/api/cart" />
                   </Mini>
-                  <Button type="button" variant="text" size="sm" aria-label="Remove allowed request" onClick={() => setMutations(mutations.filter((_, j) => j !== i))} icon={<Trash2 aria-hidden />} />
+                  <TextButton className="min-h-10 px-4" type="button" aria-label="Remove allowed request" onClick={() => setMutations(mutations.filter((_, j) => j !== i))} icon={<Trash2 aria-hidden />} />
                 </li>
               ))}
             </ul>
-            <Button type="button" variant="outlined" size="sm" className="mt-3" disabled={mutations.length >= 10} onClick={() => setMutations([...mutations, { uid: uid(), method: "POST", path: "/" }])} icon={<Plus aria-hidden />}>
+            <OutlinedButton type="button" className="min-h-10 px-4 mt-3" disabled={mutations.length >= 10} onClick={() => setMutations([...mutations, { uid: uid(), method: "POST", path: "/" }])} icon={<Plus aria-hidden />}>
               Allowed request
-            </Button>
+            </OutlinedButton>
           </details>
 
           <details className="rounded-lg border border-outline-variant p-4" open={masks.trim().length > 0}>
@@ -494,9 +494,9 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={pending || mode === "json"} icon={<Save aria-hidden />}>
+        <FilledButton type="submit" disabled={pending || mode === "json"} icon={<Save aria-hidden />}>
           {pending ? "Saving…" : journeyId ? "Save as new version" : "Save journey"}
-        </Button>
+        </FilledButton>
         {mode === "json" ? <span className="text-sm text-on-surface-variant">Apply the JSON before saving.</span> : null}
       </div>
     </form>

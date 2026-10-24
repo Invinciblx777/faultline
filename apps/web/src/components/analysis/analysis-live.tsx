@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { isTerminalScanStatus, type ExecutionStatus, type ExperimentKind, type ScanStatus, type Verdict } from "@faultline/shared";
 import type { ExperimentStatus } from "@faultline/db";
 import { ExperimentStateChip, KindLabel } from "@/components/analysis/verdict";
-import { ScanStatusChip } from "@/components/ui/status";
+import { ScanStatusChip } from "@/design/components/status";
 import { cn } from "@/lib/cn";
 import { formatDuration } from "@/lib/format";
 

@@ -1,5 +1,5 @@
 import { ExternalLink, FolderGit2 } from "lucide-react";
-import { ToneChip } from "@/components/ui/status";
+import { ToneChip } from "@/design/components/status";
 import { getProjectRepository } from "@/lib/data/repairs";
 import { getEnv } from "@/lib/env";
 import { formatRelative } from "@/lib/format";

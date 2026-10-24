@@ -1,7 +1,7 @@
 import { ImageOff } from "lucide-react";
 import type { VerificationCheck, VerificationRun } from "@faultline/db";
 import { healthyScreenshotsIdentical, verdictScope } from "@faultline/shared";
-import { ToneChip } from "@/components/ui/status";
+import { ToneChip } from "@/design/components/status";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { VerificationVerdictChip } from "./repair-status";

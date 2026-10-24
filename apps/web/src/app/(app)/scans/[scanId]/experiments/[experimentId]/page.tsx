@@ -6,14 +6,14 @@ import { CausalTimeline } from "@/components/analysis/causal-timeline";
 import { ExperimentStateChip, KindLabel } from "@/components/analysis/verdict";
 import { FixWithDevinPanel } from "@/components/repair/fix-with-devin";
 import { RealitySplit, type SplitShot } from "@/components/scan/reality-split";
-import { BackLink } from "@/components/ui/back-link";
-import { buttonClasses } from "@/components/ui/button";
-import { PageHeader } from "@/components/ui/page-header";
-import { ToneChip } from "@/components/ui/status";
+import { BackLink } from "@/design/components/back-link";
+import { PageHeader } from "@/design/components/page-header";
+import { ToneChip } from "@/design/components/status";
 import { requireOperator } from "@/lib/auth/dal";
 import { getExperimentDetail, type ExperimentDetail } from "@/lib/data/analysis";
 import { formatDateTime, formatDuration } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { buttonStyle } from "@/design/components";
 
 export const metadata: Metadata = { title: "Experiment" };
 
@@ -91,7 +91,7 @@ export default async function ExperimentPage({ params }: { params: Promise<{ sca
         }
         actions={
           regressionTest ? (
-            <a href={`/api/experiments/${experiment.id}/regression-test`} download className={buttonClasses("filled", "md")}>
+            <a href={`/api/experiments/${experiment.id}/regression-test`} download className={buttonStyle("filled")}>
               <Download aria-hidden />
               Download regression test
             </a>

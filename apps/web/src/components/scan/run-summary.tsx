@@ -1,5 +1,5 @@
 import { EXECUTION_ROLE_LABELS, outcomeRendered } from "@faultline/shared";
-import { OutcomeChip, ToneChip } from "@/components/ui/status";
+import { OutcomeChip, ToneChip } from "@/design/components/status";
 import { cn } from "@/lib/cn";
 import type { ScanDetail } from "@/lib/data/queries";
 import { formatDuration } from "@/lib/format";

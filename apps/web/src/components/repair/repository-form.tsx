@@ -2,8 +2,8 @@
 
 import { useActionState } from "react";
 import { linkRepositoryAction, type RepairFormState } from "@/app/actions/repairs";
-import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/field";
+import { Field, TextInput } from "@/design/components/field";
+import { FilledButton } from "@/design/components";
 
 interface Defaults {
   owner: string;
@@ -54,9 +54,9 @@ export function RepositoryForm({ projectId, defaults, authorized }: { projectId:
         </p>
       ) : null}
       <div>
-        <Button type="submit" disabled={pending}>
+        <FilledButton type="submit" disabled={pending}>
           {pending ? "Checking GitHub and Devin…" : "Save and check connections"}
-        </Button>
+        </FilledButton>
       </div>
     </form>
   );

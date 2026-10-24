@@ -64,12 +64,14 @@ const css = `/*
  * Dark is the default theme; data-theme="light" or data-theme="system" (+ OS light) selects light.
  */
 
-:root {
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
 ${dark}
 }
 
-:root[data-theme="light"] {
+:root[data-theme="light"],
+[data-theme="light"] {
   color-scheme: light;
 ${light}
 }
@@ -81,7 +83,9 @@ ${light.replace(/^ {2}/gm, "    ")}
   }
 }
 
-:root {
+/* Re-declared on every themed element so a nested data-theme (the /design showcase) resolves its own scheme. */
+:root,
+[data-theme] {
   /* Semantic roles used across FAULTLINE, mapped onto the M3 scheme. */
   --surface: var(--md-sys-color-surface);
   --surface-dim: var(--md-sys-color-surface-dim);

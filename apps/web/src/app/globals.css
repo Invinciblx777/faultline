@@ -37,6 +37,10 @@
   --color-on-tertiary: var(--on-tertiary);
   --color-tertiary-container: var(--tertiary-container);
   --color-on-tertiary-container: var(--on-tertiary-container);
+  --color-error: var(--md-sys-color-error);
+  --color-on-error: var(--md-sys-color-on-error);
+  --color-error-container: var(--md-sys-color-error-container);
+  --color-on-error-container: var(--md-sys-color-on-error-container);
   --color-inverse-surface: var(--md-sys-color-inverse-surface);
   --color-inverse-on-surface: var(--md-sys-color-inverse-on-surface);
 

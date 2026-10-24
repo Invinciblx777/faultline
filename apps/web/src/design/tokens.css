@@ -5,7 +5,8 @@
  * Dark is the default theme; data-theme="light" or data-theme="system" (+ OS light) selects light.
  */
 
-:root {
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
   --md-sys-color-primary: #bfc2ff;
   --md-sys-color-on-primary: #262a66;
@@ -49,7 +50,8 @@
   --md-sys-color-on-success-container: #8ff6ce;
 }
 
-:root[data-theme="light"] {
+:root[data-theme="light"],
+[data-theme="light"] {
   color-scheme: light;
   --md-sys-color-primary: #555997;
   --md-sys-color-on-primary: #ffffff;
@@ -139,7 +141,9 @@
   }
 }
 
-:root {
+/* Re-declared on every themed element so a nested data-theme (the /design showcase) resolves its own scheme. */
+:root,
+[data-theme] {
   /* Semantic roles used across FAULTLINE, mapped onto the M3 scheme. */
   --surface: var(--md-sys-color-surface);
   --surface-dim: var(--md-sys-color-surface-dim);

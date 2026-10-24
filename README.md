@@ -145,6 +145,7 @@ docs/                  Architecture, security, deployment, API
 - [Deployment](docs/deployment.md), including the production readiness checklist
 - [HTTP API and report format](docs/api.md)
 - [Contributing](CONTRIBUTING.md)
+- Hackathon: [Rules](RULES.md), [Agent guide](AGENTS.md), [Submission](SUBMISSION.md), [Change log](CHANGELOG.md), [AI usage](AI_USAGE.md)
 
 ## License
 

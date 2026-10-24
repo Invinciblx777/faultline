@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
-const targets = JSON.parse(readFileSync(new URL("../../test-results/visual/targets.json", import.meta.url), "utf8")) as Record<string, string>;
+const { extra: _extra, ...targets } = JSON.parse(readFileSync(new URL("../../test-results/visual/targets.json", import.meta.url), "utf8")) as Record<string, string> & { extra: unknown };
 
 const SCREENS: Array<{ name: string; path: string }> = [
   { name: "design", path: "/design" },

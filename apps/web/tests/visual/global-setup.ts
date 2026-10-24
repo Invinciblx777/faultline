@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { chromium, type FullConfig } from "@playwright/test";
 import { config as loadEnv } from "dotenv";
 import { and, desc, eq, isNotNull, ne } from "drizzle-orm";
-import { createDatabase, journeys, repairRequests, scans } from "@faultline/db";
+import { createDatabase, journeys, projects, repairRequests, scans } from "@faultline/db";
 
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
 const out = fileURLToPath(new URL("../../test-results/visual/", import.meta.url));
@@ -33,6 +33,13 @@ export default async function globalSetup(config: FullConfig) {
       .orderBy(desc(scans.finishedAt))
       .limit(1);
     const [journey] = await db.select({ id: journeys.id, projectId: journeys.projectId }).from(journeys).orderBy(desc(journeys.createdAt)).limit(1);
+    const [realApp] = await db
+      .select({ id: scans.id })
+      .from(scans)
+      .innerJoin(projects, eq(projects.id, scans.projectId))
+      .where(and(eq(scans.status, "completed"), isNotNull(scans.journeyId), ne(projects.origin, "http://localhost:4600")))
+      .orderBy(desc(scans.finishedAt))
+      .limit(1);
     if (!repair || !scan || !journey) throw new Error("The database has no verified repair, completed scan, or journey to snapshot.");
     mkdirSync(out, { recursive: true });
     writeFileSync(
@@ -43,6 +50,14 @@ export default async function globalSetup(config: FullConfig) {
         verification: `/repairs/${repair.id}`,
         scanDetail: `/scans/${scan.id}`,
         journeyBuilder: `/projects/${journey.projectId}/journeys/${journey.id}/edit`,
+        // Not snapshotted; used by the documentation capture script.
+        extra: {
+          newScan: `/projects/${journey.projectId}/scans/new`,
+          newAnalysis: `/projects/${journey.projectId}/blast-radius/new`,
+          settings: "/settings",
+          report: `/scans/${scan.id}/report`,
+          ...(realApp ? { realAppBlastRadius: `/scans/${realApp.id}/blast-radius` } : {}),
+        },
       }),
     );
   } finally {

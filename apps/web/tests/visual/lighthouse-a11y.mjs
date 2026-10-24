@@ -8,7 +8,7 @@ import lighthouse from "lighthouse";
 
 const baseURL = process.env.FAULTLINE_VISUAL_URL ?? "http://localhost:3000";
 const dir = new URL("../../test-results/visual/", import.meta.url);
-const targets = JSON.parse(readFileSync(new URL("targets.json", dir), "utf8"));
+const { extra: _extra, ...targets } = JSON.parse(readFileSync(new URL("targets.json", dir), "utf8"));
 const state = JSON.parse(readFileSync(new URL("state.json", dir), "utf8"));
 const cookie = state.cookies.map((c) => `${c.name}=${c.value}`).join("; ");
 const screens = { design: "/design", ...targets };

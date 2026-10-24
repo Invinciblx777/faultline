@@ -188,6 +188,11 @@ export class DevinClient {
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
 
+  /** The organization every org-scoped request targets (DEVIN_ORG_ID). */
+  get orgId(): string {
+    return this.options.orgId;
+  }
+
   private orgPath(path: string): string {
     return `/v3/organizations/${encodeURIComponent(this.options.orgId)}${path}`;
   }
@@ -324,4 +329,47 @@ export class DevinClient {
     form.append("file", new Blob([new Uint8Array(bytes)], { type: contentType }), filename);
     return this.request("POST", this.orgPath("/attachments"), devinAttachmentSchema, { form, idempotent: false });
   }
+}
+
+export type DevinRepositoryAccess =
+  | { ok: true; repoName: string; host: string; principal: string; checkedAt: Date }
+  | { ok: false; code: "credentials" | "wrong_organization" | "repository_unavailable" | "api_error"; reason: string; checkedAt: Date };
+
+/**
+ * Fail-closed preflight before a Devin session may be approved or created:
+ * the v3 key authenticates, belongs to the configured organization, and that
+ * organization's GitHub connection lists exactly `fullName`. Read-only
+ * (GET /v3/self and GET .../repositories); it never creates a session.
+ */
+export async function checkDevinRepositoryAccess(client: DevinClient, fullName: string): Promise<DevinRepositoryAccess> {
+  const fail = (code: Extract<DevinRepositoryAccess, { ok: false }>["code"], reason: string): DevinRepositoryAccess => ({ ok: false, code, reason, checkedAt: new Date() });
+  const failure = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+  let self: DevinSelf;
+  try {
+    self = await client.self();
+  } catch (error) {
+    const rejected = error instanceof DevinApiError && (error.category === "unauthorized" || error.category === "forbidden");
+    return fail(rejected ? "credentials" : "api_error", `Devin credentials could not be confirmed: ${failure(error)}`);
+  }
+  if (self.org_id && self.org_id !== client.orgId) {
+    return fail("wrong_organization", `The Devin API key belongs to ${self.org_id}, not DEVIN_ORG_ID (${client.orgId}). Use a key from the organization that holds the GitHub connection, or correct DEVIN_ORG_ID.`);
+  }
+
+  let found: DevinRepository | null;
+  try {
+    found = await client.findRepository(fullName);
+  } catch (error) {
+    if (error instanceof DevinApiError && (error.category === "forbidden" || error.category === "not_found")) {
+      return fail("wrong_organization", `Devin refused to list repositories for ${client.orgId} (HTTP ${error.httpStatus}). Check that DEVIN_ORG_ID is the key's organization and that the service user may view it.`);
+    }
+    return fail("api_error", `Devin's repository list could not be read: ${failure(error)}`);
+  }
+  if (!found) {
+    return fail("repository_unavailable", `Devin's Git connections for ${client.orgId} do not list ${fullName}. In Devin, open Settings → Connections → GitHub and grant the Devin app access to this repository, then check again.`);
+  }
+  if (!/github/i.test(found.git_connection_host)) {
+    return fail("repository_unavailable", `Devin lists ${found.repo_full_name} through ${found.git_connection_host}, not GitHub. Only the linked GitHub repository may be used.`);
+  }
+  return { ok: true, repoName: found.repo_full_name, host: found.git_connection_host, principal: self.service_user_name ?? self.user_name ?? self.principal_type, checkedAt: new Date() };
 }

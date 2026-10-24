@@ -8,17 +8,19 @@ import {
   loadRepairEvidenceInput,
   projects,
   queueVerification,
+  recordDevinAccess,
   recordRepairEvent,
   repairRequests,
   requestRepairSync,
   scans,
   sourceRepositories,
   type Database,
+  type RepairRequest,
   type SourceRepository,
 } from "@faultline/db";
 import { buildRepairEvidence, buildRepairPrompt, isRepositoryAuthorized, REPAIR_OPEN_STATUSES, repositoryFullName, repositoryLinkSchema } from "@faultline/shared";
 import { evidenceChecksum, sha256Hex } from "@faultline/shared/checksum";
-import type { DevinClient, GitHubClient } from "@faultline/shared/integrations";
+import { checkDevinRepositoryAccess, type DevinClient, type DevinRepositoryAccess, type GitHubClient } from "@faultline/shared/integrations";
 import type { ServiceResult } from "./projects";
 
 export interface RepairServiceDeps {
@@ -41,15 +43,54 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** A live repository-access check older than this no longer allows approval. */
+export const DEVIN_ACCESS_MAX_AGE_MS = 10 * 60_000;
+
+const sameRepository = (a: { owner: string; name: string }, b: { repoOwner: string; repoName: string }) =>
+  `${a.owner}/${a.name}`.toLowerCase() === `${b.repoOwner}/${b.repoName}`.toLowerCase();
+
+/**
+ * Why the approval button must stay disabled, judged from the stored check
+ * only: the repository must be the one this request was prepared for, and
+ * Devin's access to it must have been confirmed live within
+ * DEVIN_ACCESS_MAX_AGE_MS. Approval itself checks again live.
+ */
+export function repositoryAccessBlock(repo: Pick<SourceRepository, "owner" | "name" | "devinStatus" | "devinDetail" | "devinCheckedAt"> | null, repair: Pick<RepairRequest, "repoOwner" | "repoName">, now = new Date()): string | null {
+  const target = `${repair.repoOwner}/${repair.repoName}`;
+  if (!repo) return "The linked repository no longer exists. Approval is disabled.";
+  if (!sameRepository(repo, repair)) return `The project is now linked to ${repo.owner}/${repo.name}, but this request was prepared for ${target}. Create a new repair request.`;
+  if (repo.devinStatus !== "ok") return `Devin cannot use ${target}: ${repo.devinDetail ?? "repository access has not been checked."} Approval is disabled until a check succeeds.`;
+  if (!repo.devinCheckedAt) return `Devin's access to ${target} has not been checked live. Check repository access before approving.`;
+  const age = now.getTime() - repo.devinCheckedAt.getTime();
+  if (age > DEVIN_ACCESS_MAX_AGE_MS) return `Devin's access to ${target} was last confirmed ${Math.round(age / 60_000)} minutes ago. Check repository access again before approving.`;
+  return null;
+}
+
+/**
+ * Live check that the repair's exact repository is still linked and visible
+ * to the configured Devin organization. The result is stored either way.
+ */
+async function verifyRepairAccess(deps: RepairServiceDeps, devin: DevinClient, repair: RepairRequest): Promise<DevinRepositoryAccess> {
+  const [repo] = await deps.db.select().from(sourceRepositories).where(eq(sourceRepositories.id, repair.repositoryId));
+  if (!repo) return { ok: false, code: "repository_unavailable", reason: "The linked repository no longer exists.", checkedAt: new Date() };
+  if (!sameRepository(repo, repair)) {
+    return { ok: false, code: "repository_unavailable", reason: `The project is now linked to ${repo.owner}/${repo.name}, but this request was prepared for ${repair.repoOwner}/${repair.repoName}.`, checkedAt: new Date() };
+  }
+  const access = await checkDevinRepositoryAccess(devin, `${repair.repoOwner}/${repair.repoName}`);
+  await recordDevinAccess(deps.db, repo.id, access);
+  return access;
+}
+
 /** GitHub and Devin connection facts for a repository, recorded as they were observed. */
 async function checkConnections(deps: RepairServiceDeps, repo: { owner: string; name: string; baseBranch: string }) {
-  const result: Pick<SourceRepository, "githubStatus" | "githubDetail" | "baseSha" | "devinStatus" | "devinDetail" | "devinRepoName"> & { url: string; canonicalName?: string } = {
+  const result: Pick<SourceRepository, "githubStatus" | "githubDetail" | "baseSha" | "devinStatus" | "devinDetail" | "devinRepoName" | "devinCheckedAt"> & { url: string; canonicalName?: string } = {
     githubStatus: "error",
     githubDetail: null,
     baseSha: null,
     devinStatus: "not_configured",
     devinDetail: deps.devinUnavailable,
     devinRepoName: null,
+    devinCheckedAt: null,
     url: `https://github.com/${repo.owner}/${repo.name}`,
   };
   try {
@@ -65,19 +106,15 @@ async function checkConnections(deps: RepairServiceDeps, repo: { owner: string; 
     result.githubDetail = errorText(error);
   }
   if (deps.devin) {
-    try {
-      const found = await deps.devin.findRepository(result.canonicalName ?? repositoryFullName(repo));
-      if (found) {
-        result.devinStatus = "ok";
-        result.devinRepoName = found.repo_full_name;
-        result.devinDetail = `Devin's ${found.git_connection_host} connection can access ${found.repo_full_name}.`;
-      } else {
-        result.devinStatus = "error";
-        result.devinDetail = `Devin's Git connections do not list ${repositoryFullName(repo)}. In Devin, open Settings → Connections → GitHub and grant the Devin app access to this repository.`;
-      }
-    } catch (error) {
+    const access = await checkDevinRepositoryAccess(deps.devin, result.canonicalName ?? repositoryFullName(repo));
+    result.devinCheckedAt = access.checkedAt;
+    if (access.ok) {
+      result.devinStatus = "ok";
+      result.devinRepoName = access.repoName;
+      result.devinDetail = `Devin's ${access.host} connection can access ${access.repoName}.`;
+    } else {
       result.devinStatus = "error";
-      result.devinDetail = errorText(error);
+      result.devinDetail = access.reason;
     }
   }
   return result;
@@ -256,16 +293,34 @@ export async function approveRepairRequest(
   if (!deps.devin) return { ok: false, error: `Devin is not configured on this server: ${deps.devinUnavailable}` };
   if (!input.confirmed) return { ok: false, error: "Confirm the approval statement first." };
   if (!z.uuid().safeParse(input.repairId).success || !/^[0-9a-f]{64}$/.test(input.evidenceSha256)) return { ok: false, error: "Invalid approval request." };
+  const stale = "This request was already approved, cancelled, or its evidence changed. Reload the page.";
+  const [repair] = await deps.db.select().from(repairRequests).where(eq(repairRequests.id, input.repairId));
+  if (!repair || repair.status !== "awaiting_approval" || repair.evidenceSha256 !== input.evidenceSha256) return { ok: false, error: stale };
+  // Never trust a cached check here: confirm Devin's access to this exact repository now.
+  const access = await verifyRepairAccess(deps, deps.devin, repair);
+  if (!access.ok) return { ok: false, error: `Approval refused; no session was requested. ${access.reason}` };
+  // The conditional update still enforces status and checksum atomically.
   const row = await approveRepair(deps.db, input.repairId, { operatorId: operator.id, username: operator.username, statement: APPROVAL_STATEMENT, evidenceSha256: input.evidenceSha256 });
-  if (!row) return { ok: false, error: "This request was already approved, cancelled, or its evidence changed. Reload the page." };
+  if (!row) return { ok: false, error: stale };
   await recordRepairEvent(deps.db, row.id, {
     source: "operator",
     kind: "approved",
-    message: `Approved by ${operator.username} for evidence checksum ${input.evidenceSha256.slice(0, 16)}…. Queued for the worker to create the Devin session.`,
+    message: `Approved by ${operator.username} for evidence checksum ${input.evidenceSha256.slice(0, 16)}…. Devin's access to ${access.repoName} was confirmed live. Queued for the worker to create the Devin session.`,
     operatorId: operator.id,
-    detail: { statement: APPROVAL_STATEMENT, evidenceSha256: input.evidenceSha256 },
+    detail: { statement: APPROVAL_STATEMENT, evidenceSha256: input.evidenceSha256, repositoryAccess: { repoName: access.repoName, host: access.host, checkedAt: access.checkedAt.toISOString() } },
   });
   return { ok: true };
+}
+
+/** Rechecks Devin's live access to a pending repair's repository. Read-only towards Devin. */
+export async function checkRepairAccess(deps: RepairServiceDeps, operator: Operator, repairId: string): Promise<ServiceResult<object>> {
+  if (!operator) return { ok: false, error: "Sign in first." };
+  if (!z.uuid().safeParse(repairId).success) return { ok: false, error: "Unknown repair request." };
+  if (!deps.devin) return { ok: false, error: `Devin is not configured on this server: ${deps.devinUnavailable}` };
+  const [repair] = await deps.db.select().from(repairRequests).where(eq(repairRequests.id, repairId));
+  if (!repair) return { ok: false, error: "Unknown repair request." };
+  const access = await verifyRepairAccess(deps, deps.devin, repair);
+  return access.ok ? { ok: true } : { ok: false, error: access.reason };
 }
 
 export async function cancelRepairRequest(deps: RepairServiceDeps, operator: Operator, repairId: string): Promise<ServiceResult<object>> {

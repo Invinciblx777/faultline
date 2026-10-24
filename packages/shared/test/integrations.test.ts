@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DevinApiError, DevinClient, devinConfigFromEnv, devinTimestamp, GitHubApiError, GitHubClient } from "../src/integrations";
+import { checkDevinRepositoryAccess, DevinApiError, DevinClient, devinConfigFromEnv, devinTimestamp, GitHubApiError, GitHubClient } from "../src/integrations";
 
 const KEY = "cog_test_key_0123456789";
 const SESSION = {
@@ -129,6 +129,61 @@ describe("Devin client", () => {
     expect(page.items[0]!.event_id).toBe("e1");
     expect(page.end_cursor).toBe("c1");
     expect(calls[0]!.url).toBe("https://api.devin.test/v3/organizations/org-1/sessions/devin-abc123/messages?first=100&after=c0");
+  });
+});
+
+describe("Devin repository access preflight", () => {
+  const SELF = { principal_type: "service_user", service_user_name: "faultline", org_id: "org-1" };
+  const REPO = { repo_full_name: "acme/shop", repo_name: "shop", repo_path: "acme/shop", git_connection_host: "github.com" };
+  const list = (...items: unknown[]) => json(200, { items, has_next_page: false, end_cursor: null });
+
+  it("passes only when the key, organization, and exact GitHub repository are confirmed, using read-only calls", async () => {
+    const { devin, calls } = client([json(200, SELF), list({ ...REPO, repo_full_name: "acme/shop-old" }, REPO)]);
+    const access = await checkDevinRepositoryAccess(devin, "acme/shop");
+    expect(access).toMatchObject({ ok: true, repoName: "acme/shop", host: "github.com", principal: "faultline" });
+    expect(calls.map((c) => [c.init.method, new URL(c.url).pathname])).toEqual([
+      ["GET", "/v3/self"],
+      ["GET", "/v3/organizations/org-1/repositories"],
+    ]);
+    expect(new URL(calls[1]!.url).searchParams.get("filter_name")).toBe("shop");
+  });
+
+  it("fails when the organization does not list the repository", async () => {
+    const { devin } = client([json(200, SELF), list({ ...REPO, repo_full_name: "acme/shop-old" })]);
+    const access = await checkDevinRepositoryAccess(devin, "acme/shop");
+    expect(access).toMatchObject({ ok: false, code: "repository_unavailable", reason: expect.stringContaining("do not list acme/shop") });
+  });
+
+  it("fails when the repository is listed through a non-GitHub connection", async () => {
+    const { devin } = client([json(200, SELF), list({ ...REPO, git_connection_host: "gitlab.com" })]);
+    expect(await checkDevinRepositoryAccess(devin, "acme/shop")).toMatchObject({ ok: false, code: "repository_unavailable", reason: expect.stringContaining("gitlab.com") });
+  });
+
+  it("fails when the key belongs to another organization, without listing repositories", async () => {
+    const { devin, calls } = client([json(200, { ...SELF, org_id: "org-other" })]);
+    expect(await checkDevinRepositoryAccess(devin, "acme/shop")).toMatchObject({ ok: false, code: "wrong_organization", reason: expect.stringContaining("org-other") });
+    expect(calls).toHaveLength(1);
+  });
+
+  it("fails when Devin refuses the configured organization's repository list", async () => {
+    const { devin } = client([json(200, { ...SELF, org_id: null }), json(403, { title: "Forbidden", status: 403 })]);
+    expect(await checkDevinRepositoryAccess(devin, "acme/shop")).toMatchObject({ ok: false, code: "wrong_organization", reason: expect.stringContaining("HTTP 403") });
+  });
+
+  it("fails on rejected credentials and on failed API requests, never echoing the key", async () => {
+    const rejected = client([json(401, { title: "Unauthorized", status: 401 })]);
+    const denied = await checkDevinRepositoryAccess(rejected.devin, "acme/shop");
+    expect(denied).toMatchObject({ ok: false, code: "credentials" });
+    expect(!denied.ok && denied.reason).not.toContain(KEY);
+
+    const down = client([json(500, { title: "boom", status: 500 })], 1);
+    expect(await checkDevinRepositoryAccess(down.devin, "acme/shop")).toMatchObject({ ok: false, code: "api_error", reason: expect.stringContaining("HTTP 500") });
+
+    const listFails = client([json(200, SELF), new TypeError("fetch failed")], 1);
+    expect(await checkDevinRepositoryAccess(listFails.devin, "acme/shop")).toMatchObject({ ok: false, code: "api_error", reason: expect.stringContaining("fetch failed") });
+
+    const malformed = client([json(200, SELF), json(200, { items: [{ repo_full_name: "acme/shop" }] })]);
+    expect(await checkDevinRepositoryAccess(malformed.devin, "acme/shop")).toMatchObject({ ok: false, code: "api_error" });
   });
 });
 

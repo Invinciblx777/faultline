@@ -1,0 +1,1 @@
+ALTER TABLE "source_repositories" ADD COLUMN "devin_checked_at" timestamp with time zone;

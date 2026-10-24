@@ -303,3 +303,19 @@ The owner added a `cog_` key at 00:13, but it was saved in `DEVIN_ORG_ID`, overw
 
 Not done yet: approval (left to the owner), the live session, PR validation, and the independent verification run.
 
+### Fail-closed repository-access preflight (00:20–00:40 IST)
+
+The risk above is now closed in code. Approval and session creation both require a live check that the v3 key authenticates, belongs to `DEVIN_ORG_ID`, and that Devin's GitHub connection lists the request's exact repository. See the changelog entry for the design.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Unit and integration tests | **Passed** | `pnpm test`: shared 148, db 5, web 34, worker 55 passed (4 real-container tests skipped: no `GITHUB_TOKEN` in the test shell). New cases: missing repository, key from another organization, refused organization, failed requests (401, 500, 503, network, malformed body), stale/unchecked/failed stored state, relinked project, successful access. In the worker tests, a failed preflight makes no POST (no upload, no session) |
+| Typecheck, lint, build | **Passed** | `pnpm typecheck`, `pnpm lint`, `pnpm build` |
+| Dev database | Migrated | `pnpm db:migrate` applied `0003` (`source_repositories.devin_checked_at`) |
+| Web and worker | Restarted on the new build (00:33 IST) | Worker: `devin: configured`, `github: token set`, podman 5.8.9, Chromium preflight ok. `GITHUB_TOKEN` from `gh auth token` in the process environment only |
+| Live recheck for repair `268eeabb…` | **Repository not available** | `GET /v3/self` passed and its `org_id` matches `DEVIN_ORG_ID`. Devin's repository list for the organization does not include `Invinciblx777/faultline-reference-shop`. Result stored with `devin_checked_at` |
+| Repair page in the browser (`phase3-demo`) | **Approval disabled** | The checkbox and **Approve and send to Devin** are disabled. The page shows: "Devin cannot use Invinciblx777/faultline-reference-shop: Devin's Git connections for org-… do not list Invinciblx777/faultline-reference-shop…". **Check repository access** completed in about 5 s with the same reason. The script never touched the approval controls |
+| Repair `268eeabb…` unchanged | Yes | `awaiting_approval`, not approved, no session, `updated_at` still 2026-10-24 17:51:10 UTC. Evidence and prompt checksums recomputed: match |
+
+**Ready for approval: no.** Grant the Devin GitHub app access to `Invinciblx777/faultline-reference-shop`. Then click **Check repository access** on the repair page. Approval unlocks for 10 minutes after a successful check, and the server checks again when you approve.
+

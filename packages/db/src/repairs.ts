@@ -9,6 +9,7 @@ import {
   type RepairStatus,
   type VerificationVerdict,
 } from "@faultline/shared";
+import type { DevinRepositoryAccess } from "@faultline/shared/integrations";
 import type { Database } from "./client";
 import {
   artifacts,
@@ -201,6 +202,18 @@ export async function cancelRepair(db: Database, repairId: string) {
     .where(and(eq(repairRequests.id, repairId), inArray(repairRequests.status, ["awaiting_approval", "queued"])))
     .returning();
   return row ?? null;
+}
+
+/** Stores a live Devin repository-access check on the linked repository, success or failure. */
+export async function recordDevinAccess(db: Database, repositoryId: string, access: DevinRepositoryAccess) {
+  await db
+    .update(sourceRepositories)
+    .set(
+      access.ok
+        ? { devinStatus: "ok", devinDetail: `Devin's ${access.host} connection can access ${access.repoName}.`, devinRepoName: access.repoName, devinCheckedAt: access.checkedAt }
+        : { devinStatus: "error", devinDetail: access.reason, devinRepoName: null, devinCheckedAt: access.checkedAt },
+    )
+    .where(eq(sourceRepositories.id, repositoryId));
 }
 
 /** The worker claims an approved request before calling Devin; only one claimant can win. */

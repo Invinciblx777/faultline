@@ -7,6 +7,7 @@ import { getRepairDeps } from "@/lib/integrations";
 import {
   approveRepairRequest,
   cancelRepairRequest,
+  checkRepairAccess,
   createRepairRequest,
   linkRepository,
   recheckRepository,
@@ -56,6 +57,16 @@ export async function approveRepairAction(_prev: RepairFormState, form: FormData
   });
   if (!result.ok) return { error: result.error };
   revalidatePath(`/repairs/${repairId}`);
+  return { ok: true };
+}
+
+export async function checkRepairAccessAction(_prev: RepairFormState, form: FormData): Promise<RepairFormState> {
+  const operator = await requireOperator();
+  const repairId = String(form.get("repairId") ?? "");
+  const result = await checkRepairAccess(getRepairDeps(), operator, repairId);
+  // The stored result changed either way, so the approval gate must re-render.
+  revalidatePath(`/repairs/${repairId}`);
+  if (!result.ok) return { error: result.error };
   return { ok: true };
 }
 

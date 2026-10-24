@@ -458,6 +458,8 @@ export const sourceRepositories = pgTable(
     devinDetail: text("devin_detail"),
     /** Devin's identifier for the repository (repo_full_name), passed as `repos` on session creation. */
     devinRepoName: text("devin_repo_name"),
+    /** When Devin's access to the repository was last checked live; approval requires a recent check. */
+    devinCheckedAt: timestamp("devin_checked_at", { withTimezone: true, mode: "date" }),
   },
   (t) => [uniqueIndex("source_repositories_project_key").on(t.projectId)],
 );

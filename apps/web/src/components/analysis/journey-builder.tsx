@@ -1,13 +1,12 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Braces, ListOrdered, Plus, Save, Trash2 } from "lucide-react";
-import { ToggleGroup } from "radix-ui";
+import { ArrowDown, ArrowUp, Plus, Save, Trash2 } from "lucide-react";
 import { useActionState, useMemo, useState } from "react";
 import { LOCATOR_ROLES, STEP_TYPE_LABELS, type JourneyDefinition, type JourneyStepType } from "@faultline/shared";
 import { saveJourneyAction, type JourneyFormState } from "@/app/actions/journeys";
 import { inputClasses, selectClasses } from "@/design/components/field";
 import { cn } from "@/lib/cn";
-import { FilledButton, OutlinedButton, TextButton, TonalButton } from "@/design/components";
+import { Card, CardDescription, CardTitle, Chip, FilledButton, IconButton, SegmentedControl, TonalButton } from "@/design/components";
 
 /**
  * Structured editor for a declarative journey. The draft is plain data; the
@@ -51,6 +50,26 @@ const LOCATOR_LABELS: Record<LocatorBy, string> = {
   css: "CSS selector",
 };
 
+// Short verb shown on each step row's chip.
+const STEP_VERB: Partial<Record<JourneyStepType, string>> = {
+  navigate: "goto",
+  click: "click",
+  fill: "fill",
+  waitForVisible: "wait",
+  assertVisible: "expect",
+  assertHidden: "expect",
+  assertEnabled: "expect",
+  assertDisabled: "expect",
+  assertText: "expect",
+};
+
+function stepSummary(step: DraftStep) {
+  if (step.type === "navigate") return step.path;
+  if (step.type === "fill") return `${step.target.value || "…"} = ${step.value ? JSON.stringify(step.value) : "…"}`;
+  if (step.type === "assertText") return `${step.target.value || "…"} ${step.match} ${JSON.stringify(step.text)}`;
+  return step.target.by === "role" ? `${step.target.role} "${step.target.value}"` : step.target.value;
+}
+
 let nextUid = 1;
 const uid = () => nextUid++;
 
@@ -79,7 +98,18 @@ function toDraft(step: AnyStep): DraftStep {
     const t = step.target;
     draft.target = {
       by: t.by,
-      value: t.by === "role" ? t.name : t.by === "text" ? t.text : t.by === "label" ? t.label : t.by === "placeholder" ? t.placeholder : t.by === "testId" ? t.testId : t.selector,
+      value:
+        t.by === "role"
+          ? t.name
+          : t.by === "text"
+            ? t.text
+            : t.by === "label"
+              ? t.label
+              : t.by === "placeholder"
+                ? t.placeholder
+                : t.by === "testId"
+                  ? t.testId
+                  : t.selector,
       role: t.by === "role" ? t.role : "button",
       exact: "exact" in t ? Boolean(t.exact) : false,
     };
@@ -90,7 +120,8 @@ function toDraft(step: AnyStep): DraftStep {
     draft.match = step.match;
   }
   // Imported JSON may omit defaults; only carry explicit, non-default numbers into the form.
-  if (step.type !== "navigate" && step.type !== "reload" && typeof step.timeoutMs === "number" && step.timeoutMs !== 5000) draft.timeoutMs = String(step.timeoutMs);
+  if (step.type !== "navigate" && step.type !== "reload" && typeof step.timeoutMs === "number" && step.timeoutMs !== 5000)
+    draft.timeoutMs = String(step.timeoutMs);
   if ("maxDurationMs" in step && typeof step.maxDurationMs === "number") draft.maxDurationMs = String(step.maxDurationMs);
   return draft;
 }
@@ -133,7 +164,7 @@ function Input({ className, ...rest }: React.ComponentProps<"input">) {
 function Mini({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <span className="text-xs text-on-surface-variant">{label}</span>
+      <span className="px-4 md-label-medium text-on-surface-variant">{label}</span>
       {children}
     </label>
   );
@@ -162,11 +193,14 @@ function StepEditor({
   const setTarget = (patch: Partial<DraftLocator>) => onChange({ ...step, target: { ...step.target, ...patch } });
   const targeted = TARGETED.includes(step.type);
   return (
-    <li className={cn("rounded-lg border bg-surface-low p-4", error ? "border-failure" : "border-outline-variant")}>
+    <li className={cn("bg-surface-container p-4", error && "ring-2 ring-error ring-inset")}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="tabular grid size-8 place-items-center rounded-full bg-surface-highest text-sm font-medium" aria-hidden>
+        <span className="tabular md-label-medium grid size-8 place-items-center rounded-full bg-surface-highest" aria-hidden>
           {index + 1}
         </span>
+        <Chip status={step.type.startsWith("assert") ? "resilient" : "neutral"} icon={null}>
+          {STEP_VERB[step.type] ?? step.type}
+        </Chip>
         <Select
           aria-label={`Step ${index + 1} type`}
           value={step.type}
@@ -180,10 +214,17 @@ function StepEditor({
           ))}
         </Select>
         <span className="ml-auto flex gap-1">
-          <TextButton className="min-h-10 px-4" type="button" aria-label={`Move step ${index + 1} up`} disabled={index === 0} onClick={() => onMove(-1)} icon={<ArrowUp aria-hidden />} />
-          <TextButton className="min-h-10 px-4" type="button" aria-label={`Move step ${index + 1} down`} disabled={index === count - 1} onClick={() => onMove(1)} icon={<ArrowDown aria-hidden />} />
-          <TextButton className="min-h-10 px-4" type="button" aria-label={`Remove step ${index + 1}`} onClick={onRemove} icon={<Trash2 aria-hidden />} />
+          <IconButton label={`Move step ${index + 1} up`} disabled={index === 0} onClick={() => onMove(-1)} className="disabled:opacity-40">
+            <ArrowUp aria-hidden />
+          </IconButton>
+          <IconButton label={`Move step ${index + 1} down`} disabled={index === count - 1} onClick={() => onMove(1)} className="disabled:opacity-40">
+            <ArrowDown aria-hidden />
+          </IconButton>
+          <IconButton label={`Remove step ${index + 1}`} onClick={onRemove}>
+            <Trash2 aria-hidden />
+          </IconButton>
         </span>
+        {stepSummary(step) ? <code className="md-body-medium w-full truncate px-1 font-mono text-on-surface-variant">{stepSummary(step)}</code> : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {step.type === "navigate" ? (
@@ -213,12 +254,20 @@ function StepEditor({
                 </Select>
               </Mini>
             ) : null}
-            <Mini label={step.target.by === "role" ? "Accessible name" : LOCATOR_LABELS[step.target.by]} className={step.target.by === "role" ? "sm:col-span-2" : undefined}>
+            <Mini
+              label={step.target.by === "role" ? "Accessible name" : LOCATOR_LABELS[step.target.by]}
+              className={step.target.by === "role" ? "sm:col-span-2" : undefined}
+            >
               <Input value={step.target.value} onChange={(e) => setTarget({ value: e.target.value })} spellCheck={false} />
             </Mini>
             {step.target.by !== "css" && step.target.by !== "testId" ? (
-              <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                <input type="checkbox" checked={step.target.exact} onChange={(e) => setTarget({ exact: e.target.checked })} className="size-4 accent-[var(--primary)]" />
+              <label className="md-body-medium flex items-center gap-2 px-1 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={step.target.exact}
+                  onChange={(e) => setTarget({ exact: e.target.checked })}
+                  className="size-4 accent-[var(--primary)]"
+                />
                 Match the whole text exactly
               </label>
             ) : null}
@@ -249,7 +298,12 @@ function StepEditor({
         ) : null}
         {TIMED.includes(step.type) ? (
           <Mini label="Performance budget (ms, optional)">
-            <Input inputMode="numeric" value={step.maxDurationMs} onChange={(e) => set({ maxDurationMs: e.target.value.replace(/\D/g, "") })} placeholder="none" />
+            <Input
+              inputMode="numeric"
+              value={step.maxDurationMs}
+              onChange={(e) => set({ maxDurationMs: e.target.value.replace(/\D/g, "") })}
+              placeholder="none"
+            />
           </Mini>
         ) : null}
         <Mini label="Description shown in results (optional)" className="sm:col-span-2">
@@ -257,7 +311,7 @@ function StepEditor({
         </Mini>
       </div>
       {error ? (
-        <p className="mt-2 text-sm text-failure" role="alert">
+        <p className="mt-2 px-4 md-body-medium text-error" role="alert">
           {error}
         </p>
       ) : null}
@@ -332,18 +386,18 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
   };
 
   return (
-    <form action={action} className="flex max-w-4xl flex-col gap-8" noValidate>
+    <form action={action} className="flex max-w-4xl flex-col gap-4" noValidate>
       <input type="hidden" name="projectId" value={projectId} />
       {journeyId ? <input type="hidden" name="journeyId" value={journeyId} /> : null}
       <input type="hidden" name="definition" value={JSON.stringify(definition)} />
 
       {state.error ? (
-        <p role="alert" className="rounded-md bg-failure-container px-4 py-3 text-sm text-on-failure-container">
+        <p role="alert" className="rounded-md bg-error-container px-4 py-3 md-body-medium text-on-error-container">
           {state.error}
         </p>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <Card tier="low" className="grid gap-4 sm:grid-cols-2">
         <Mini label="Journey name">
           <Input value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required aria-invalid={Boolean(state.fieldErrors?.name)} />
         </Mini>
@@ -353,62 +407,55 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
         <Mini label="Description (optional)" className="sm:col-span-2">
           <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} />
         </Mini>
-      </div>
+      </Card>
 
-      <ToggleGroup.Root
-        type="single"
+      <SegmentedControl
+        label="Editor"
         value={mode}
-        onValueChange={(v) => {
-          if (!v) return;
+        segments={[
+          { value: "steps", label: "Steps" },
+          { value: "json", label: "JSON" },
+        ]}
+        onChange={(v) => {
           if (v === "json") setJson(JSON.stringify(definition, null, 2));
           setMode(v);
         }}
-        aria-label="Editor"
-        className="inline-flex self-start rounded-full border border-outline p-1"
-      >
-        {[
-          { value: "steps", label: "Steps", icon: ListOrdered },
-          { value: "json", label: "JSON", icon: Braces },
-        ].map(({ value, label, icon: Icon }) => (
-          <ToggleGroup.Item
-            key={value}
-            value={value}
-            className="type-label inline-flex h-10 items-center gap-2 rounded-full px-4 text-on-surface-variant data-[state=on]:bg-primary-container data-[state=on]:text-on-primary-container"
-          >
-            <Icon aria-hidden className="size-4" />
-            {label}
-          </ToggleGroup.Item>
-        ))}
-      </ToggleGroup.Root>
+        className="self-start"
+      />
 
       {mode === "json" ? (
-        <div className="flex flex-col gap-3">
-          <p className="text-sm text-on-surface-variant">
-            Journey definition in the <code className="font-mono">faultline.journey/v1</code> format. Apply to load it into the step editor; the server validates it on save.
-          </p>
-          <textarea value={json} onChange={(e) => setJson(e.target.value)} spellCheck={false} className={cn(inputClasses, "min-h-96 py-3 font-mono text-sm")} aria-label="Journey JSON" />
+        <Card tier="low" className="flex flex-col gap-3">
+          <CardDescription>
+            Journey definition in the <code className="font-mono">faultline.journey/v1</code> format. Apply to load it into the step editor; the server
+            validates it on save.
+          </CardDescription>
+          <textarea
+            value={json}
+            onChange={(e) => setJson(e.target.value)}
+            spellCheck={false}
+            className={cn(inputClasses, "min-h-96 py-3 font-mono text-sm")}
+            aria-label="Journey JSON"
+          />
           {jsonError ? (
-            <p role="alert" className="text-sm text-failure">
+            <p role="alert" className="px-4 md-body-medium text-error">
               {jsonError}
             </p>
           ) : null}
           <TonalButton type="button" onClick={applyJson} className="self-start">
             Apply JSON
           </TonalButton>
-        </div>
+        </Card>
       ) : (
         <>
-          <section aria-labelledby="steps-title" className="flex flex-col gap-3">
+          <Card tier="low" aria-labelledby="steps-title" className="flex flex-col gap-3">
             <div>
-              <h2 id="steps-title" className="type-title text-lg">
-                Steps
-              </h2>
-              <p className="text-sm text-on-surface-variant">
-                The first step opens a page on the project origin. Assertions are what verdicts are based on: an analysis can only call a condition broken if an assertion that
-                passed normally fails under it.
+              <CardTitle id="steps-title">Steps</CardTitle>
+              <p className="md-body-medium text-on-surface-variant">
+                The first step opens a page on the project origin. Assertions are what verdicts are based on: an analysis can only call a condition broken if an
+                assertion that passed normally fails under it.
               </p>
             </div>
-            <ol className="flex flex-col gap-3">
+            <ol className="flex flex-col gap-0.5 [&>li]:rounded-sm [&>li:first-child]:rounded-t-xl [&>li:last-child]:rounded-b-xl">
               {steps.map((step, i) => (
                 <StepEditor
                   key={step.uid}
@@ -425,19 +472,27 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
             </ol>
             <div className="flex flex-wrap gap-2">
               {(["click", "fill", "assertVisible", "assertText", "navigate"] as JourneyStepType[]).map((type) => (
-                <OutlinedButton className="min-h-10 px-4" key={type} type="button" disabled={steps.length >= 30} onClick={() => setSteps([...steps, emptyStep(type)])} icon={<Plus aria-hidden />}>
+                <TonalButton
+                  className="min-h-10 px-4"
+                  key={type}
+                  type="button"
+                  disabled={steps.length >= 30}
+                  onClick={() => setSteps([...steps, emptyStep(type)])}
+                  icon={<Plus aria-hidden />}
+                >
                   {STEP_TYPE_LABELS[type]}
-                </OutlinedButton>
+                </TonalButton>
               ))}
             </div>
-          </section>
+          </Card>
 
-          <details className="rounded-lg border border-outline-variant p-4" open={offline.length > 0}>
-            <summary className="type-title cursor-pointer">Offline expectations ({offline.length})</summary>
-            <p className="mt-2 text-sm text-on-surface-variant">
-              Checked only in the online → offline experiment, after the journey runs offline. Without them, offline results are recorded as observations and never as defects.
+          <details className="rounded-xl bg-surface-low p-5 sm:p-6" open={offline.length > 0}>
+            <summary className="md-title-large cursor-pointer">Offline expectations ({offline.length})</summary>
+            <p className="mt-2 md-body-medium text-on-surface-variant">
+              Checked only in the online → offline experiment, after the journey runs offline. Without them, offline results are recorded as observations and
+              never as defects.
             </p>
-            <ol className="mt-3 flex flex-col gap-3">
+            <ol className="mt-3 flex flex-col gap-0.5 [&>li]:rounded-sm [&>li:first-child]:rounded-t-xl [&>li:last-child]:rounded-b-xl">
               {offline.map((step, i) => (
                 <StepEditor
                   key={step.uid}
@@ -452,43 +507,73 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
                 />
               ))}
             </ol>
-            <OutlinedButton type="button" className="min-h-10 px-4 mt-3" disabled={offline.length >= 5} onClick={() => setOffline([...offline, emptyStep("assertVisible")])} icon={<Plus aria-hidden />}>
+            <TonalButton
+              type="button"
+              className="min-h-10 px-4 mt-3"
+              disabled={offline.length >= 5}
+              onClick={() => setOffline([...offline, emptyStep("assertVisible")])}
+              icon={<Plus aria-hidden />}
+            >
               Offline expectation
-            </OutlinedButton>
+            </TonalButton>
           </details>
 
-          <details className="rounded-lg border border-outline-variant p-4" open={mutations.length > 0}>
-            <summary className="type-title cursor-pointer">Allowed data-changing requests ({mutations.length})</summary>
-            <p className="mt-2 text-sm text-on-surface-variant">
-              Every POST, PUT, PATCH, and DELETE request is blocked during analyses so a journey cannot change data. List an exact method and path here only if it is safe to call
-              repeatedly against this environment.
+          <details className="rounded-xl bg-surface-low p-5 sm:p-6" open={mutations.length > 0}>
+            <summary className="md-title-large cursor-pointer">Allowed data-changing requests ({mutations.length})</summary>
+            <p className="mt-2 md-body-medium text-on-surface-variant">
+              Every POST, PUT, PATCH, and DELETE request is blocked during analyses so a journey cannot change data. List an exact method and path here only if
+              it is safe to call repeatedly against this environment.
             </p>
             <ul className="mt-3 flex flex-col gap-2">
               {mutations.map((m, i) => (
                 <li key={m.uid} className="flex flex-wrap items-end gap-2">
                   <Mini label="Method">
-                    <Select value={m.method} onChange={(e) => setMutations(mutations.map((x, j) => (j === i ? { ...x, method: e.target.value as DraftMutation["method"] } : x)))}>
+                    <Select
+                      value={m.method}
+                      onChange={(e) => setMutations(mutations.map((x, j) => (j === i ? { ...x, method: e.target.value as DraftMutation["method"] } : x)))}
+                    >
                       {["POST", "PUT", "PATCH", "DELETE"].map((v) => (
                         <option key={v}>{v}</option>
                       ))}
                     </Select>
                   </Mini>
                   <Mini label="Path" className="flex-1">
-                    <Input value={m.path} onChange={(e) => setMutations(mutations.map((x, j) => (j === i ? { ...x, path: e.target.value } : x)))} placeholder="/api/cart" />
+                    <Input
+                      value={m.path}
+                      onChange={(e) => setMutations(mutations.map((x, j) => (j === i ? { ...x, path: e.target.value } : x)))}
+                      placeholder="/api/cart"
+                    />
                   </Mini>
-                  <TextButton className="min-h-10 px-4" type="button" aria-label="Remove allowed request" onClick={() => setMutations(mutations.filter((_, j) => j !== i))} icon={<Trash2 aria-hidden />} />
+                  <IconButton label="Remove allowed request" onClick={() => setMutations(mutations.filter((_, j) => j !== i))}>
+                    <Trash2 aria-hidden />
+                  </IconButton>
                 </li>
               ))}
             </ul>
-            <OutlinedButton type="button" className="min-h-10 px-4 mt-3" disabled={mutations.length >= 10} onClick={() => setMutations([...mutations, { uid: uid(), method: "POST", path: "/" }])} icon={<Plus aria-hidden />}>
+            <TonalButton
+              type="button"
+              className="min-h-10 px-4 mt-3"
+              disabled={mutations.length >= 10}
+              onClick={() => setMutations([...mutations, { uid: uid(), method: "POST", path: "/" }])}
+              icon={<Plus aria-hidden />}
+            >
               Allowed request
-            </OutlinedButton>
+            </TonalButton>
           </details>
 
-          <details className="rounded-lg border border-outline-variant p-4" open={masks.trim().length > 0}>
-            <summary className="type-title cursor-pointer">Screenshot masks</summary>
-            <p className="mt-2 text-sm text-on-surface-variant">CSS selectors for regions that change on every load (clocks, ads). One per line, up to 10. Masked regions are painted over in every screenshot, so they do not count as visual differences.</p>
-            <textarea value={masks} onChange={(e) => setMasks(e.target.value)} spellCheck={false} className={cn(inputClasses, "mt-3 min-h-24 py-3 font-mono text-sm")} aria-label="Mask selectors" />
+          <details className="rounded-xl bg-surface-low p-5 sm:p-6" open={masks.trim().length > 0}>
+            <summary className="md-title-large cursor-pointer">Screenshot masks</summary>
+            <p className="mt-2 md-body-medium text-on-surface-variant">
+              CSS selectors for regions that change on every load (clocks, ads). One per line, up to 10. Masked regions are painted over in every screenshot, so
+              they do not count as visual differences.
+            </p>
+            <textarea
+              value={masks}
+              onChange={(e) => setMasks(e.target.value)}
+              spellCheck={false}
+              className={cn(inputClasses, "mt-3 min-h-24 py-3 font-mono text-sm")}
+              aria-label="Mask selectors"
+            />
           </details>
         </>
       )}
@@ -497,7 +582,7 @@ export function JourneyBuilder({ projectId, journeyId, initial }: { projectId: s
         <FilledButton type="submit" disabled={pending || mode === "json"} icon={<Save aria-hidden />}>
           {pending ? "Saving…" : journeyId ? "Save as new version" : "Save journey"}
         </FilledButton>
-        {mode === "json" ? <span className="text-sm text-on-surface-variant">Apply the JSON before saving.</span> : null}
+        {mode === "json" ? <span className="md-body-medium text-on-surface-variant">Apply the JSON before saving.</span> : null}
       </div>
     </form>
   );

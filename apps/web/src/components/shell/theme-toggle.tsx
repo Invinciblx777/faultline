@@ -7,9 +7,9 @@ import { setThemeAction } from "@/app/actions/preferences";
 import { cn } from "@/lib/cn";
 
 const OPTIONS = [
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "light", label: "Light", icon: Sun },
   { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
 ] as const;
 
 export function ThemeToggle({ initial }: { initial: string }) {

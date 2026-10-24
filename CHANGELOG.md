@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-25T00:06+05:30 — Phase 3.5 live Devin readiness check (blocked)
+
+- Changed: `PHASE_STATUS.md` gains a Phase 3.5 section with the actual results of the live Devin readiness checks. `AI_USAGE.md` records the check.
+- Why: The repository owner configured Devin credentials and asked to verify the live connection before approving the first real session.
+- Validation: Read-only calls only. `GET /v3/self`, `GET /v3/organizations/{org}/sessions`, and `GET /v3/organizations/{org}/repositories` returned HTTP 403. Legacy `GET /v1/sessions` returned 200, showing that the key is a legacy `apk_` key. No FAULTLINE-tagged session exists. Stored evidence, prompt, and regression-test checksums for repair `268eeabb…` were recomputed and match. `faultline-reference-shop` `main` is unchanged at `6c9ca4c` and has no PRs. Web and worker were restarted and are healthy.
+- Limitations: The live Devin session, the pull request check, and independent verification were not run. They need a v3 service-user key (`cog_`). Devin's GitHub access could not be checked with this key.
+
 ## 2026-10-24T23:44+05:30 — Record all models used in AI usage
 
 - Changed: `AI_USAGE.md` now lists GPT Astra 6, Claude Opus 5.5, and Claude Fable as the models used to build the project.

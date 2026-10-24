@@ -206,7 +206,7 @@ pnpm operator:create admin
 - **Verification:** run the same regression test (and a rerun of the same experiment) against the patched deployment. `RepairRequest.verificationScanId` already links an independent rerun. "Passes after fix" is proven to work by the worker test that runs the generated test against a fixed storefront. Only that rerun's evidence may mark a repair verified.
 - **Allowlist:** the repaired preview deployment's origin must be added to the allowlist before it can be verified.
 
-## Phase 3: Devin Strike — implemented; live Devin session blocked on credentials (2026-10-24)
+## Phase 3: Devin Strike — implemented; live Devin session blocked on credentials (2026-10-24; see Phase 3.5)
 
 Branch `phase-3-devin-strike`, created from `phase-2-blast-radius` at `06e1e72` (tag `phase-2-checkpoint`). Not merged into `main`.
 
@@ -257,3 +257,29 @@ The repair pipeline is built end to end and verified everywhere FAULTLINE contro
 1. Add `DEVIN_API_KEY` (a `cog_` service-user key) and `DEVIN_ORG_ID` to `.env`; connect Devin's GitHub app to `Invinciblx777/faultline-reference-shop`.
 2. Restart web and worker; Settings → Test Devin connection.
 3. On repair `268eeabb…`, confirm and approve. The worker creates the session; when Devin opens a PR, select **Verify**.
+
+## Phase 3.5: Live Devin run — blocked: the configured key is not a v3 key (2026-10-25)
+
+Checked on 2026-10-25 around 00:00 IST, on branch `phase-3-devin-strike`. No code changed. **No Devin session was created and nothing was approved.**
+
+### Results
+
+| Check | Result | Evidence |
+|---|---|---|
+| Credentials present | Yes, not printed | `.env` (git-ignored, mode 600) has `DEVIN_API_KEY` (96 characters) and `DEVIN_ORG_ID` (`org-` prefix). The key has the legacy `apk_` prefix, not the v3 service-user prefix `cog_` |
+| `GET /v3/self` | **Failed: HTTP 403** | Body: `{"title":"Forbidden","status":403,"detail":"Unauthorized"}` |
+| Other v3 reads | **Failed: HTTP 403** | `GET /v3/organizations/{org}/sessions?first=1` and `GET /v3/organizations/{org}/repositories?first=1` |
+| Is the key valid at all? | Yes, as a legacy v1 key | Read-only `GET /v1/sessions` → HTTP 200. Conclusion: a working legacy key that API v3 rejects |
+| Duplicate-session guard | No FAULTLINE session exists | The v1 list shows one session in the account: `devin-7e00f303…`, tag `agent:devin-rs`, "Analyze Hackathon Project and Tracks", finished, created 2026-10-24T14:04Z. FAULTLINE did not create it, and it has no `faultline` tag |
+| Devin's GitHub access to `Invinciblx777/faultline-reference-shop` | **Not verifiable** | Needs v3 `GET /repositories`, which returns 403 with this key. `gh` cannot list GitHub App installations with an OAuth token (HTTP 403 "must authenticate with an access token authorized to a GitHub App") |
+| Web and worker restarted with current environment | Done | Both were started before `.env` changed. Restarted at 00:02 IST with `GITHUB_TOKEN` from `gh auth token` in the process environment only. `/api/health` → `{"ok":true}`. Worker log: `devin: unavailable: DEVIN_API_KEY must be a v3 service-user key (prefix cog_)…`, `github: token set`, podman 5.8.9, Chromium preflight ok |
+| Original bug unchanged | Yes | `faultline-reference-shop` `main` is still `6c9ca4c`. `public/shop/shop.js:57` still loads catalog and inventory with `Promise.all`. No pull requests exist on the repository |
+| Saved repair evidence unchanged | Yes | Repair `268eeabb-af9e-4b86-828b-fbcf065f2a88` is `awaiting_approval`, never approved, with no session, PR, or verdict. Recomputed from the stored rows: evidence checksum (`canonicalJson`) = `2d7ecd17…` (match), prompt SHA-256 match, regression test SHA-256 `c171b00e…` match, and the evidence embeds the same test text. The cancelled request `8b0254a4…` is untouched |
+| Fixture branch not presented as Devin's repair | Confirmed | `faultline-verification-fixture` (`b7cc293`, one commit by the repository owner's account changing `public/shop/shop.js`) has no PR. No repair row references `b7cc293` or the branch. The dev database has 0 verification runs. No application source references the fixture; it appears only in worker tests and docs, labeled as developer-written |
+| UI ready for approval | **No** | Because the key fails the `cog_` check, the repair page shows "Devin is not configured on this server… Approval is disabled; no session can be created." This is correct: approving would only reach a 403 |
+
+### What is needed
+
+A Devin API v3 **service-user** key (prefix `cog_`) for the organization in `DEVIN_ORG_ID`, created in Devin under Settings → Service users. The service user needs permission to create and view sessions, and Devin's GitHub integration must include `Invinciblx777/faultline-reference-shop`. Then restart web and worker and rerun the checks above. The legacy `apk_` key works only with API v1, which FAULTLINE does not implement.
+
+Not done because of the block: approval, the live Devin session, the GitHub pull request and head commit check, and the independent rerun of the unchanged regression test against the candidate build.

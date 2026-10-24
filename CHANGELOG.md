@@ -2,6 +2,13 @@
 
 Newest first. Timestamps come from the Git commit history (IST, UTC+05:30). Validation notes restate what [PHASE_STATUS.md](PHASE_STATUS.md) records; this log adds no new test claims.
 
+## 2026-10-24T23:44+05:30 — Record all models used in AI usage
+
+- Changed: `AI_USAGE.md` now lists GPT Astra 6, Claude Opus 5.5, and Claude Fable as the models used to build the project.
+- Why: The repository owner reported using these models; the record must name them.
+- Validation: Documentation-only change; read back the edited file.
+- Limitations: The model list is as reported by the repository owner and is not verified from tool logs. The per-task rows do not split work between GPT Astra 6 and Fable.
+
 ## 2026-10-24T23:38+05:30 — Correct two Phase 3 changelog timestamps
 
 - Changed: `CHANGELOG.md`. The two previous headings were written with estimated times (23:40 and 23:55) that were later than the actual commits; they now show the commit times of `d3d17c7` (23:36) and `7ceb642` (23:38).

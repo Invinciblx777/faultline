@@ -65,7 +65,7 @@ export default async function SettingsPage() {
 
         <Section id="repair-providers" title="Repair providers">
           <ListItem
-            headline="Devin API v3"
+            headline={<h3 className="md-title-medium">Devin API v3</h3>}
             supporting={
               devin.configured
                 ? `Service-user key and organization ${devin.orgId} are set on the server. Sessions are created only after an approver approves a repair request.`
@@ -96,7 +96,7 @@ export default async function SettingsPage() {
 
         <Section id="repositories" title="Repositories">
           <ListItem
-            headline="GitHub"
+            headline={<h3 className="md-title-medium">GitHub</h3>}
             supporting={`FAULTLINE reads repositories, branches, commits, and pull requests to confirm what Devin reports, and downloads exact commits for verification. It never pushes, merges, or comments.${env.GITHUB_TOKEN ? "" : " Without GITHUB_TOKEN only public repositories can be read, with low rate limits."}`}
             trailing={<ToneChip tone={env.GITHUB_TOKEN ? "success" : "unavailable"} label={env.GITHUB_TOKEN ? "Token set" : "No token"} />}
           />

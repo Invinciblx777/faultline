@@ -16,6 +16,7 @@
     "dev:worker": "pnpm --filter @faultline/worker dev",
     "start:web": "pnpm --filter @faultline/web start",
     "start:worker": "pnpm --filter @faultline/worker start",
+    "worker:restart": "pnpm --filter @faultline/worker build && pnpm start:worker",
     "reference-target": "pnpm --filter @faultline/reference-target start",
     "db:generate": "pnpm --filter @faultline/db generate",
     "db:migrate": "pnpm --filter @faultline/db migrate",
@@ -28,6 +29,7 @@
     "lint": "pnpm -r lint",
     "test": "pnpm -r --workspace-concurrency=1 test",
     "test:e2e": "pnpm --filter @faultline/web build && pnpm --filter @faultline/web test:e2e",
-    "test:all": "pnpm test && pnpm test:e2e"
+    "test:all": "pnpm test && pnpm test:e2e",
+    "demo:preflight": "pnpm --filter @faultline/worker demo:preflight"
   }
 }

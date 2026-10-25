@@ -30,7 +30,9 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     ".next-gate/types/**/*.ts",
-    ".next-gate/dev/types/**/*.ts"
+    ".next-gate/dev/types/**/*.ts",
+    ".next-release/types/**/*.ts",
+    ".next-release/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

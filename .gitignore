@@ -1,6 +1,8 @@
 node_modules/
 .next/
 .next-gate/
+.next-release/
+release/
 dist/
 out/
 coverage/

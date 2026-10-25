@@ -27,6 +27,11 @@ const nextConfig: NextConfig = {
   // Gate runs set NEXT_DIST_DIR=.next-gate so a verification build never replaces the build a
   // running demo server is serving from.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Release bundles (scripts/package-release.mjs) set NEXT_OUTPUT=standalone to get a
+  // self-contained server.js with only the traced node_modules it needs.
+  ...(process.env.NEXT_OUTPUT === "standalone"
+    ? { output: "standalone" as const, outputFileTracingRoot: resolve(process.cwd(), "../..") }
+    : {}),
   transpilePackages: ["@faultline/shared", "@faultline/db"],
   serverExternalPackages: ["pg", "pg-boss", "@aws-sdk/client-s3"],
   turbopack: {

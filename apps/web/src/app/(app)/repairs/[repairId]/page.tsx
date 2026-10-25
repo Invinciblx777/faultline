@@ -189,9 +189,9 @@ function VerifiedReport({ detail, canComment }: { detail: RepairDetail; canComme
   return (
     <Card tier="container" aria-labelledby="report-title" className="flex flex-col gap-5">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <span className="relative grid h-40 w-full shrink-0 place-items-center sm:w-72">
-          <ExpressiveShape shape="blob" className={cn("absolute inset-0 h-full w-full", style.blob)} />
-          <span className="relative flex flex-col items-center gap-1 px-6 text-center">
+        <span className="relative grid size-56 shrink-0 place-items-center self-center">
+          <ExpressiveShape shape="circle" className={cn("absolute inset-0 h-full w-full", style.blob)} />
+          <span className="relative flex flex-col items-center gap-1 px-8 text-center">
             <VerdictIcon aria-hidden className="size-8" />
             <span className="md-headline-medium">{style.label}</span>
           </span>

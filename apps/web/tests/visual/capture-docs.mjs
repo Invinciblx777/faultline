@@ -11,6 +11,8 @@ if (!out) throw new Error("usage: capture-docs.mjs <out-dir>");
 const dir = new URL("../../test-results/visual/", import.meta.url);
 const t = JSON.parse(readFileSync(new URL("targets.json", dir), "utf8"));
 const shots = [
+  // The verdict report card alone, as shown at the top of the README.
+  { file: "08-verdict-scope.png", path: t.verification, element: '[aria-labelledby="report-title"]' },
   { file: "01-blast-radius-map.png", path: t.blastRadius },
   { file: "10-blast-radius-mobile.png", path: t.blastRadius, mobile: true },
   { file: "11-new-scan-form.png", path: t.extra.newScan },
@@ -38,7 +40,8 @@ for (const shot of shots) {
   const page = await context.newPage();
   await page.goto(shot.path);
   await page.waitForLoadState("networkidle");
-  await page.screenshot({ path: `${out}/${shot.file}`, animations: "disabled" });
+  const target = shot.element ? page.locator(shot.element) : page;
+  await target.screenshot({ path: `${out}/${shot.file}`, animations: "disabled" });
   console.log(`${shot.file}  ${shot.path}`);
   await context.close();
 }

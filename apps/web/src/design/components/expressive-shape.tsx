@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn";
 
-// Precomputed paths on a 100×100 box. Scallop: 12-lobed cookie; blob: soft four-lobe organic form.
+// Precomputed paths on a 100×100 box. Scallop: 12-lobed cookie; blob: soft four-lobe organic form; circle: full disc.
 function scallopPath() {
   const lobes = 12;
   const points: string[] = [];
@@ -15,12 +15,13 @@ function scallopPath() {
 const PATHS = {
   scallop: scallopPath(),
   blob: "M50 4C68 4 79 13 88 26C97 39 98 55 92 70C86 85 72 96 54 96C36 96 20 89 11 75C2 61 3 43 10 30C18 15 32 4 50 4Z",
+  circle: "M50 0A50 50 0 1 1 50 100A50 50 0 1 1 50 0Z",
 } as const;
 
 /** Decorative M3 Expressive shape placed behind hero content. Color comes from the `className` (fill-*). */
 export function ExpressiveShape({ shape, className }: { shape: keyof typeof PATHS; className?: string }) {
   return (
-    // The blob stretches to its box (it sits behind words of varying length); the scallop keeps its proportions.
+    // The blob stretches to its box (it sits behind words of varying length); the scallop and circle keep their proportions.
     <svg viewBox="0 0 100 100" preserveAspectRatio={shape === "blob" ? "none" : undefined} aria-hidden focusable="false" className={cn("pointer-events-none", className)}>
       <path d={PATHS[shape]} />
     </svg>

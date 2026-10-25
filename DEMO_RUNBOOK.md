@@ -4,7 +4,7 @@ Three minutes, click by click. The words to say are in [HACKATHON_PITCH.md](HACK
 
 The storefront is **Northwind Supply**, our own reference shop (`Invinciblx777/faultline-reference-shop`). The second project is **Daluxe Official**, a live store we built for a client, scanned read-only. Say which is which.
 
-**Backup video:** [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm), 2 min 39 s, 1366×768, captions, no audio, 22.4 MB. Recorded on 2026-10-25 at 04:17 IST on the Material 3 Expressive interface from a clean browser context; `pnpm demo:preflight` passed 10 of 10 at 04:20 IST. It follows the route below, tabs A to E (F, G and H are GitHub and Devin pages).
+**Demo video:** [`docs/demo/faultline-demo-video.mp4`](docs/demo/faultline-demo-video.mp4), 2 min 35 s, 1440×900, H.264, captions and voiceover, 11.7 MB: Break, Understand, Fix, Prove on tabs B to E. Scene list and sources in [docs/demo/README.md](docs/demo/README.md). The earlier walkthrough, [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm) (2 min 39 s), stays as a second backup.
 
 ## 10 minutes before
 
@@ -72,7 +72,7 @@ On tab E, **Verify again commit b750bd308837** queues a new independent run of t
 | Web app down | `GITHUB_TOKEN=$(gh auth token) pnpm start:web` |
 | Database schema FAIL | `pnpm db:migrate`, then restart web and worker |
 | GitHub or Devin asks for login | Show the same facts on tab E |
-| Anything else, or less than a minute to fix | Play [`docs/demo/faultline-walkthrough.webm`](docs/demo/faultline-walkthrough.webm) and narrate over it |
+| Anything else, or less than a minute to fix | Play [`docs/demo/faultline-demo-video.mp4`](docs/demo/faultline-demo-video.mp4) and narrate over it |
 
 ## Do not
 

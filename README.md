@@ -103,7 +103,7 @@ More detail: [docs/architecture.md](docs/architecture.md), [docs/security.md](do
 - Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
 - AI usage record: [AI_USAGE.md](AI_USAGE.md)
 - Build record: [PHASE_STATUS.md](PHASE_STATUS.md), [CHANGELOG.md](CHANGELOG.md), [FINAL_VERIFICATION_REPORT.md](FINAL_VERIFICATION_REPORT.md)
-- Demo: [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md), [HACKATHON_PITCH.md](HACKATHON_PITCH.md), [SUBMISSION.md](SUBMISSION.md)
+- Demo: [video](docs/demo/faultline-demo-video.mp4) ([scenes](docs/demo/README.md)), [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md), [HACKATHON_PITCH.md](HACKATHON_PITCH.md), [SUBMISSION.md](SUBMISSION.md)
 
 ---
 

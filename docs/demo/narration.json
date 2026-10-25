@@ -1,0 +1,22 @@
+[
+ [0.6, 8.5, "FAULTLINE. Break it. Understand it. Fix it. Prove it."],
+ [9.5, 20.25, "A real checkout journey runs in Chromium, with one dependency broken at a time. Five of eight experiments break the journey."],
+ [20.25, 23.75, "One 503 from the inventory API takes down checkout."],
+ [23.75, 33.25, "The finding: the affected steps, the reasons, reproduced in a second run."],
+ [33.25, 38.25, "A live client store, scan only. Same engine, real production site."],
+ [38.25, 45.5, "Its visitors' browsers call localhost 8081: a development endpoint shipped to production."],
+ [45.5, 50.75, "Broken, and reproduced. Every reason comes from a recorded execution."],
+ [50.75, 59.75, "Reality Split: the normal run, and the run with inventory failing."],
+ [59.75, 69.25, "The causal timeline: fault injected, request failed, console error, assertion failed."],
+ [69.25, 80.25, "A generated Playwright test that fails today. The test is the contract for the fix."],
+ [80.25, 85.75, "A human approved checksum-locked evidence. FAULTLINE opened one Devin session."],
+ [85.75, 91.5, "Approved by a human click. Nothing is approved on camera."],
+ [91.5, 98.75, "The Devin session opened pull request number one on the reference shop. The repo is private until release."],
+ [98.75, 106.0, "FAULTLINE re-ran its own unchanged test on Devin's exact commit, in a container with no network."],
+ [106.0, 113.5, "Under the identical injected fault, the original fails two of two. Devin's commit passes two of two. Verified fixed."],
+ [113.5, 121.25, "Before and after screenshots, under the same fault. The verdict is posted on the pull request. FAULTLINE never merges."],
+ [121.25, 129.5, "The agent's own stated limitation, quoted from the pull request. FAULTLINE tests it next."],
+ [129.5, 136.0, "Cross-check, on a stricter journey: can an out-of-stock item still be bought while inventory is down?"],
+ [136.0, 145.0, "Still failing. Devin said fixed. FAULTLINE proved it, and found the hole."],
+ [145.6, 154.6, "AI can write the fix. FAULTLINE proves whether it works."]
+]

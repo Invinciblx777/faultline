@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FAULTLINE demo card</title>
+    <!-- Title card for scripts/record-demo.mjs. Text comes from the URL hash: #beat=…&caption=…&meta=… -->
+    <style>
+      @font-face {
+        font-family: "Manrope Variable";
+        font-weight: 200 800;
+        src: url("../../apps/web/node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2") format("woff2");
+      }
+      :root {
+        /* Values copied from apps/web/src/design/tokens.css (dark scheme). */
+        --surface: #19120d;
+        --surface-container: #261e19;
+        --on-surface: #efe0d7;
+        --on-surface-variant: #d6c3b6;
+        --primary: #c1c3ff;
+        --secondary-container: #634000;
+        --on-secondary-container: #ffddb5;
+      }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--surface);
+        color: var(--on-surface);
+        font-family: "Manrope Variable", Manrope, system-ui, sans-serif;
+      }
+      main {
+        display: grid;
+        place-items: center;
+        height: 100%;
+      }
+      .card {
+        width: min(960px, 80vw);
+        padding: 56px 64px;
+        border-radius: 16px;
+        background: var(--surface-container);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        animation: in 500ms cubic-bezier(0.2, 0, 0, 1);
+      }
+      .beat {
+        align-self: flex-start;
+        padding: 8px 18px;
+        border-radius: 999px;
+        background: var(--secondary-container);
+        color: var(--on-secondary-container);
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 0.12em;
+        word-spacing: 0.2em;
+      }
+      .caption {
+        font-size: 44px;
+        line-height: 1.2;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .meta {
+        font-size: 20px;
+        color: var(--on-surface-variant);
+        font-family: ui-monospace, "SFMono-Regular", monospace;
+      }
+      .meta:empty {
+        display: none;
+      }
+      @keyframes in {
+        from {
+          transform: translateY(12px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="card">
+        <span class="beat" id="beat"></span>
+        <div class="caption" id="caption"></div>
+        <div class="meta" id="meta"></div>
+      </section>
+    </main>
+    <script>
+      const params = new URLSearchParams(location.hash.slice(1));
+      for (const id of ["beat", "caption", "meta"]) document.getElementById(id).textContent = params.get(id) ?? "";
+    </script>
+  </body>
+</html>
